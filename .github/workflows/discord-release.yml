@@ -5,6 +5,8 @@ on:
     types:
       - published
 
+  workflow_dispatch:
+
 permissions:
   contents: read
 
@@ -16,10 +18,10 @@ jobs:
       - name: Send release announcement to Discord
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
-          RELEASE_BODY: ${{ github.event.release.body }}
-          RELEASE_PUBLISHED_AT: ${{ github.event.release.published_at }}
-          RELEASE_PRERELEASE: ${{ github.event.release.prerelease }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
+          GITHUB_EVENT_PATH: ${{ github.event_path }}
 
         run: |
           python <<'PY'
@@ -30,16 +32,71 @@ jobs:
           from zoneinfo import ZoneInfo
 
           webhook_url = os.environ["DISCORD_WEBHOOK_URL"]
+          github_token = os.environ["GITHUB_TOKEN"]
+          repository = os.environ["GITHUB_REPOSITORY"]
+          event_name = os.environ["GITHUB_EVENT_NAME"]
+          event_path = os.environ["GITHUB_EVENT_PATH"]
 
-          release_tag = os.environ.get("RELEASE_TAG", "").strip()
-          release_body = os.environ.get("RELEASE_BODY", "").strip()
-          published_at = os.environ.get("RELEASE_PUBLISHED_AT", "").strip()
-          prerelease = (
-              os.environ.get("RELEASE_PRERELEASE", "false").lower()
-              == "true"
-          )
+          # -----------------------------------------
+          # Get the release
+          # -----------------------------------------
+
+          if event_name == "release":
+              with open(event_path, "r", encoding="utf-8") as f:
+                  event = json.load(f)
+
+              release = event["release"]
+
+          else:
+              # Manual Run Workflow:
+              # Find the most recently published non-draft release.
+              api_url = (
+                  f"https://api.github.com/repos/"
+                  f"{repository}/releases?per_page=10"
+              )
+
+              request = urllib.request.Request(
+                  api_url,
+                  headers={
+                      "Authorization": f"Bearer {github_token}",
+                      "Accept": "application/vnd.github+json",
+                      "User-Agent": "RecordsWeb-Release-Notifier"
+                  }
+              )
+
+              with urllib.request.urlopen(request) as response:
+                  releases = json.loads(
+                      response.read().decode("utf-8")
+                  )
+
+              release = next(
+                  (
+                      item
+                      for item in releases
+                      if not item.get("draft", False)
+                  ),
+                  None
+              )
+
+              if not release:
+                  raise RuntimeError(
+                      "No published RecordsWeb release was found."
+                  )
+
+          # -----------------------------------------
+          # Release information
+          # -----------------------------------------
+
+          release_tag = release.get("tag_name", "").strip()
+          release_body = (release.get("body") or "").strip()
+          published_at = release.get("published_at") or ""
+          prerelease = release.get("prerelease", False)
 
           version = release_tag.lstrip("vV")
+
+          # -----------------------------------------
+          # UK date/time
+          # -----------------------------------------
 
           if published_at:
               published = datetime.fromisoformat(
@@ -52,15 +109,22 @@ jobs:
 
               date_string = published_uk.strftime("%d/%m/%Y")
               time_string = published_uk.strftime("%H:%M")
+
           else:
               date_string = "Unknown"
               time_string = "Unknown"
+
+          # -----------------------------------------
+          # Release notes
+          # -----------------------------------------
 
           if not release_body:
               release_body = "- No release notes were provided."
 
           if len(release_body) > 3000:
-              release_body = release_body[:2997] + "..."
+              release_body = (
+                  release_body[:2997] + "..."
+              )
 
           title = f"RecordsWeb V{version}"
 
@@ -70,9 +134,15 @@ jobs:
           description = (
               f"Updated at **{date_string} {time_string}**\n"
               f"━━━━━━━━━━━━━━━━━━━━\n"
-              f"**What was added**\n\n"
+              f"\n"
+              f"**What was added**\n"
+              f"\n"
               f"{release_body}"
           )
+
+          # -----------------------------------------
+          # Discord embed
+          # -----------------------------------------
 
           payload = {
               "username": "RecordsWeb Updates",
@@ -82,11 +152,18 @@ jobs:
                       "description": description,
                       "color": 3447003,
                       "footer": {
-                          "text": "RecordsWeb • Grove Way Health Centre"
+                          "text": (
+                              "RecordsWeb • "
+                              "Grove Way Health Centre"
+                          )
                       }
                   }
               ]
           }
+
+          # -----------------------------------------
+          # Send to Discord
+          # -----------------------------------------
 
           request = urllib.request.Request(
               webhook_url,
@@ -100,7 +177,11 @@ jobs:
 
           with urllib.request.urlopen(request) as response:
               print(
-                  f"Discord notification completed with HTTP "
-                  f"{response.status}"
+                  "Discord notification sent successfully. "
+                  f"HTTP {response.status}"
               )
+
+          print(
+              f"Sent RecordsWeb V{version} to Discord."
+          )
           PY
