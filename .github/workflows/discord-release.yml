@@ -17,9 +17,7 @@ jobs:
         env:
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
           RELEASE_TAG: ${{ github.event.release.tag_name }}
-          RELEASE_NAME: ${{ github.event.release.name }}
           RELEASE_BODY: ${{ github.event.release.body }}
-          RELEASE_URL: ${{ github.event.release.html_url }}
           RELEASE_PUBLISHED_AT: ${{ github.event.release.published_at }}
           RELEASE_PRERELEASE: ${{ github.event.release.prerelease }}
 
@@ -34,16 +32,15 @@ jobs:
           webhook_url = os.environ["DISCORD_WEBHOOK_URL"]
 
           release_tag = os.environ.get("RELEASE_TAG", "").strip()
-          release_name = os.environ.get("RELEASE_NAME", "").strip()
           release_body = os.environ.get("RELEASE_BODY", "").strip()
-          release_url = os.environ.get("RELEASE_URL", "").strip()
           published_at = os.environ.get("RELEASE_PUBLISHED_AT", "").strip()
-          prerelease = os.environ.get("RELEASE_PRERELEASE", "false").lower() == "true"
+          prerelease = (
+              os.environ.get("RELEASE_PRERELEASE", "false").lower()
+              == "true"
+          )
 
-          # Turn v3.1.4 into 3.1.4
           version = release_tag.lstrip("vV")
 
-          # Convert GitHub UTC timestamp to UK time.
           if published_at:
               published = datetime.fromisoformat(
                   published_at.replace("Z", "+00:00")
@@ -62,7 +59,6 @@ jobs:
           if not release_body:
               release_body = "- No release notes were provided."
 
-          # Keep Discord embed description within a safe length.
           if len(release_body) > 3000:
               release_body = release_body[:2997] + "..."
 
@@ -74,7 +70,7 @@ jobs:
           description = (
               f"Updated at **{date_string} {time_string}**\n"
               f"━━━━━━━━━━━━━━━━━━━━\n"
-              f"### What was added\n\n"
+              f"**What was added**\n\n"
               f"{release_body}"
           )
 
@@ -83,7 +79,6 @@ jobs:
               "embeds": [
                   {
                       "title": title,
-                      "url": release_url,
                       "description": description,
                       "color": 3447003,
                       "footer": {
@@ -98,14 +93,14 @@ jobs:
               data=json.dumps(payload).encode("utf-8"),
               headers={
                   "Content-Type": "application/json",
-                  "User-Agent": "RecordsWeb-GitHub-Actions"
+                  "User-Agent": "RecordsWeb-Release-Notifier"
               },
               method="POST"
           )
 
           with urllib.request.urlopen(request) as response:
               print(
-                  f"Discord webhook completed with HTTP "
+                  f"Discord notification completed with HTTP "
                   f"{response.status}"
               )
           PY
