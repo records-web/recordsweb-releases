@@ -3276,7 +3276,7 @@ html.rw-web-runtime .desktop-titlebar { -webkit-app-region: no-drag; }
   html.rw-web-runtime .desktop-titlebar > strong { margin-left: 0; text-align: left; }
 }
 
-/* RecordsWeb Web 3.2.0 — Supabase-driven browser update gate */
+/* RecordsWeb Web 3.1.9 — Supabase-driven browser update gate */
 .web-update-notice {
   position: fixed;
   z-index: 100000;

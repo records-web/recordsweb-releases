@@ -146,17 +146,22 @@ export default function AppShell({ children }) {
 
       if (!installer?.browser_download_url) throw new Error('No Windows installer was attached to the latest release.')
 
+      // GitHub release assets are served with Content-Disposition: attachment, so
+      // clicking the asset URL starts the installer download instead of opening
+      // the GitHub release page. The download attribute is included as an
+      // additional browser hint.
       const link = document.createElement('a')
       link.href = installer.browser_download_url
+      link.download = installer.name || 'RecordsWeb-Setup.exe'
       link.rel = 'noopener noreferrer'
+      link.style.display = 'none'
       document.body.appendChild(link)
       link.click()
       link.remove()
       temporaryNotice(`Downloading ${installer.name}`)
     } catch (error) {
       console.error('Unable to download latest RecordsWeb desktop release.', error)
-      temporaryNotice('Could not start the download. Opening the latest GitHub release instead.')
-      window.open('https://github.com/records-web/recordsweb-releases/releases/latest', '_blank', 'noopener,noreferrer')
+      temporaryNotice('Could not start the software download. Please try again.')
     } finally {
       setDownloadBusy(false)
     }

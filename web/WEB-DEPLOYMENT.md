@@ -1,4 +1,4 @@
-# RecordsWeb Web 3.2.0
+# RecordsWeb Web 3.1.9
 
 This project is the browser-hosted RecordsWeb application for Grove Way Health Centre. It retains the desktop-style RecordsWeb interface, clinical pages, Supabase integration, consultation template, appointments/check-in wait timer, documents, staff area, management tools, security controls and messaging.
 
@@ -32,7 +32,7 @@ Never expose `SUPABASE_SERVICE_ROLE_KEY` or another server-side secret in Vite/b
 
 ## Web auto-updates
 
-RecordsWeb Web 3.2.0 uses `public.app_releases` as its update gate.
+RecordsWeb Web 3.1.9 uses `public.app_releases` as its update gate.
 
 By default:
 
@@ -96,7 +96,7 @@ RecordsWeb/
 
 Then:
 
-- Create GitHub Releases such as `v3.2.0` at repository level.
+- Create GitHub Releases such as `v3.1.9` at repository level.
 - Put the Windows installer, `.blockmap` and `latest.yml` on that GitHub Release.
 - Connect Vercel to the same GitHub repository and set **Root Directory** to `web`.
 - Vercel deploys the website from the `web/` folder whenever the configured branch changes.

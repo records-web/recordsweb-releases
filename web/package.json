@@ -2,7 +2,7 @@
   "name": "recordsweb-web",
   "productName": "RecordsWeb Web",
   "private": true,
-  "version": "3.2.0",
+  "version": "3.1.9",
   "description": "RecordsWeb browser clinical records application for Grove Way Health Centre",
   "type": "module",
   "scripts": {

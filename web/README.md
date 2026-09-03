@@ -1,11 +1,11 @@
 # RecordsWeb Web
 
-**Version:** 3.2.0  
+**Version:** 3.1.9  
 **Runtime:** Browser / Vite / React
 
 This is the web-hosted RecordsWeb application for Grove Way Health Centre. It keeps the RecordsWeb desktop visual language and core clinical workflow while replacing Electron-specific window, installer and native APIs with browser equivalents.
 
-## Included in 3.2.0
+## Included in 3.1.9
 
 - RecordsWeb login/account flow
 - Patient Search and Patient Summary
