@@ -4,16 +4,16 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: Existing GitHub release tag, for example v3.2.0
+        description: "Existing GitHub release tag to attach the macOS build to (for example v3.1.9)"
         required: true
         type: string
       source_ref:
-        description: Git ref containing the matching desktop source
+        description: "Branch/tag/commit containing the app source"
         required: true
-        default: main
+        default: "main"
         type: string
       allow_unsigned:
-        description: Allow an unsigned test build when Apple signing secrets are not configured
+        description: "Allow an unsigned macOS build when signing secrets are not configured"
         required: true
         default: true
         type: boolean
@@ -26,113 +26,165 @@ jobs:
     name: Universal macOS DMG
     runs-on: macos-latest
 
+    env:
+      GH_TOKEN: ${{ github.token }}
+      RELEASE_TAG: ${{ inputs.release_tag }}
+
     steps:
       - name: Checkout RecordsWeb
         uses: actions/checkout@v4
         with:
           ref: ${{ inputs.source_ref }}
+          fetch-depth: 0
+
+      - name: Confirm repository layout
+        shell: bash
+        run: |
+          echo "Repository root:"
+          pwd
+          echo
+          echo "Root contents:"
+          ls -la
+          echo
+          if [[ ! -d "app" ]]; then
+            echo "::error::The app/ directory does not exist in this checkout."
+            exit 1
+          fi
+          if [[ ! -f "app/package.json" ]]; then
+            echo "::error::app/package.json was not found."
+            exit 1
+          fi
+          if [[ ! -f "app/package-lock.json" ]]; then
+            echo "::error::app/package-lock.json was not found."
+            exit 1
+          fi
+          echo "app/ directory found successfully."
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: app/package-lock.json
 
-      - name: Verify desktop version and release
-        working-directory: desktop
+      - name: Validate release version
+        working-directory: app
         shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
           VERSION="$(node -p "require('./package.json').version")"
           TAG_VERSION="${RELEASE_TAG#v}"
 
-          echo "Desktop package version: $VERSION"
+          echo "App package version: $VERSION"
           echo "Target release tag: $RELEASE_TAG"
 
           if [[ "$VERSION" != "$TAG_VERSION" ]]; then
-            echo "::error::desktop/package.json is version $VERSION but the target release is $RELEASE_TAG. Update package.json before building this release."
+            echo "::error::app/package.json is version $VERSION but the target release is $RELEASE_TAG. Update app/package.json or choose the matching release tag."
             exit 1
           fi
 
-          gh release view "$RELEASE_TAG" --repo "${{ github.repository }}" >/dev/null
+          gh release view "$RELEASE_TAG" \
+            --repo "${{ github.repository }}" \
+            >/dev/null
 
-      - name: Check macOS signing mode
+          echo "Existing GitHub release $RELEASE_TAG found."
+
+      - name: Install dependencies
+        working-directory: app
+        run: npm ci
+
+      - name: Check macOS packaging script
+        working-directory: app
         shell: bash
-        env:
-          CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
-          ALLOW_UNSIGNED: ${{ inputs.allow_unsigned }}
         run: |
-          if [[ -n "$CSC_LINK" ]]; then
-            echo "Apple Developer signing certificate is configured. The app will be signed."
-          elif [[ "$ALLOW_UNSIGNED" == "true" ]]; then
-            echo "::warning::No Apple Developer certificate is configured. An unsigned DMG will be generated. macOS automatic updates will NOT work until the app is signed."
-          else
-            echo "::error::No Apple Developer signing certificate is configured. Add MAC_CSC_LINK and MAC_CSC_KEY_PASSWORD secrets, or allow an unsigned build."
+          if ! node -e "const p=require('./package.json'); process.exit(p.scripts && p.scripts['package:mac'] ? 0 : 1)"; then
+            echo "::error::package.json does not contain a package:mac npm script."
+            echo "Available npm scripts:"
+            npm run
             exit 1
           fi
+          echo "package:mac script found."
 
-      - name: Install desktop dependencies
-        working-directory: desktop
-        run: npm install --no-audit --no-fund
+      - name: Configure unsigned build
+        if: ${{ inputs.allow_unsigned }}
+        shell: bash
+        run: |
+          if [[ -z "${CSC_LINK:-}" ]]; then
+            echo "CSC_IDENTITY_AUTO_DISCOVERY=false" >> "$GITHUB_ENV"
+          fi
 
-      - name: Build Universal macOS release
-        working-directory: desktop
+      - name: Build universal macOS package
+        working-directory: app
         env:
-          VITE_GITHUB_UPDATE_OWNER: records-web
-          VITE_GITHUB_UPDATE_REPO: recordsweb-releases
           CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-          CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.MAC_CSC_LINK == '' && 'false' || 'true' }}
         run: npm run package:mac
 
       - name: Collect macOS release assets
-        id: assets
-        working-directory: desktop
+        working-directory: app
         shell: bash
         run: |
+          set -euo pipefail
+
+          rm -rf mac-release-assets
           mkdir -p mac-release-assets
 
+          echo "Searching for generated macOS files..."
+
           while IFS= read -r -d '' file; do
+            echo "Found: $file"
             cp "$file" mac-release-assets/
-          done < <(find release -type f \( \
-            -name 'RecordsWeb-*-macOS-*.dmg' -o \
-            -name 'RecordsWeb-*-macOS-*.zip' -o \
-            -name 'latest-mac.yml' -o \
-            -name '*.dmg.blockmap' -o \
-            -name '*.zip.blockmap' \
-          \) -print0)
+          done < <(
+            find . \
+              -type f \
+              \( \
+                -name "*.dmg" -o \
+                -name "*-mac.zip" -o \
+                -name "*macOS*.zip" -o \
+                -name "latest-mac.yml" \
+              \) \
+              -not -path "./node_modules/*" \
+              -not -path "./mac-release-assets/*" \
+              -print0
+          )
 
-          echo "macOS assets:"
-          ls -lah mac-release-assets
+          echo
+          echo "Collected release assets:"
+          ls -lah mac-release-assets || true
 
-          if ! compgen -G 'mac-release-assets/*.dmg' > /dev/null; then
-            echo "::error::No DMG was produced."
+          DMG_COUNT="$(find mac-release-assets -maxdepth 1 -type f -name '*.dmg' | wc -l | tr -d ' ')"
+
+          if [[ "$DMG_COUNT" == "0" ]]; then
+            echo "::error::The build completed but no .dmg file was found."
+            echo "Files near common build output directories:"
+            find . -maxdepth 3 -type f \
+              \( -path "./dist/*" -o -path "./release/*" -o -path "./out/*" -o -path "./build/*" \) \
+              -print || true
             exit 1
           fi
 
-          if [[ ! -f mac-release-assets/latest-mac.yml ]]; then
-            echo "::error::latest-mac.yml was not produced. The macOS updater would not be able to detect releases."
-            exit 1
-          fi
-
-      - name: Upload macOS files to this GitHub Release
-        working-directory: desktop
-        shell: bash
-        env:
-          GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.release_tag }}
-        run: |
-          gh release upload "$RELEASE_TAG" mac-release-assets/* \
-            --repo "${{ github.repository }}" \
-            --clobber
-
-      - name: Keep workflow artifact copy
+      - name: Upload workflow artifact
         uses: actions/upload-artifact@v4
         with:
           name: RecordsWeb-${{ inputs.release_tag }}-macOS
-          path: desktop/mac-release-assets/*
+          path: app/mac-release-assets/*
           if-no-files-found: error
+          retention-days: 14
+
+      - name: Attach macOS files to GitHub Release
+        shell: bash
+        run: |
+          echo "Uploading macOS assets to $RELEASE_TAG..."
+          gh release upload "$RELEASE_TAG" \
+            app/mac-release-assets/* \
+            --repo "${{ github.repository }}" \
+            --clobber
+
+          echo
+          echo "Release assets now attached to $RELEASE_TAG:"
+          gh release view "$RELEASE_TAG" \
+            --repo "${{ github.repository }}" \
+            --json assets \
+            --jq '.assets[].name'
