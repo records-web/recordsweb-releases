@@ -30,6 +30,11 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       RELEASE_TAG: ${{ inputs.release_tag }}
 
+      # RecordsWeb desktop auto-update repository.
+      # These are public repository identifiers, not secrets.
+      VITE_GITHUB_UPDATE_OWNER: records-web
+      VITE_GITHUB_UPDATE_REPO: recordsweb-releases
+
     steps:
       - name: Checkout RecordsWeb
         uses: actions/checkout@v4
@@ -46,18 +51,22 @@ jobs:
           echo "Root contents:"
           ls -la
           echo
+
           if [[ ! -d "app" ]]; then
             echo "::error::The app/ directory does not exist in this checkout."
             exit 1
           fi
+
           if [[ ! -f "app/package.json" ]]; then
             echo "::error::app/package.json was not found."
             exit 1
           fi
+
           if [[ ! -f "app/package-lock.json" ]]; then
             echo "::error::app/package-lock.json was not found."
             exit 1
           fi
+
           echo "app/ directory found successfully."
 
       - name: Set up Node.js
@@ -76,6 +85,7 @@ jobs:
 
           echo "App package version: $VERSION"
           echo "Target release tag: $RELEASE_TAG"
+          echo "GitHub update repository: ${VITE_GITHUB_UPDATE_OWNER}/${VITE_GITHUB_UPDATE_REPO}"
 
           if [[ "$VERSION" != "$TAG_VERSION" ]]; then
             echo "::error::app/package.json is version $VERSION but the target release is $RELEASE_TAG. Update app/package.json or choose the matching release tag."
@@ -102,7 +112,19 @@ jobs:
             npm run
             exit 1
           fi
+
           echo "package:mac script found."
+
+      - name: Check updater configuration
+        shell: bash
+        run: |
+          if [[ -z "${VITE_GITHUB_UPDATE_OWNER:-}" || -z "${VITE_GITHUB_UPDATE_REPO:-}" ]]; then
+            echo "::error::RecordsWeb GitHub updater configuration is missing."
+            exit 1
+          fi
+
+          echo "Updater repository configured as:"
+          echo "${VITE_GITHUB_UPDATE_OWNER}/${VITE_GITHUB_UPDATE_REPO}"
 
       - name: Configure unsigned build
         if: ${{ inputs.allow_unsigned }}
@@ -110,6 +132,7 @@ jobs:
         run: |
           if [[ -z "${CSC_LINK:-}" ]]; then
             echo "CSC_IDENTITY_AUTO_DISCOVERY=false" >> "$GITHUB_ENV"
+            echo "No macOS signing certificate configured; building unsigned."
           fi
 
       - name: Build universal macOS package
@@ -143,7 +166,9 @@ jobs:
                 -name "*.dmg" -o \
                 -name "*-mac.zip" -o \
                 -name "*macOS*.zip" -o \
-                -name "latest-mac.yml" \
+                -name "latest-mac.yml" -o \
+                -name "*.dmg.blockmap" -o \
+                -name "*.zip.blockmap" \
               \) \
               -not -path "./node_modules/*" \
               -not -path "./mac-release-assets/*" \
@@ -158,11 +183,21 @@ jobs:
 
           if [[ "$DMG_COUNT" == "0" ]]; then
             echo "::error::The build completed but no .dmg file was found."
+            echo
             echo "Files near common build output directories:"
             find . -maxdepth 3 -type f \
-              \( -path "./dist/*" -o -path "./release/*" -o -path "./out/*" -o -path "./build/*" \) \
+              \( \
+                -path "./dist/*" -o \
+                -path "./release/*" -o \
+                -path "./out/*" -o \
+                -path "./build/*" \
+              \) \
               -print || true
             exit 1
+          fi
+
+          if [[ ! -f "mac-release-assets/latest-mac.yml" ]]; then
+            echo "::warning::No latest-mac.yml was collected. Manual DMG installation will still be possible, but macOS auto-update metadata may be unavailable."
           fi
 
       - name: Upload workflow artifact
@@ -177,6 +212,7 @@ jobs:
         shell: bash
         run: |
           echo "Uploading macOS assets to $RELEASE_TAG..."
+
           gh release upload "$RELEASE_TAG" \
             app/mac-release-assets/* \
             --repo "${{ github.repository }}" \
@@ -184,6 +220,7 @@ jobs:
 
           echo
           echo "Release assets now attached to $RELEASE_TAG:"
+
           gh release view "$RELEASE_TAG" \
             --repo "${{ github.repository }}" \
             --json assets \
