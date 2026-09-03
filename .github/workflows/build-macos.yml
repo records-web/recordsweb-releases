@@ -38,7 +38,7 @@ jobs:
           node-version: 22
 
       - name: Verify desktop version and release
-        working-directory: desktop
+        working-directory: app
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
