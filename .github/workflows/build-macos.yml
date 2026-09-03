@@ -1,0 +1,138 @@
+name: Build RecordsWeb macOS
+
+on:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: Existing GitHub release tag, for example v3.2.0
+        required: true
+        type: string
+      source_ref:
+        description: Git ref containing the matching desktop source
+        required: true
+        default: main
+        type: string
+      allow_unsigned:
+        description: Allow an unsigned test build when Apple signing secrets are not configured
+        required: true
+        default: true
+        type: boolean
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    name: Universal macOS DMG
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout RecordsWeb
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.source_ref }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Verify desktop version and release
+        working-directory: desktop
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          TAG_VERSION="${RELEASE_TAG#v}"
+
+          echo "Desktop package version: $VERSION"
+          echo "Target release tag: $RELEASE_TAG"
+
+          if [[ "$VERSION" != "$TAG_VERSION" ]]; then
+            echo "::error::desktop/package.json is version $VERSION but the target release is $RELEASE_TAG. Update package.json before building this release."
+            exit 1
+          fi
+
+          gh release view "$RELEASE_TAG" --repo "${{ github.repository }}" >/dev/null
+
+      - name: Check macOS signing mode
+        shell: bash
+        env:
+          CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          ALLOW_UNSIGNED: ${{ inputs.allow_unsigned }}
+        run: |
+          if [[ -n "$CSC_LINK" ]]; then
+            echo "Apple Developer signing certificate is configured. The app will be signed."
+          elif [[ "$ALLOW_UNSIGNED" == "true" ]]; then
+            echo "::warning::No Apple Developer certificate is configured. An unsigned DMG will be generated. macOS automatic updates will NOT work until the app is signed."
+          else
+            echo "::error::No Apple Developer signing certificate is configured. Add MAC_CSC_LINK and MAC_CSC_KEY_PASSWORD secrets, or allow an unsigned build."
+            exit 1
+          fi
+
+      - name: Install desktop dependencies
+        working-directory: desktop
+        run: npm install --no-audit --no-fund
+
+      - name: Build Universal macOS release
+        working-directory: desktop
+        env:
+          VITE_GITHUB_UPDATE_OWNER: records-web
+          VITE_GITHUB_UPDATE_REPO: recordsweb-releases
+          CSC_LINK: ${{ secrets.MAC_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.MAC_CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          CSC_IDENTITY_AUTO_DISCOVERY: ${{ secrets.MAC_CSC_LINK == '' && 'false' || 'true' }}
+        run: npm run package:mac
+
+      - name: Collect macOS release assets
+        id: assets
+        working-directory: desktop
+        shell: bash
+        run: |
+          mkdir -p mac-release-assets
+
+          while IFS= read -r -d '' file; do
+            cp "$file" mac-release-assets/
+          done < <(find release -type f \( \
+            -name 'RecordsWeb-*-macOS-*.dmg' -o \
+            -name 'RecordsWeb-*-macOS-*.zip' -o \
+            -name 'latest-mac.yml' -o \
+            -name '*.dmg.blockmap' -o \
+            -name '*.zip.blockmap' \
+          \) -print0)
+
+          echo "macOS assets:"
+          ls -lah mac-release-assets
+
+          if ! compgen -G 'mac-release-assets/*.dmg' > /dev/null; then
+            echo "::error::No DMG was produced."
+            exit 1
+          fi
+
+          if [[ ! -f mac-release-assets/latest-mac.yml ]]; then
+            echo "::error::latest-mac.yml was not produced. The macOS updater would not be able to detect releases."
+            exit 1
+          fi
+
+      - name: Upload macOS files to this GitHub Release
+        working-directory: desktop
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          gh release upload "$RELEASE_TAG" mac-release-assets/* \
+            --repo "${{ github.repository }}" \
+            --clobber
+
+      - name: Keep workflow artifact copy
+        uses: actions/upload-artifact@v4
+        with:
+          name: RecordsWeb-${{ inputs.release_tag }}-macOS
+          path: desktop/mac-release-assets/*
+          if-no-files-found: error
