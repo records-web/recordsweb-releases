@@ -1,0 +1,4 @@
+import React,{useEffect,useState} from 'react'
+import { CheckCircle2, RefreshCcw, XCircle } from 'lucide-react'
+import { checkSystemHealth } from '../../lib/systemHealth'
+export default function SystemStatusPanel(){const[checks,setChecks]=useState([]),[busy,setBusy]=useState(false);async function load(){setBusy(true);try{setChecks(await checkSystemHealth())}finally{setBusy(false)}}useEffect(()=>{load()},[]);return <section className="management-panel system-status-panel"><header><strong>System status</strong><div className="management-panel-spacer"/><button className="secondary-button" onClick={load}><RefreshCcw size={13}/> Refresh</button></header><div className="system-health-grid">{checks.map(c=><div key={c.name} className={c.ok?'health-ok':'health-bad'}>{c.ok?<CheckCircle2 size={18}/>:<XCircle size={18}/>}<div><strong>{c.name}</strong><span>{c.detail}</span></div></div>)}{busy&&<div className="empty-state">Checking RecordsWeb services…</div>}</div></section>}

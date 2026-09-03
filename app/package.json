@@ -1,0 +1,114 @@
+{
+  "name": "recordsweb",
+  "productName": "RecordsWeb",
+  "private": true,
+  "version": "3.1.9",
+  "description": "RecordsWeb desktop clinical records application for Grove Way Health Centre",
+  "main": "electron/main.cjs",
+  "type": "module",
+  "scripts": {
+    "dev": "concurrently -k \"npm:dev:renderer\" \"npm:dev:electron\"",
+    "dev:renderer": "vite --host 127.0.0.1",
+    "dev:electron": "wait-on tcp:5173 && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 electron .",
+    "build": "vite build",
+    "preview": "vite preview",
+    "package": "npm run build && node scripts/run-electron-builder.cjs",
+    "package:win": "npm run build && node scripts/run-electron-builder.cjs --win nsis",
+    "package:portable": "npm run build && node scripts/run-electron-builder.cjs --win portable",
+    "test:update": "concurrently -k \"npm:dev:renderer\" \"npm:test:update:electron\"",
+    "test:update:electron": "wait-on tcp:5173 && cross-env VITE_DEV_SERVER_URL=http://127.0.0.1:5173 RECORDSWEB_TEST_UPDATE=1 electron .",
+    "clean:release": "node scripts/clean-release.cjs",
+    "package:mac": "npm run build && node scripts/run-electron-builder.cjs --mac --universal"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.57.4",
+    "lucide-react": "^0.468.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.28.0",
+    "electron-updater": "^6.6.2"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.4",
+    "concurrently": "^9.1.2",
+    "cross-env": "^7.0.3",
+    "electron": "^35.0.0",
+    "electron-builder": "^25.1.8",
+    "vite": "^6.0.1",
+    "wait-on": "^8.0.2"
+  },
+  "build": {
+    "appId": "uk.recordsweb.desktop",
+    "productName": "RecordsWeb",
+    "asar": true,
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json",
+      "build/**/*"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "RecordsWeb-Setup-${version}.${ext}",
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "RecordsWeb",
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico",
+      "perMachine": false,
+      "allowElevation": false
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "${env.VITE_GITHUB_UPDATE_OWNER}",
+        "repo": "${env.VITE_GITHUB_UPDATE_REPO}",
+        "releaseType": "release",
+        "channel": "latest"
+      }
+    ],
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "artifactName": "RecordsWeb-${version}-macOS-${arch}.${ext}",
+      "icon": "build/icon.icns",
+      "category": "public.app-category.medical",
+      "hardenedRuntime": true,
+      "gatekeeperAssess": false
+    },
+    "dmg": {
+      "title": "RecordsWeb ${version}",
+      "artifactName": "RecordsWeb-${version}-macOS-${arch}.${ext}",
+      "contents": [
+        {
+          "x": 130,
+          "y": 220
+        },
+        {
+          "x": 410,
+          "y": 220,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    }
+  },
+  "author": "RecordsWeb / Grove Way Health Centre"
+}
