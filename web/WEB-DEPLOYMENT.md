@@ -133,3 +133,15 @@ The website includes Open Graph and Twitter/X card metadata in `index.html`. Sha
 - Site URL: `https://recordsweb.vercel.app/`
 
 Discord, WhatsApp, Teams, X and other services that support Open Graph/Twitter cards can use this metadata when generating a link preview. Preview services may cache metadata, so an older preview can remain visible for a while after a deployment.
+
+## Desktop software downloads (Windows + macOS)
+
+The footer download control detects the visitor's desktop operating system before downloading from the GitHub **Latest** Release:
+
+- Windows: selects `RecordsWeb-Setup-*.exe`
+- macOS: selects the latest `.dmg` (the Mac build is Universal for Apple Silicon and Intel)
+- Mobile/unknown: presents explicit Windows and macOS choices
+
+The site queries `https://api.github.com/repos/records-web/recordsweb-releases/releases/latest`, so the website does not need to be edited when the RecordsWeb version changes. Keep `api.github.com` in the Content Security Policy `connect-src` list.
+
+For a cross-platform release, publish the GitHub Release only after its Windows and macOS assets are both attached.

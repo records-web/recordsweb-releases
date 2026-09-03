@@ -3346,3 +3346,19 @@ html[data-theme='dark'] .web-update-copy span { color: #d1d9de; }
   .web-update-notice { grid-template-columns: 34px 1fr; }
   .web-update-refresh { grid-column: 1 / -1; width: 100%; }
 }
+
+
+/* Platform-aware RecordsWeb desktop download */
+.software-download-backdrop { z-index: 260; }
+.software-download-modal { width: min(520px, 94vw); }
+.software-download-modal > header span { margin-top: 2px; color: #6b8191; font-size: 10px; font-weight: 500; }
+.software-download-body { padding: 16px; font-size: 11px; line-height: 1.5; }
+.software-download-body p { margin: 0 0 10px; }
+.software-device-detected { display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; margin-bottom: 12px; border: 1px solid #b8d5ea; background: #eef7fd; color: #214f6f; }
+.software-device-detected span { color: #557286; font-size: 10px; }
+.software-download-choice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+.software-download-choice-grid button { min-height: 42px; }
+.software-download-actions { min-height: 48px; }
+html.rw-dark-mode .software-device-detected { background: #172a35; border-color: #365568; color: #d6edf9; }
+html.rw-dark-mode .software-device-detected span { color: #9fc0d1; }
+@media (max-width: 560px) { .software-download-choice-grid { grid-template-columns: 1fr; } }

@@ -16,6 +16,23 @@ import SessionLockOverlay from './security/SessionLockOverlay'
 import SystemNotificationCenter from './SystemNotificationCenter'
 import PatientPresenceBanner from './PatientPresenceBanner'
 
+function detectDesktopPlatform() {
+  const ua = String(navigator.userAgent || '')
+  const platform = String(navigator.userAgentData?.platform || navigator.platform || '')
+  const combined = `${platform} ${ua}`
+
+  if (/iphone|ipad|ipod|android/i.test(combined)) {
+    return { id: 'unsupported', label: 'Mobile device' }
+  }
+  if (/mac/i.test(combined)) {
+    return { id: 'macos', label: 'macOS' }
+  }
+  if (/win/i.test(combined)) {
+    return { id: 'windows', label: 'Windows' }
+  }
+  return { id: 'unsupported', label: 'Unknown device' }
+}
+
 export default function AppShell({ children }) {
   const { session, logout, updateProfile } = useAuth()
   const navigate = useNavigate()
@@ -33,6 +50,8 @@ export default function AppShell({ children }) {
   const [patientPeers, setPatientPeers] = useState([])
   const [locked, setLocked] = useState(false)
   const [downloadBusy, setDownloadBusy] = useState(false)
+  const [downloadPromptOpen, setDownloadPromptOpen] = useState(false)
+  const [desktopPlatform] = useState(() => detectDesktopPlatform())
   const lastActivityRef = useRef(Date.now())
   const lastPatientAuditRef = useRef('')
 
@@ -127,8 +146,9 @@ export default function AppShell({ children }) {
     setSettings(saveSettings({ ...settings, theme: nextTheme }))
   }
 
-  async function downloadLatestDesktopRelease() {
+  async function downloadLatestDesktopRelease(targetPlatform = desktopPlatform.id) {
     if (downloadBusy) return
+    if (!['windows', 'macos'].includes(targetPlatform)) return
     setDownloadBusy(true)
 
     try {
@@ -141,31 +161,44 @@ export default function AppShell({ children }) {
 
       const release = await response.json()
       const assets = Array.isArray(release?.assets) ? release.assets : []
-      const installer = assets.find((asset) => /RecordsWeb-Setup-.*\.exe$/i.test(String(asset?.name || '')))
-        || assets.find((asset) => /\.exe$/i.test(String(asset?.name || '')) && !/\.blockmap$/i.test(String(asset?.name || '')))
+      let installer = null
 
-      if (!installer?.browser_download_url) throw new Error('No Windows installer was attached to the latest release.')
+      if (targetPlatform === 'macos') {
+        installer = assets.find((asset) => /RecordsWeb-.*macOS.*\.dmg$/i.test(String(asset?.name || '')))
+          || assets.find((asset) => /\.dmg$/i.test(String(asset?.name || '')))
+        if (!installer?.browser_download_url) throw new Error('No macOS DMG was attached to the latest release.')
+      } else {
+        installer = assets.find((asset) => /RecordsWeb-Setup-.*\.exe$/i.test(String(asset?.name || '')))
+          || assets.find((asset) => /\.exe$/i.test(String(asset?.name || '')) && !/\.blockmap$/i.test(String(asset?.name || '')))
+        if (!installer?.browser_download_url) throw new Error('No Windows installer was attached to the latest release.')
+      }
 
-      // GitHub release assets are served with Content-Disposition: attachment, so
-      // clicking the asset URL starts the installer download instead of opening
-      // the GitHub release page. The download attribute is included as an
-      // additional browser hint.
+      // The GitHub asset URL is an attachment response. Clicking it starts the
+      // matching installer download directly rather than opening Releases.
       const link = document.createElement('a')
       link.href = installer.browser_download_url
-      link.download = installer.name || 'RecordsWeb-Setup.exe'
+      link.download = installer.name || (targetPlatform === 'macos' ? 'RecordsWeb.dmg' : 'RecordsWeb-Setup.exe')
       link.rel = 'noopener noreferrer'
       link.style.display = 'none'
       document.body.appendChild(link)
       link.click()
       link.remove()
+      setDownloadPromptOpen(false)
       temporaryNotice(`Downloading ${installer.name}`)
     } catch (error) {
       console.error('Unable to download latest RecordsWeb desktop release.', error)
-      temporaryNotice('Could not start the software download. Please try again.')
+      const platformName = targetPlatform === 'macos' ? 'macOS' : 'Windows'
+      temporaryNotice(`Could not start the ${platformName} software download. Please try again.`)
     } finally {
       setDownloadBusy(false)
     }
   }
+
+  function openSoftwareDownloadPrompt() {
+    if (downloadBusy) return
+    setDownloadPromptOpen(true)
+  }
+
 
   return (
     <div className="app-frame">
@@ -225,13 +258,13 @@ export default function AppShell({ children }) {
         <button
           type="button"
           className="status-download-software"
-          onClick={downloadLatestDesktopRelease}
+          onClick={openSoftwareDownloadPrompt}
           disabled={downloadBusy}
-          title="Download the latest RecordsWeb desktop software from GitHub"
+          title={`Download RecordsWeb for ${desktopPlatform.id === 'unsupported' ? 'Windows or macOS' : desktopPlatform.label}`}`
           aria-label="Download latest RecordsWeb desktop software"
         >
           <Download size={12} />
-          <span>{downloadBusy ? 'Finding release…' : 'Download software'}</span>
+          <span>{downloadBusy ? 'Finding release…' : desktopPlatform.id === 'windows' ? 'Download for Windows' : desktopPlatform.id === 'macos' ? 'Download for macOS' : 'Download software'}</span>
         </button>
         <button
           type="button"
@@ -245,6 +278,50 @@ export default function AppShell({ children }) {
         </button>
         <span className="status-ok">● Connected</span>
       </footer>
+      {downloadPromptOpen && (
+        <div className="modal-backdrop software-download-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !downloadBusy) setDownloadPromptOpen(false) }}>
+          <section className="med-modal software-download-modal" role="dialog" aria-modal="true" aria-labelledby="recordsweb-download-title">
+            <header>
+              <div>
+                <strong id="recordsweb-download-title">Download RecordsWeb software</strong>
+                <span>Latest desktop release from GitHub</span>
+              </div>
+            </header>
+            <div className="software-download-body">
+              {desktopPlatform.id === 'unsupported' ? (
+                <>
+                  <p>RecordsWeb could not detect Windows or macOS on this device.</p>
+                  <p className="muted">Choose the installer you want to download.</p>
+                  <div className="software-download-choice-grid">
+                    <button className="secondary-button" type="button" disabled={downloadBusy} onClick={() => downloadLatestDesktopRelease('windows')}>
+                      <Download size={14} /> Windows (.exe)
+                    </button>
+                    <button className="secondary-button" type="button" disabled={downloadBusy} onClick={() => downloadLatestDesktopRelease('macos')}>
+                      <Download size={14} /> macOS (.dmg)
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="software-device-detected">
+                    <strong>Device detected: {desktopPlatform.label}</strong>
+                    <span>{desktopPlatform.id === 'macos' ? 'Universal build for Apple Silicon and Intel Macs.' : 'Windows 64-bit installer.'}</span>
+                  </div>
+                  <p>RecordsWeb will download the matching installer from the latest published GitHub release.</p>
+                </>
+              )}
+            </div>
+            <div className="editor-actions software-download-actions">
+              <button className="secondary-button" type="button" disabled={downloadBusy} onClick={() => setDownloadPromptOpen(false)}>Cancel</button>
+              {desktopPlatform.id !== 'unsupported' && (
+                <button className="primary-button" type="button" disabled={downloadBusy} onClick={() => downloadLatestDesktopRelease(desktopPlatform.id)}>
+                  <Download size={14} /> {downloadBusy ? 'Finding release…' : `Download for ${desktopPlatform.label}`}
+                </button>
+              )}
+            </div>
+          </section>
+        </div>
+      )}
       {locked && <SessionLockOverlay session={session} onUnlock={() => { lastActivityRef.current = Date.now(); setLocked(false); recordAudit({ action: 'account.session.unlocked', entityType: 'session', description: 'Unlocked RecordsWeb after inactivity.' }).catch(() => {}) }} onSignOut={doLogout} />}
       {profile.must_change_password && <ForcedPasswordChange session={session} onChanged={() => updateProfile({ must_change_password: false, password_changed_at: new Date().toISOString() })} />}
     </div>
