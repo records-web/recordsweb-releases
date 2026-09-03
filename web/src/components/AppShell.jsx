@@ -260,7 +260,7 @@ export default function AppShell({ children }) {
           className="status-download-software"
           onClick={openSoftwareDownloadPrompt}
           disabled={downloadBusy}
-          title={`Download RecordsWeb for ${desktopPlatform.id === 'unsupported' ? 'Windows or macOS' : desktopPlatform.label}`}`
+          title={`Download RecordsWeb for ${desktopPlatform.id === 'unsupported' ? 'Windows or macOS' : desktopPlatform.label}`}
           aria-label="Download latest RecordsWeb desktop software"
         >
           <Download size={12} />
