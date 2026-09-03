@@ -123,3 +123,13 @@ Everything bundled by Vite is delivered to the browser and must be treated as pu
 The production build uses relative Vite asset paths, so it can also be served from a GitHub Pages project URL such as `https://OWNER.github.io/RecordsWeb/`. Because RecordsWeb uses `HashRouter`, browser routes stay after `#` and do not need Pages rewrite rules.
 
 For a real deployment that handles sensitive or clinical-style information, treat GitHub Pages as static hosting only: repository visibility does not make browser-delivered secrets private. Keep all privileged operations behind Supabase RLS/Edge Functions or another server-side service.
+
+## Social link preview
+
+The website includes Open Graph and Twitter/X card metadata in `index.html`. Shared links use:
+
+- Title: `RecordsWeb — Clinical Records System`
+- Preview image: `https://recordsweb.vercel.app/recordsweb-update-logo.png`
+- Site URL: `https://recordsweb.vercel.app/`
+
+Discord, WhatsApp, Teams, X and other services that support Open Graph/Twitter cards can use this metadata when generating a link preview. Preview services may cache metadata, so an older preview can remain visible for a while after a deployment.
