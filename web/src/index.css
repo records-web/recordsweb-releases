@@ -1681,10 +1681,32 @@ button.message-audit-row:hover, button.message-audit-row.selected { background: 
 .message-audit-id { display: block; margin-top: 10px; color: #81919b; word-break: break-all; }
 
 /* RecordsWeb 2.5.6 — light/dark workspace toggle in the bottom status bar */
+.status-download-software {
+  align-self: stretch;
+  min-width: 112px;
+  margin-left: auto;
+  padding: 0 10px;
+  border: 0;
+  border-left: 1px solid #a9c8dc;
+  border-right: 1px solid #a9c8dc;
+  background: transparent;
+  color: #245f86;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font: 9px "Segoe UI", Tahoma, Arial, sans-serif;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.status-download-software:hover:not(:disabled) { background: rgba(255,255,255,.48); color: #0d4e78; }
+.status-download-software:disabled { opacity: .65; cursor: wait; }
+.status-download-software > span { padding: 0 !important; border: 0 !important; }
+
 .status-theme-toggle {
   align-self: stretch;
   min-width: 82px;
-  margin-left: auto;
+  margin-left: 0;
   padding: 0 9px;
   border: 0;
   border-left: 1px solid #a9c8dc;
@@ -1746,6 +1768,8 @@ html.rw-dark-mode .worklist-strip a { border-color: #365466; }
 html.rw-dark-mode .worklist-strip > span { color: #8fa7b5; }
 html.rw-dark-mode .status-bar { background: #14242d; border-color: #35586e; color: #a8bfcd; }
 html.rw-dark-mode .status-bar span,
+html.rw-dark-mode .status-download-software { border-color: #365568; color: #b8d6e8; }
+html.rw-dark-mode .status-download-software:hover:not(:disabled) { background: #233742; color: #fff; }
 html.rw-dark-mode .status-theme-toggle { border-color: #365568; }
 html.rw-dark-mode .status-theme-toggle { color: #b7ceda; }
 html.rw-dark-mode .status-theme-toggle:hover { background: #233742; color: #fff; }

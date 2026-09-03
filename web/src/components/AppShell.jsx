@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { CircleHelp, LogOut, Moon, Search, Settings, ShieldCheck, Sun, UserCog, UserRound } from 'lucide-react'
+import { CircleHelp, Download, LogOut, Moon, Search, Settings, ShieldCheck, Sun, UserCog, UserRound } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { ORGANISATION } from '../lib/demoData'
@@ -32,6 +32,7 @@ export default function AppShell({ children }) {
   const [contentRevision, setContentRevision] = useState(0)
   const [patientPeers, setPatientPeers] = useState([])
   const [locked, setLocked] = useState(false)
+  const [downloadBusy, setDownloadBusy] = useState(false)
   const lastActivityRef = useRef(Date.now())
   const lastPatientAuditRef = useRef('')
 
@@ -126,6 +127,41 @@ export default function AppShell({ children }) {
     setSettings(saveSettings({ ...settings, theme: nextTheme }))
   }
 
+  async function downloadLatestDesktopRelease() {
+    if (downloadBusy) return
+    setDownloadBusy(true)
+
+    try {
+      const response = await fetch('https://api.github.com/repos/records-web/recordsweb-releases/releases/latest', {
+        headers: { Accept: 'application/vnd.github+json' },
+        cache: 'no-store',
+      })
+
+      if (!response.ok) throw new Error(`GitHub returned ${response.status}`)
+
+      const release = await response.json()
+      const assets = Array.isArray(release?.assets) ? release.assets : []
+      const installer = assets.find((asset) => /RecordsWeb-Setup-.*\.exe$/i.test(String(asset?.name || '')))
+        || assets.find((asset) => /\.exe$/i.test(String(asset?.name || '')) && !/\.blockmap$/i.test(String(asset?.name || '')))
+
+      if (!installer?.browser_download_url) throw new Error('No Windows installer was attached to the latest release.')
+
+      const link = document.createElement('a')
+      link.href = installer.browser_download_url
+      link.rel = 'noopener noreferrer'
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      temporaryNotice(`Downloading ${installer.name}`)
+    } catch (error) {
+      console.error('Unable to download latest RecordsWeb desktop release.', error)
+      temporaryNotice('Could not start the download. Opening the latest GitHub release instead.')
+      window.open('https://github.com/records-web/recordsweb-releases/releases/latest', '_blank', 'noopener,noreferrer')
+    } finally {
+      setDownloadBusy(false)
+    }
+  }
+
   return (
     <div className="app-frame">
       <header className="desktop-titlebar">
@@ -181,6 +217,17 @@ export default function AppShell({ children }) {
         <span>{staffIdentity}</span>
         <span>Organisation: {ORGANISATION.name}</span>
         <span>Location: Main Building</span>
+        <button
+          type="button"
+          className="status-download-software"
+          onClick={downloadLatestDesktopRelease}
+          disabled={downloadBusy}
+          title="Download the latest RecordsWeb desktop software from GitHub"
+          aria-label="Download latest RecordsWeb desktop software"
+        >
+          <Download size={12} />
+          <span>{downloadBusy ? 'Finding release…' : 'Download software'}</span>
+        </button>
         <button
           type="button"
           className="status-theme-toggle"
