@@ -1,4 +1,4 @@
--- RecordsWeb - Grove Way Health Centre
+-- RecordsWeb - Multi-organisation clinical records platform
 -- Run this in a NEW Supabase project using the SQL Editor.
 -- The desktop app uses only the anon/publishable key. Never put the service-role
 -- key in the Electron renderer. Account creation is performed by the supplied
@@ -1622,9 +1622,9 @@ $$;
 grant execute on function public.recordsweb_lock_fit_note(uuid) to authenticated;
 
 
--- BEGIN RecordsWeb 3.1.9 multi-organisation finalisation
+-- BEGIN RecordsWeb 3.2.0 multi-organisation finalisation
 
--- RecordsWeb 3.1.9 - Multi-organisation deployment support
+-- RecordsWeb 3.2.0 - Multi-organisation deployment support
 --
 -- Adds organisation installation namespaces (for example @GW.HC), organisation
 -- mode metadata, safe pre-login organisation discovery, automatic organisation

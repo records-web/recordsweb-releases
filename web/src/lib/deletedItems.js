@@ -1,7 +1,6 @@
 import { supabase, supabaseConfigured } from './supabase'
-import { getInstallationNamespace } from './installation'
 
-const DEMO_KEY=`recordsweb-demo-deleted-items-v1-${getInstallationNamespace()}`
+const DEMO_KEY='recordsweb-demo-deleted-items-v1'
 function rows(){try{return JSON.parse(localStorage.getItem(DEMO_KEY)||'[]')}catch{return[]}}
 function save(v){localStorage.setItem(DEMO_KEY,JSON.stringify(v))}
 

@@ -42,7 +42,7 @@ export default function FitNoteModal({ patient, profile, onClose, onIssue }) {
     statement_date: today(),
     issuer_name: issuer,
     issuer_profession: profile?.role || 'Clinician',
-    issuer_address: `${ORGANISATION.name}\n${ORGANISATION.default_location || 'Main Site'}`,
+    issuer_address: `${ORGANISATION.name}\nMain Building`,
   })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')

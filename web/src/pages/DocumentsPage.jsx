@@ -5,8 +5,8 @@ import ClinicalToolbar from '../components/ClinicalToolbar'
 import PatientHeader from '../components/PatientHeader'
 import RecordEditModal from '../components/RecordEditModal'
 import FitNoteModal from '../components/FitNoteModal'
-import DocumentDetailsModal, { buildFitNoteHtml } from '../components/DocumentDetailsModal'
-import { archiveFitNotePdf, createForPatient, getPatient, listForPatient, lockFitNoteDocument, updateForPatient } from '../lib/dataService'
+import DocumentDetailsModal from '../components/DocumentDetailsModal'
+import { createForPatient, getPatient, listForPatient, lockFitNoteDocument, updateForPatient } from '../lib/dataService'
 import { useAuth } from '../contexts/AuthContext'
 
 const fields = [
@@ -119,15 +119,6 @@ export default function DocumentsPage() {
         })
 
         let issueWarning = ''
-        if (createdDocument?.id && window.recordsWebDesktop?.renderPdfBase64) {
-          try {
-            const html = buildFitNoteHtml(createdDocument, patient)
-            const rendered = await window.recordsWebDesktop.renderPdfBase64({ html })
-            if (rendered?.base64) await archiveFitNotePdf(patientId, createdDocument.id, rendered.base64)
-          } catch (archiveError) {
-            issueWarning = `The fit note was issued, but its archived PDF could not be created: ${archiveError?.message || 'Unknown archive error.'}`
-          }
-        }
 
         if (createdDocument?.id) {
           try {

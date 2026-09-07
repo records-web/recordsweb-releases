@@ -31,7 +31,7 @@ export default function SettingsPage() {
       <div className="page-title-row">
         <div>
           <h1>Settings</h1>
-          <p>Configure this RecordsWeb workstation interface. Settings are stored locally for this Windows user.</p>
+          <p>Configure this RecordsWeb browser interface. Settings are stored locally in this browser.</p>
         </div>
       </div>
 

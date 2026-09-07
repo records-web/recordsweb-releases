@@ -1,17 +1,9 @@
-const INSTALLATION_STORAGE_KEY = 'recordsweb-installation-v1'
+const INSTALLATION_STORAGE_KEY = 'recordsweb-web-organisation-v1'
 const ORGANISATION_CODE_PATTERN = /^[A-Z]{2}\.[A-Z]{2}$/
 
 function safeLocalStorageRead() {
   try {
     return JSON.parse(localStorage.getItem(INSTALLATION_STORAGE_KEY) || 'null') || {}
-  } catch {
-    return {}
-  }
-}
-
-function readDesktopInstallation() {
-  try {
-    return window.recordsWebDesktop?.getInstallConfigSync?.() || {}
   } catch {
     return {}
   }
@@ -26,15 +18,14 @@ export function normaliseOrganisationCode(value) {
   return ORGANISATION_CODE_PATTERN.test(clean) ? clean : ''
 }
 
-const desktopInstallation = typeof window !== 'undefined' ? readDesktopInstallation() : {}
 const browserInstallation = typeof window !== 'undefined' ? safeLocalStorageRead() : {}
 const environmentCode = normaliseOrganisationCode(import.meta.env.VITE_RECORDSWEB_ORG_CODE || '')
 
 let currentOrganisationCode = normaliseOrganisationCode(
-  desktopInstallation.organisationCode || environmentCode || browserInstallation.organisationCode || '',
+  browserInstallation.organisationCode || environmentCode || '',
 )
 let currentSource = currentOrganisationCode
-  ? (desktopInstallation.organisationCode ? 'installer' : environmentCode ? 'environment' : 'local')
+  ? (browserInstallation.organisationCode ? 'browser' : 'environment')
   : 'unconfigured'
 
 export function getInstalledOrganisationCode() {
@@ -69,21 +60,16 @@ export async function saveInstalledOrganisationCode(value) {
   }
 
   if (typeof window !== 'undefined') {
-    const desktop = window.recordsWebDesktop
-    if (desktop?.setInstallConfig) {
-      const result = await desktop.setInstallConfig({ organisationCode })
-      if (result?.ok === false) throw new Error(result?.message || 'Unable to save the RecordsWeb organisation extension.')
-      currentSource = 'desktop'
-    } else {
-      currentSource = 'local'
-    }
-
     try {
       localStorage.setItem(INSTALLATION_STORAGE_KEY, JSON.stringify({ organisationCode }))
-    } catch {}
+    } catch {
+      throw new Error('This browser could not save the RecordsWeb organisation selection. Check that site storage is enabled.')
+    }
   }
 
   currentOrganisationCode = organisationCode
+  currentSource = 'browser'
+
   if (typeof window !== 'undefined') {
     window.dispatchEvent(new CustomEvent('recordsweb-installation-changed', {
       detail: getInstallationState(),

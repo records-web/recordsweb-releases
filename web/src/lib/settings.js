@@ -25,7 +25,6 @@ export function applySettings(settings = getSettings()) {
   root.classList.toggle('rw-high-contrast', Boolean(settings.highContrast))
   root.classList.toggle('rw-dark-mode', settings.theme === 'dark')
   root.style.colorScheme = settings.theme === 'dark' ? 'dark' : 'light'
-  Promise.resolve(window.recordsWebDesktop?.setNativeTheme?.(settings.theme === 'dark' ? 'dark' : 'light')).catch(() => {})
   return settings
 }
 

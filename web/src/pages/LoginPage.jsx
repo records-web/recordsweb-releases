@@ -6,9 +6,16 @@ import { ORGANISATION } from '../lib/demoData'
 import { getInstalledOrganisationCode, getInstalledOrganisationSuffix } from '../lib/installation'
 import { applyOrganisationSettings, getCachedOrganisationSettings, loadOrganisationSettings } from '../lib/organisationSettings'
 import AccountRecoveryModal from '../components/security/AccountRecoveryModal'
+import OrganisationChangeModal from '../components/installation/OrganisationChangeModal'
+import { APP_RUNTIME_LABEL, APP_VERSION } from '../lib/webRuntime'
 
 export default function LoginPage() {
-  const [username, setUsername] = useState(supabaseConfigured ? '' : (getInstalledOrganisationCode() === 'GW.HC' ? 'manager.grove@GW.HC' : `manager.recordsweb${getInstalledOrganisationSuffix()}`))
+  const [username, setUsername] = useState(() => {
+    if (supabaseConfigured) return ''
+    return getInstalledOrganisationCode() === 'GW.HC'
+      ? 'manager.grove@GW.HC'
+      : `manager.recordsweb${getInstalledOrganisationSuffix()}`
+  })
   const [password, setPassword] = useState(supabaseConfigured ? '' : 'demo')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -20,8 +27,8 @@ export default function LoginPage() {
     } catch { return '' }
   })
   const [organisationSettings, setOrganisationSettings] = useState(() => getCachedOrganisationSettings())
-  const [appVersion, setAppVersion] = useState('3.1.9')
   const [recoveryMode, setRecoveryMode] = useState('')
+  const [changeOrganisationOpen, setChangeOrganisationOpen] = useState(false)
   const usernameRef = useRef(null)
   const { login, session } = useAuth()
   const navigate = useNavigate()
@@ -48,16 +55,10 @@ export default function LoginPage() {
     let cancelled = false
     let delayedFocus = null
 
-    Promise.resolve(window.recordsWebDesktop?.setWindowMode?.('login'))
-      .catch(() => {})
-      .finally(() => {
-        if (cancelled) return
-        window.requestAnimationFrame(() => restoreLoginFocus(true))
-        delayedFocus = window.setTimeout(() => restoreLoginFocus(), 120)
-      })
-    window.recordsWebDesktop?.getAppInfo?.().then((info) => {
-      if (info?.version) setAppVersion(info.version)
-    }).catch(() => {})
+    window.requestAnimationFrame(() => restoreLoginFocus(true))
+    delayedFocus = window.setTimeout(() => {
+      if (!cancelled) restoreLoginFocus()
+    }, 120)
 
     applyOrganisationSettings(organisationSettings)
     const sync = (event) => setOrganisationSettings(event?.detail || getCachedOrganisationSettings())
@@ -108,7 +109,7 @@ export default function LoginPage() {
   return (
     <div className="emis-login-screen">
       <div className="emis-login-window simplified-login-window">
-        <div className="login-version">RecordsWeb {appVersion} · Desktop Clinical System</div>
+        <div className="login-version">RecordsWeb {APP_VERSION} · {APP_RUNTIME_LABEL}</div>
 
         <div className="legacy-brand-row simplified-brand-row">
           <div className="recordsweb-logo recordsweb-logo-text">{organisationSettings.logoUrl && <img draggable={false} className="login-organisation-logo" src={organisationSettings.logoUrl} alt={`${organisationName} logo`} />}<strong>RecordsWeb</strong></div>
@@ -170,19 +171,23 @@ export default function LoginPage() {
 
         {!supabaseConfigured && (
           <div className="legacy-demo-notice">
-            <strong>Demo mode:</strong> <code>{getInstalledOrganisationCode() === 'GW.HC' ? 'manager.grove@GW.HC' : `manager.recordsweb${organisationSuffix}`}</code> / <code>demo</code>. Accounts created in Management are saved locally on this computer.
+            <strong>Demo mode:</strong> <code>{getInstalledOrganisationCode() === 'GW.HC' ? 'manager.grove@GW.HC' : `manager.recordsweb${organisationSuffix}`}</code> / <code>demo</code>. Accounts created in Management are saved locally in this browser.
           </div>
         )}
 
         <div className="legacy-login-footer">
           <span>Connection: {supabaseConfigured ? 'RecordsWeb Supabase' : 'Local demo database'}</span>
-          <span>Organisation: {organisationCode}</span>
+          <span className="legacy-login-organisation">
+            <span>Organisation: {organisationCode}</span>
+            <button type="button" onClick={() => setChangeOrganisationOpen(true)} disabled={busy}>Change organisation</button>
+          </span>
         </div>
 
         <div className="legacy-copyright">
           RecordsWeb · {organisationName}. Prototype clinical software. Do not use with live patient data until security, information-governance and clinical-safety requirements have been completed.
         </div>
         {recoveryMode && <AccountRecoveryModal mode={recoveryMode} onClose={() => setRecoveryMode('')} />}
+        {changeOrganisationOpen && <OrganisationChangeModal onClose={() => setChangeOrganisationOpen(false)} />}
       </div>
     </div>
   )

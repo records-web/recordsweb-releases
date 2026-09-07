@@ -21,9 +21,9 @@ import SecurityPage from './pages/SecurityPage'
 import SettingsPage from './pages/SettingsPage'
 import AppShell from './components/AppShell'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
-import UpdateGate from './components/update/UpdateGate'
 import MaintenanceGate from './components/maintenance/MaintenanceGate'
 import AccountAccessGuard from './components/security/AccountAccessGuard'
+import WebUpdateManager from './components/WebUpdateManager'
 import InstallationGate from './components/installation/InstallationGate'
 
 function Protected({ children }) {
@@ -42,44 +42,43 @@ function ManagementOnly({ children }) {
 export default function App() {
   return (
     <InstallationGate>
-    <UpdateGate>
       <AuthProvider>
+        <WebUpdateManager />
         <MaintenanceGate>
-        <AccountAccessGuard>
-        <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/*" element={
-          <Protected>
-            <AppShell>
-              <Routes>
-                <Route index element={<HomePage />} />
-                <Route path="patients" element={<PatientSearchPage />} />
-                <Route path="patients/:patientId" element={<PatientSummaryPage />} />
-                <Route path="patients/:patientId/consultations" element={<ConsultationsPage />} />
-                <Route path="patients/:patientId/consultations/new" element={<NewConsultationPage />} />
-                <Route path="patients/:patientId/medication" element={<MedicationPage />} />
-                <Route path="patients/:patientId/problems" element={<ProblemsPage />} />
-                <Route path="patients/:patientId/investigations" element={<InvestigationsPage />} />
-                <Route path="patients/:patientId/care-history" element={<CareHistoryPage />} />
-                <Route path="patients/:patientId/diary" element={<DiaryPage />} />
-                <Route path="patients/:patientId/documents" element={<DocumentsPage />} />
-                <Route path="patients/:patientId/referrals" element={<ReferralsPage />} />
-                <Route path="appointments" element={<AppointmentBookPage />} />
-                <Route path="registration" element={<RegistrationPage />} />
-                <Route path="staff-area" element={<StaffAreaPage />} />
-                <Route path="management" element={<ManagementOnly><ManagementPage /></ManagementOnly>} />
-                <Route path="security" element={<SecurityPage />} />
-                <Route path="settings" element={<SettingsPage />} />
-                <Route path="*" element={<Navigate to="/" replace />} />
-              </Routes>
-            </AppShell>
-          </Protected>
-        } />
-        </Routes>
-        </AccountAccessGuard>
+          <AccountAccessGuard>
+            <Routes>
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/*" element={
+                <Protected>
+                  <AppShell>
+                    <Routes>
+                      <Route index element={<HomePage />} />
+                      <Route path="patients" element={<PatientSearchPage />} />
+                      <Route path="patients/:patientId" element={<PatientSummaryPage />} />
+                      <Route path="patients/:patientId/consultations" element={<ConsultationsPage />} />
+                      <Route path="patients/:patientId/consultations/new" element={<NewConsultationPage />} />
+                      <Route path="patients/:patientId/medication" element={<MedicationPage />} />
+                      <Route path="patients/:patientId/problems" element={<ProblemsPage />} />
+                      <Route path="patients/:patientId/investigations" element={<InvestigationsPage />} />
+                      <Route path="patients/:patientId/care-history" element={<CareHistoryPage />} />
+                      <Route path="patients/:patientId/diary" element={<DiaryPage />} />
+                      <Route path="patients/:patientId/documents" element={<DocumentsPage />} />
+                      <Route path="patients/:patientId/referrals" element={<ReferralsPage />} />
+                      <Route path="appointments" element={<AppointmentBookPage />} />
+                      <Route path="registration" element={<RegistrationPage />} />
+                      <Route path="staff-area" element={<StaffAreaPage />} />
+                      <Route path="management" element={<ManagementOnly><ManagementPage /></ManagementOnly>} />
+                      <Route path="security" element={<SecurityPage />} />
+                      <Route path="settings" element={<SettingsPage />} />
+                      <Route path="*" element={<Navigate to="/" replace />} />
+                    </Routes>
+                  </AppShell>
+                </Protected>
+              } />
+            </Routes>
+          </AccountAccessGuard>
         </MaintenanceGate>
       </AuthProvider>
-    </UpdateGate>
     </InstallationGate>
   )
 }

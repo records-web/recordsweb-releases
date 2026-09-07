@@ -1,7 +1,6 @@
 import { supabase, supabaseConfigured } from './supabase'
-import { getInstallationNamespace } from './installation'
 
-const DEMO_PIN_KEY = `recordsweb-demo-prescribing-pin-v1-${getInstallationNamespace()}`
+const DEMO_PIN_KEY = 'recordsweb-demo-prescribing-pin-v1'
 const PIN_PATTERN = /^\d{4}$/
 
 export function validatePrescribingPin(pin) {

@@ -17,9 +17,9 @@ insert into public.app_releases (
   published_at
 )
 values (
-  '3.1.9',
+  '3.2.0',
   'stable',
-  'RecordsWeb 3.1.9',
+  'RecordsWeb 3.2.0',
   true,
   now()
 )

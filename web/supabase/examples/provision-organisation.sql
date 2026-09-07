@@ -1,5 +1,5 @@
 -- RecordsWeb organisation provisioning example
--- Run supabase/recordsweb-3.1.9-multi-organisation.sql first.
+-- Run supabase/recordsweb-3.2.0-multi-organisation.sql first.
 -- Replace the example values before running.
 
 -- 1) Approve/create the organisation.

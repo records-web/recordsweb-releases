@@ -111,7 +111,7 @@ export async function loadOrganisationSettings() {
   applyOrganisationSettings(settings)
 
   const organisationCode = getInstalledOrganisationCode()
-  if (!organisationCode) throw new Error('This RecordsWeb installation has not been assigned an organisation extension.')
+  if (!organisationCode) throw new Error('This RecordsWeb browser has not selected an organisation extension.')
 
   if (!supabaseConfigured) {
     updateRuntimeOrganisation({
@@ -129,7 +129,7 @@ export async function loadOrganisationSettings() {
 
   if (error) {
     if (/recordsweb_public_organisation_config|does not exist|schema cache/i.test(error.message || '')) {
-      throw new Error('Multi-organisation support is not installed in Supabase. Run supabase/recordsweb-3.1.9-multi-organisation.sql.')
+      throw new Error('Multi-organisation support is not installed in Supabase. Run supabase/recordsweb-3.2.0-multi-organisation.sql.')
     }
     throw error
   }

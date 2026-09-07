@@ -28,6 +28,7 @@ export default function DocumentDetailsModal({ document, patient, onClose }) {
   const [pdfState, setPdfState] = useState('')
   const [pdfUrl, setPdfUrl] = useState('')
   const [pdfBlob, setPdfBlob] = useState(null)
+  const [browserPreview, setBrowserPreview] = useState(false)
   const [versions, setVersions] = useState([])
 
   useEffect(() => { if (document?.id && !isFitNote) listDocumentVersions(document.id).then(setVersions).catch(() => {}) }, [document?.id, isFitNote])
@@ -40,18 +41,27 @@ export default function DocumentDetailsModal({ document, patient, onClose }) {
     async function loadPdf() {
       setPdfState('Loading signed PDF…')
       try {
-        let blob = await getFitNotePdfBlob(document.id, document.storage_path)
-        if (!blob && window.recordsWebDesktop?.renderPdfBase64) {
-          const html = buildFitNoteHtml(document, patient)
-          const rendered = await window.recordsWebDesktop.renderPdfBase64({ html })
-          if (rendered?.base64) blob = base64PdfBlob(rendered.base64)
+        const blob = await getFitNotePdfBlob(document.id, document.storage_path)
+        if (blob) {
+          objectUrl = URL.createObjectURL(blob)
+          if (!active) return
+          setPdfBlob(blob)
+          setBrowserPreview(false)
+          setPdfUrl(`${objectUrl}#toolbar=0&navpanes=0&view=FitH`)
+          setPdfState('')
+          return
         }
-        if (!blob) throw new Error('No PDF archive is available for this fit note.')
-        objectUrl = URL.createObjectURL(blob)
+
+        // Website builds cannot use Electron's headless PDF renderer. Show the
+        // same filed fit-note layout directly in the browser and use the native
+        // print dialog for Print / Save as PDF.
+        const htmlBlob = new Blob([buildFitNoteHtml(document, patient)], { type: 'text/html;charset=utf-8' })
+        objectUrl = URL.createObjectURL(htmlBlob)
         if (!active) return
-        setPdfBlob(blob)
-        setPdfUrl(`${objectUrl}#toolbar=0&navpanes=0&view=FitH`)
-        setPdfState('')
+        setPdfBlob(null)
+        setBrowserPreview(true)
+        setPdfUrl(objectUrl)
+        setPdfState('Web preview — use Print or Save PDF to open the browser print dialog.')
       } catch (error) {
         if (active) setPdfState(error?.message || 'Unable to load the fit note PDF.')
       }
@@ -81,12 +91,6 @@ export default function DocumentDetailsModal({ document, patient, onClose }) {
         return
       }
       const html = buildFitNoteHtml(document, patient)
-      if (window.recordsWebDesktop?.savePdf) {
-        const result = await window.recordsWebDesktop.savePdf({ html, defaultFilename: fitNoteFileName(document, patient) })
-        setPdfState(result?.cancelled ? '' : 'PDF saved.')
-        if (!result?.cancelled) await recordAudit({ action: 'document.pdf.exported', entityType: 'documents', entityId: document?.id, patientId: patient?.id, description: 'Saved fit note PDF.' })
-        return
-      }
       fallbackPrint(html)
       setPdfState('Use the print dialog to save as PDF.')
     } catch (error) {
@@ -98,12 +102,6 @@ export default function DocumentDetailsModal({ document, patient, onClose }) {
     setPdfState('Opening print dialog…')
     try {
       const html = buildFitNoteHtml(document, patient)
-      if (window.recordsWebDesktop?.printHtml) {
-        const result = await window.recordsWebDesktop.printHtml({ html })
-        setPdfState(result?.cancelled ? '' : 'Print dialog opened.')
-        if (!result?.cancelled) await recordAudit({ action: 'document.printed', entityType: 'documents', entityId: document?.id, patientId: patient?.id, description: 'Printed signed fit note.' })
-        return
-      }
       fallbackPrint(html)
       setPdfState('Print dialog opened.')
     } catch (error) {
@@ -125,7 +123,7 @@ export default function DocumentDetailsModal({ document, patient, onClose }) {
           </div>
           <div className="fit-note-pdf-viewer-shell">
             {pdfUrl ? (
-              <iframe className="fit-note-pdf-viewer" src={pdfUrl} title="Signed fit note PDF" />
+              <iframe className="fit-note-pdf-viewer" src={pdfUrl} title={browserPreview ? "Fit note web preview" : "Signed fit note PDF"} />
             ) : (
               <div className="fit-note-pdf-loading"><strong>{pdfState || 'Loading PDF…'}</strong><span>The filed fit note is displayed as a read-only PDF.</span></div>
             )}
@@ -162,12 +160,6 @@ export default function DocumentDetailsModal({ document, patient, onClose }) {
   )
 }
 
-function base64PdfBlob(base64) {
-  const binary = atob(base64)
-  const bytes = new Uint8Array(binary.length)
-  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index)
-  return new Blob([bytes], { type: 'application/pdf' })
-}
 
 function esc(value) {
   return String(value ?? '').replace(/[&<>"']/g, (char) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#039;' }[char]))

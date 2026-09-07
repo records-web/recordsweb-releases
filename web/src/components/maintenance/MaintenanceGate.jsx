@@ -28,7 +28,6 @@ export default function MaintenanceGate({ children }) {
   }, [state])
 
   useEffect(() => {
-    Promise.resolve(window.recordsWebDesktop?.setWindowMode?.('login')).catch(() => {})
     let live = true
     loadMaintenanceState()
       .then((next) => { if (live) setState(next) })

@@ -4,6 +4,8 @@ import { ORGANISATION } from '../../lib/demoData'
 import { getInstalledOrganisationCode } from '../../lib/installation'
 import { normaliseLoginName, signInRecordsWeb, signOut as supabaseSignOut, supabaseConfigured } from '../../lib/supabase'
 import { applyOrganisationSettings, getCachedOrganisationSettings, loadOrganisationSettings } from '../../lib/organisationSettings'
+import { APP_RUNTIME_LABEL, APP_VERSION } from '../../lib/webRuntime'
+import OrganisationChangeModal from '../installation/OrganisationChangeModal'
 
 function formatEstimate(value) {
   if (!value) return ''
@@ -13,21 +15,16 @@ function formatEstimate(value) {
 }
 
 export default function MaintenanceScreen({ state, onRetry, onManagementLogin }) {
-  const [appVersion, setAppVersion] = useState('3.1.0')
+  const [appVersion] = useState(APP_VERSION)
   const [organisationSettings, setOrganisationSettings] = useState(() => getCachedOrganisationSettings())
   const [managementMode, setManagementMode] = useState(false)
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [changeOrganisationOpen, setChangeOrganisationOpen] = useState(false)
 
   useEffect(() => {
-    const desktop = window.recordsWebDesktop
-    Promise.resolve(desktop?.setWindowMode?.('login')).catch(() => {})
-    Promise.resolve(desktop?.getAppInfo?.()).then((info) => {
-      if (info?.version) setAppVersion(info.version)
-    }).catch(() => {})
-
     applyOrganisationSettings(organisationSettings)
     const sync = (event) => setOrganisationSettings(event?.detail || getCachedOrganisationSettings())
     window.addEventListener('recordsweb-organisation-settings-changed', sync)
@@ -64,7 +61,7 @@ export default function MaintenanceScreen({ state, onRetry, onManagementLogin })
   return (
     <div className="emis-login-screen">
       <div className="emis-login-window simplified-login-window maintenance-login-window">
-        <div className="login-version">RecordsWeb {appVersion} · Desktop Clinical System</div>
+        <div className="login-version">RecordsWeb {appVersion} · {APP_RUNTIME_LABEL}</div>
 
         <div className="legacy-brand-row simplified-brand-row">
           <div className="recordsweb-logo recordsweb-logo-text">
@@ -105,8 +102,9 @@ export default function MaintenanceScreen({ state, onRetry, onManagementLogin })
           </section>
         )}
 
-        <div className="legacy-login-footer"><span>Connection: {supabaseConfigured ? 'RecordsWeb Supabase' : 'Local demo database'}</span><span>Organisation: {organisationCode}</span></div>
+        <div className="legacy-login-footer"><span>Connection: {supabaseConfigured ? 'RecordsWeb Supabase' : 'Local demo database'}</span><span className="legacy-login-organisation"><span>Organisation: {organisationCode}</span><button type="button" onClick={() => setChangeOrganisationOpen(true)}>Change organisation</button></span></div>
         <div className="legacy-copyright">RecordsWeb · {organisationName}. Prototype clinical software. Do not use with live patient data until security, information-governance and clinical-safety requirements have been completed.</div>
+        {changeOrganisationOpen && <OrganisationChangeModal onClose={() => setChangeOrganisationOpen(false)} />}
       </div>
     </div>
   )

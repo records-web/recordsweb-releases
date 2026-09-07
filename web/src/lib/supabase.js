@@ -148,7 +148,7 @@ export async function signInRecordsWeb({ username, password }) {
   const email = normaliseLoginName(username)
   const organisationCode = getInstalledOrganisationCode()
   const organisationSuffix = getInstalledOrganisationSuffix()
-  if (!organisationCode) throw new Error('This RecordsWeb installation has not been assigned an organisation extension.')
+  if (!organisationCode) throw new Error('This RecordsWeb browser has not selected an organisation extension.')
   if (!email.toUpperCase().endsWith(organisationSuffix)) {
     throw new Error(`Use your RecordsWeb login in the format first.last${organisationSuffix}.`)
   }
@@ -172,7 +172,7 @@ export async function signInRecordsWeb({ username, password }) {
   })
   if (organisationError) {
     if (/recordsweb_public_organisation_config|does not exist|schema cache/i.test(organisationError.message || '')) {
-      throw new Error('Multi-organisation support is not installed in Supabase. Run supabase/recordsweb-3.1.9-multi-organisation.sql.')
+      throw new Error('Multi-organisation support is not installed in Supabase. Run supabase/recordsweb-3.2.0-multi-organisation.sql.')
     }
     throw new Error('Unable to verify this RecordsWeb organisation.')
   }
@@ -232,7 +232,7 @@ export async function createAccount(payload) {
   const username = normaliseLoginName(payload.username)
   const organisationSuffix = getInstalledOrganisationSuffix()
   if (!organisationSuffix || !username.toUpperCase().endsWith(organisationSuffix)) {
-    throw new Error(`Account usernames must end in ${organisationSuffix || 'the installed organisation extension'}.`)
+    throw new Error(`Account usernames must end in ${organisationSuffix || 'the selected organisation extension'}.`)
   }
   assertRecordsWebPassword(payload.password, username)
   const roles = normaliseRoles(payload.roles, payload.role || 'Patient Coordinator')
