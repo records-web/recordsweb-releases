@@ -14,6 +14,7 @@ import {
   updateStaffNotice,
   updateStaffReport,
 } from '../lib/dataService'
+import { ORGANISATION } from '../lib/demoData'
 
 const tabs = [
   ['reports', 'Reports', FileWarning],
@@ -24,6 +25,7 @@ const tabs = [
 export default function StaffAreaPage() {
   const { session } = useAuth()
   const profile = session?.profile || {}
+  const organisationName = profile.organisation_name || 'RecordsWeb organisation'
   const isManagement = Boolean(profile.is_management)
   const [activeTab, setActiveTab] = useState('reports')
   const [reports, setReports] = useState([])
@@ -94,7 +96,7 @@ export default function StaffAreaPage() {
       <div className="page-title-row">
         <div>
           <h1>Staff Area</h1>
-          <p>Internal reports, vacancies and staff notices for Grove Way Health Centre.</p>
+          <p>Internal reports, vacancies and staff notices for {organisationName}.</p>
         </div>
         <button className="secondary-button" onClick={load}><RefreshCcw size={14}/> Refresh</button>
       </div>
@@ -136,14 +138,14 @@ export default function StaffAreaPage() {
           {activeTab === 'jobs' && (
             <Panel title="Jobs & Vacancies">
               <div className="workspace-toolbar">
-                <span>Current internal and external vacancies at Grove Way Health Centre.</span>
+                <span>Current internal and external vacancies at {organisationName}.</span>
                 {isManagement && <button className="primary-button" onClick={() => setModal({ type: 'job', item: null })}><Plus size={14}/> Add vacancy</button>}
               </div>
               <div className="staff-card-list">
                 {visibleJobs.length === 0 ? <div className="empty-state">There are currently no vacancies listed.</div> : visibleJobs.map((job) => (
                   <article className="staff-job-card" key={job.id} onClick={() => isManagement && setModal({ type: 'job', item: job })}>
                     <div className="staff-card-icon"><BriefcaseBusiness size={20}/></div>
-                    <div className="staff-card-main"><strong>{job.title}</strong><span>{job.department || 'Grove Way Health Centre'} · {job.employment_type || 'Not specified'}</span><p>{job.description || 'No vacancy description has been added.'}</p></div>
+                    <div className="staff-card-main"><strong>{job.title}</strong><span>{job.department || organisationName} · {job.employment_type || 'Not specified'}</span><p>{job.description || 'No vacancy description has been added.'}</p></div>
                     <div className="staff-card-meta"><span className={`status-pill ${slug(job.status)}`}>{job.status || 'Open'}</span><small>{job.closing_date ? `Closes ${formatDate(job.closing_date)}` : 'No closing date'}</small></div>
                   </article>
                 ))}
@@ -204,7 +206,7 @@ function ReportModal({ item, isManagement, onClose, onSave }) {
 function JobModal({ item, onClose, onSave }) {
   const [form, setForm] = useState({
     title: item?.title || '', department: item?.department || '', employment_type: item?.employment_type || 'Permanent',
-    location: item?.location || 'Grove Way Health Centre', closing_date: item?.closing_date || '', status: item?.status || 'Open', description: item?.description || '',
+    location: item?.location || ORGANISATION.name, closing_date: item?.closing_date || '', status: item?.status || 'Open', description: item?.description || '',
   })
   const [saving,setSaving]=useState(false); const [error,setError]=useState('')
   async function save(){setSaving(true);setError('');try{await onSave(form)}catch(err){setError(err.message||'Unable to save vacancy.');setSaving(false)}}

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { demoUser, ORGANISATION } from '../lib/demoData'
+import { demoUser, ORGANISATION, updateRuntimeOrganisation } from '../lib/demoData'
 import { signOut as supabaseSignOut } from '../lib/supabase'
 import { recordAudit, setDemoAuditActor } from '../lib/auditService'
 import { endStaffSession, heartbeatStaffSession, startStaffSession } from '../lib/staffSessions'
@@ -45,11 +45,20 @@ export function AuthProvider({ children }) {
             profile: {
               ...value.profile,
               organisation_name: value.profile.organisations?.name || value.profile.organisation_name || ORGANISATION.name,
-              organisation_code: value.profile.organisations?.org_code || ORGANISATION.org_code,
+              organisation_code: value.profile.organisations?.org_code || value.profile.organisation_code || ORGANISATION.org_code,
+              organisation_mode: value.profile.organisations?.system_mode || value.profile.organisation_mode || ORGANISATION.system_mode || 'general_practice',
+              organisation_location: value.profile.organisations?.default_location || value.profile.organisation_location || ORGANISATION.default_location || 'Main Site',
             },
           }
         : { user: { id: 'demo-user' }, profile: demoUser, signed_in_at: new Date().toISOString() }
 
+      updateRuntimeOrganisation({
+        id: next.profile.organisation_id || ORGANISATION.id,
+        org_code: next.profile.organisation_code || ORGANISATION.org_code,
+        name: next.profile.organisation_name || ORGANISATION.name,
+        system_mode: next.profile.organisation_mode || ORGANISATION.system_mode,
+        default_location: next.profile.organisation_location || ORGANISATION.default_location,
+      })
       setSession(next)
       setDemoAuditActor(next.profile, next.user)
     },

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { CircleHelp, Download, LogOut, Moon, Search, Settings, ShieldCheck, Sun, UserCog, UserRound } from 'lucide-react'
+import { CircleHelp, LogOut, Moon, Search, Settings, ShieldCheck, Sun, UserCog, UserRound } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { ORGANISATION } from '../lib/demoData'
@@ -9,29 +9,13 @@ import { getCachedOrganisationSettings, loadOrganisationSettings } from '../lib/
 import { subscribeToPatientRecordChanges } from '../lib/patientRealtime'
 import PatientRecordUpdateBanner from './PatientRecordUpdateBanner'
 import ScreenMessageCenter from './messaging/ScreenMessageCenter'
+import RequiredUpdateNotice from './update/RequiredUpdateNotice'
 import { recordAudit } from '../lib/auditService'
 import { subscribeToPatientPresence } from '../lib/patientPresence'
 import ForcedPasswordChange from './security/ForcedPasswordChange'
 import SessionLockOverlay from './security/SessionLockOverlay'
 import SystemNotificationCenter from './SystemNotificationCenter'
 import PatientPresenceBanner from './PatientPresenceBanner'
-
-function detectDesktopPlatform() {
-  const ua = String(navigator.userAgent || '')
-  const platform = String(navigator.userAgentData?.platform || navigator.platform || '')
-  const combined = `${platform} ${ua}`
-
-  if (/iphone|ipad|ipod|android/i.test(combined)) {
-    return { id: 'unsupported', label: 'Mobile device' }
-  }
-  if (/mac/i.test(combined)) {
-    return { id: 'macos', label: 'macOS' }
-  }
-  if (/win/i.test(combined)) {
-    return { id: 'windows', label: 'Windows' }
-  }
-  return { id: 'unsupported', label: 'Unknown device' }
-}
 
 export default function AppShell({ children }) {
   const { session, logout, updateProfile } = useAuth()
@@ -45,16 +29,18 @@ export default function AppShell({ children }) {
   const [appointmentCount, setAppointmentCount] = useState(0)
   const [settings, setSettings] = useState(() => getSettings())
   const [organisationSettings, setOrganisationSettings] = useState(() => getCachedOrganisationSettings())
+  const organisationName = profile.organisation_name || organisationSettings.organisationName || ORGANISATION.name
+  const organisationLocation = profile.organisation_location || organisationSettings.defaultLocation || ORGANISATION.default_location || 'Main Site'
   const [recordUpdate, setRecordUpdate] = useState(null)
   const [contentRevision, setContentRevision] = useState(0)
   const [patientPeers, setPatientPeers] = useState([])
   const [locked, setLocked] = useState(false)
-  const [downloadBusy, setDownloadBusy] = useState(false)
-  const [downloadPromptOpen, setDownloadPromptOpen] = useState(false)
-  const [desktopPlatform] = useState(() => detectDesktopPlatform())
   const lastActivityRef = useRef(Date.now())
   const lastPatientAuditRef = useRef('')
 
+  useEffect(() => {
+    Promise.resolve(window.recordsWebDesktop?.setWindowMode?.('app')).catch(() => {})
+  }, [])
 
   const patientMatch = location.pathname.match(/^\/patients\/([^/]+)/)
   const openPatientId = patientMatch ? decodeURIComponent(patientMatch[1]) : ''
@@ -146,64 +132,10 @@ export default function AppShell({ children }) {
     setSettings(saveSettings({ ...settings, theme: nextTheme }))
   }
 
-  async function downloadLatestDesktopRelease(targetPlatform = desktopPlatform.id) {
-    if (downloadBusy) return
-    if (!['windows', 'macos'].includes(targetPlatform)) return
-    setDownloadBusy(true)
-
-    try {
-      const response = await fetch('https://api.github.com/repos/records-web/recordsweb-releases/releases/latest', {
-        headers: { Accept: 'application/vnd.github+json' },
-        cache: 'no-store',
-      })
-
-      if (!response.ok) throw new Error(`GitHub returned ${response.status}`)
-
-      const release = await response.json()
-      const assets = Array.isArray(release?.assets) ? release.assets : []
-      let installer = null
-
-      if (targetPlatform === 'macos') {
-        installer = assets.find((asset) => /RecordsWeb-.*macOS.*\.dmg$/i.test(String(asset?.name || '')))
-          || assets.find((asset) => /\.dmg$/i.test(String(asset?.name || '')))
-        if (!installer?.browser_download_url) throw new Error('No macOS DMG was attached to the latest release.')
-      } else {
-        installer = assets.find((asset) => /RecordsWeb-Setup-.*\.exe$/i.test(String(asset?.name || '')))
-          || assets.find((asset) => /\.exe$/i.test(String(asset?.name || '')) && !/\.blockmap$/i.test(String(asset?.name || '')))
-        if (!installer?.browser_download_url) throw new Error('No Windows installer was attached to the latest release.')
-      }
-
-      // The GitHub asset URL is an attachment response. Clicking it starts the
-      // matching installer download directly rather than opening Releases.
-      const link = document.createElement('a')
-      link.href = installer.browser_download_url
-      link.download = installer.name || (targetPlatform === 'macos' ? 'RecordsWeb.dmg' : 'RecordsWeb-Setup.exe')
-      link.rel = 'noopener noreferrer'
-      link.style.display = 'none'
-      document.body.appendChild(link)
-      link.click()
-      link.remove()
-      setDownloadPromptOpen(false)
-      temporaryNotice(`Downloading ${installer.name}`)
-    } catch (error) {
-      console.error('Unable to download latest RecordsWeb desktop release.', error)
-      const platformName = targetPlatform === 'macos' ? 'macOS' : 'Windows'
-      temporaryNotice(`Could not start the ${platformName} software download. Please try again.`)
-    } finally {
-      setDownloadBusy(false)
-    }
-  }
-
-  function openSoftwareDownloadPrompt() {
-    if (downloadBusy) return
-    setDownloadPromptOpen(true)
-  }
-
-
   return (
     <div className="app-frame">
       <header className="desktop-titlebar">
-        <strong>RecordsWeb Health Care System - {ORGANISATION.name}</strong>
+        <strong>RecordsWeb Health Care System - {organisationName}</strong>
         <div className="titlebar-spacer" />
         <button onClick={() => temporaryNotice('RecordsWeb Help is managed by the local deployment administrator.')} title="Help"><CircleHelp size={15} /></button>
         <SystemNotificationCenter session={session} />
@@ -220,8 +152,8 @@ export default function AppShell({ children }) {
 
       <header className="global-header">
         <div className="brand-lockup" onClick={() => navigate('/')} role="button" tabIndex={0}>
-          {organisationSettings.logoUrl && <img draggable={false} className="brand-logo-image" src={organisationSettings.logoUrl} alt={`${ORGANISATION.name} logo`} />}
-          <div><div className="brand-name">RecordsWeb</div><div className="brand-subtitle">{ORGANISATION.name}</div></div>
+          {organisationSettings.logoUrl && <img draggable={false} className="brand-logo-image" src={organisationSettings.logoUrl} alt={`${organisationName} logo`} />}
+          <div><div className="brand-name">RecordsWeb</div><div className="brand-subtitle">{organisationName}</div></div>
         </div>
         <div className="global-search">
           <Search size={16} />
@@ -243,29 +175,19 @@ export default function AppShell({ children }) {
         <Link to="/registration">Registration</Link>
         <Link to="/staff-area">Staff Area</Link>
         <div className="worklist-spacer" />
-        <span>Organisation: {ORGANISATION.name}</span>
+        <span>Organisation: {organisationName}</span>
       </div>
 
       {notice && <div className="system-toast">{notice}</div>}
+      <RequiredUpdateNotice />
       <PatientPresenceBanner peers={patientPeers} />
       <PatientRecordUpdateBanner event={recordUpdate} onRefresh={refreshPatientRecord} />
       <main className="app-content" key={`${location.pathname}:${contentRevision}`}>{children}</main>
       <footer className="status-bar recordsweb-status-bar">
-        <img draggable={false} className="status-nhs-logo" src={`${import.meta.env.BASE_URL}nhs-logo-footer.jpg`} alt="NHS" />
+        <img draggable={false} className="status-nhs-logo" src="./nhs-logo-footer.jpg" alt="NHS" />
         <span>{staffIdentity}</span>
-        <span>Organisation: {ORGANISATION.name}</span>
-        <span>Location: Main Building</span>
-        <button
-          type="button"
-          className="status-download-software"
-          onClick={openSoftwareDownloadPrompt}
-          disabled={downloadBusy}
-          title={`Download RecordsWeb for ${desktopPlatform.id === 'unsupported' ? 'Windows or macOS' : desktopPlatform.label}`}
-          aria-label="Download latest RecordsWeb desktop software"
-        >
-          <Download size={12} />
-          <span>{downloadBusy ? 'Finding release…' : desktopPlatform.id === 'windows' ? 'Download for Windows' : desktopPlatform.id === 'macos' ? 'Download for macOS' : 'Download software'}</span>
-        </button>
+        <span>Organisation: {organisationName}</span>
+        <span>Location: {organisationLocation}</span>
         <button
           type="button"
           className="status-theme-toggle"
@@ -278,50 +200,6 @@ export default function AppShell({ children }) {
         </button>
         <span className="status-ok">● Connected</span>
       </footer>
-      {downloadPromptOpen && (
-        <div className="modal-backdrop software-download-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !downloadBusy) setDownloadPromptOpen(false) }}>
-          <section className="med-modal software-download-modal" role="dialog" aria-modal="true" aria-labelledby="recordsweb-download-title">
-            <header>
-              <div>
-                <strong id="recordsweb-download-title">Download RecordsWeb software</strong>
-                <span>Latest desktop release from GitHub</span>
-              </div>
-            </header>
-            <div className="software-download-body">
-              {desktopPlatform.id === 'unsupported' ? (
-                <>
-                  <p>RecordsWeb could not detect Windows or macOS on this device.</p>
-                  <p className="muted">Choose the installer you want to download.</p>
-                  <div className="software-download-choice-grid">
-                    <button className="secondary-button" type="button" disabled={downloadBusy} onClick={() => downloadLatestDesktopRelease('windows')}>
-                      <Download size={14} /> Windows (.exe)
-                    </button>
-                    <button className="secondary-button" type="button" disabled={downloadBusy} onClick={() => downloadLatestDesktopRelease('macos')}>
-                      <Download size={14} /> macOS (.dmg)
-                    </button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <div className="software-device-detected">
-                    <strong>Device detected: {desktopPlatform.label}</strong>
-                    <span>{desktopPlatform.id === 'macos' ? 'Universal build for Apple Silicon and Intel Macs.' : 'Windows 64-bit installer.'}</span>
-                  </div>
-                  <p>RecordsWeb will download the matching installer from the latest published GitHub release.</p>
-                </>
-              )}
-            </div>
-            <div className="editor-actions software-download-actions">
-              <button className="secondary-button" type="button" disabled={downloadBusy} onClick={() => setDownloadPromptOpen(false)}>Cancel</button>
-              {desktopPlatform.id !== 'unsupported' && (
-                <button className="primary-button" type="button" disabled={downloadBusy} onClick={() => downloadLatestDesktopRelease(desktopPlatform.id)}>
-                  <Download size={14} /> {downloadBusy ? 'Finding release…' : `Download for ${desktopPlatform.label}`}
-                </button>
-              )}
-            </div>
-          </section>
-        </div>
-      )}
       {locked && <SessionLockOverlay session={session} onUnlock={() => { lastActivityRef.current = Date.now(); setLocked(false); recordAudit({ action: 'account.session.unlocked', entityType: 'session', description: 'Unlocked RecordsWeb after inactivity.' }).catch(() => {}) }} onSignOut={doLogout} />}
       {profile.must_change_password && <ForcedPasswordChange session={session} onChanged={() => updateProfile({ must_change_password: false, password_changed_at: new Date().toISOString() })} />}
     </div>

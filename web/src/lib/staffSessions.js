@@ -1,8 +1,8 @@
 import { supabase, supabaseConfigured } from './supabase'
 import { ORGANISATION } from './demoData'
-import { getWebDeviceContext } from './webRuntime'
+import { getInstallationNamespace } from './installation'
 
-const DEMO_SESSION_KEY = 'recordsweb-demo-staff-sessions-v1'
+const DEMO_SESSION_KEY = `recordsweb-demo-staff-sessions-v1-${getInstallationNamespace()}`
 const HEARTBEAT_STALE_MS = 90 * 1000
 let currentSessionKey = null
 
@@ -15,7 +15,24 @@ function getDemoRows() { try { return JSON.parse(localStorage.getItem(DEMO_SESSI
 function saveDemoRows(rows) { try { localStorage.setItem(DEMO_SESSION_KEY, JSON.stringify(rows.slice(0, 1000))) } catch {} }
 
 async function getDeviceContext() {
-  return getWebDeviceContext()
+  const fallback = {
+    appVersion: 'development',
+    deviceName: 'RecordsWeb workstation',
+    platform: globalThis.navigator?.platform || 'Unknown',
+  }
+  try {
+    const [appInfo, deviceInfo] = await Promise.all([
+      Promise.resolve(window.recordsWebDesktop?.getAppInfo?.()),
+      Promise.resolve(window.recordsWebDesktop?.getDeviceInfo?.()),
+    ])
+    return {
+      appVersion: appInfo?.version || fallback.appVersion,
+      deviceName: deviceInfo?.hostname || fallback.deviceName,
+      platform: [deviceInfo?.platform, deviceInfo?.release].filter(Boolean).join(' ') || fallback.platform,
+    }
+  } catch {
+    return fallback
+  }
 }
 
 export async function startStaffSession(userId) {

@@ -107,12 +107,12 @@ export default function OrganisationNewsPanel() {
         )}
       </Panel>
 
-      {modal && isManagement && <NewsModal item={modal.item} onClose={() => setModal(null)} onSave={save}/>} 
+      {modal && isManagement && <NewsModal item={modal.item} organisationName={profile.organisation_name || 'RecordsWeb organisation'} onClose={() => setModal(null)} onSave={save}/>} 
     </>
   )
 }
 
-function NewsModal({ item, onClose, onSave }) {
+function NewsModal({ item, organisationName, onClose, onSave }) {
   const [form, setForm] = useState({
     title: item?.title || '',
     body: item?.body || '',
@@ -143,7 +143,7 @@ function NewsModal({ item, onClose, onSave }) {
   return (
     <HomeContentModal
       title={item ? 'Edit news item' : 'Add news item'}
-      subtitle="Management · Grove Way Health Centre"
+      subtitle={`Management · ${organisationName}`}
       onClose={onClose}
       error={error}
       footer={<><button className="secondary-button" type="button" onClick={onClose}>Cancel</button><button className="primary-button" type="button" disabled={saving || !form.title.trim() || !form.body.trim()} onClick={submit}>{saving ? 'Saving…' : 'Save news'}</button></>}

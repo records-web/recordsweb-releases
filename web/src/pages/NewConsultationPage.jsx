@@ -88,7 +88,6 @@ export default function NewConsultationPage() {
 
   const selectedProblem = useMemo(() => problems.find((problem) => problem.id === selectedProblemId) || null, [problems, selectedProblemId])
   const completedEntries = useMemo(() => CONSULTATION_TEMPLATE.filter((type) => String(entryTexts[type] || '').trim()), [entryTexts])
-  const hasUnsavedConsultation = useMemo(() => Boolean(selectedProblemId) || Object.values(entryTexts).some((value) => String(value || '').trim()), [entryTexts, selectedProblemId])
 
   function chooseProblem(problemId) {
     setSelectedProblemId(problemId)
@@ -134,7 +133,7 @@ export default function NewConsultationPage() {
   }
 
   return (
-    <div data-recordsweb-update-blocked={hasUnsavedConsultation ? 'true' : undefined}>
+    <div>
       <ClinicalToolbar actions={[
         { label: saving ? 'Saving…' : 'Save', icon: 'add', onClick: save, disabled: saving || completedEntries.length === 0 },
         { label: 'Next problem', icon: 'consult', onClick: () => jumpTo('Problem') },

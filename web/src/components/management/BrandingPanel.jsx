@@ -121,7 +121,7 @@ export default function BrandingPanel() {
   return (
     <Panel title="Organisation appearance">
       <div className="branding-settings">
-        <div className="branding-intro"><Palette size={19}/><div><strong>{ORGANISATION.name}</strong><span>These settings apply to RecordsWeb on Grove Way Health Centre workstations.</span></div></div>
+        <div className="branding-intro"><Palette size={19}/><div><strong>{ORGANISATION.name}</strong><span>These settings apply to RecordsWeb workstations for this organisation.</span></div></div>
 
         <div className="branding-colour-grid">
           {colourFields.map(([key, label, description]) => (

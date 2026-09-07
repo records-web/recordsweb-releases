@@ -5,6 +5,8 @@ import { STAFF_TITLES, normaliseRoles } from '../../lib/staffOptions'
 import RoleSelector from './RoleSelector'
 import ModalPortal from '../ModalPortal'
 import { validateRecordsWebPassword } from '../../lib/passwordPolicy'
+import { ORGANISATION } from '../../lib/demoData'
+import { getInstalledOrganisationSuffix } from '../../lib/installation'
 
 function suggestedUsername(firstName, lastName) {
   const local = `${firstName}.${lastName}`
@@ -13,11 +15,13 @@ function suggestedUsername(firstName, lastName) {
     .toLowerCase()
     .replace(/[^a-z0-9.]/g, '')
     .replace(/^\.|\.$/g, '')
-  return local ? `${local}@GW.HC` : ''
+  const suffix = getInstalledOrganisationSuffix() || '@XX.XX'
+  return local ? `${local}${suffix}` : ''
 }
 
 export default function StaffAccountModal({ account = null, currentUserId, onClose, onSave }) {
   const editing = Boolean(account)
+  const organisationSuffix = getInstalledOrganisationSuffix() || '@XX.XX'
   const initialRoles = normaliseRoles(account?.roles, account?.role || 'Patient Coordinator')
   const [form, setForm] = useState({
     title: account?.title || '',
@@ -84,10 +88,10 @@ export default function StaffAccountModal({ account = null, currentUserId, onClo
     <ModalPortal onClose={onClose} ariaLabel={modalTitle}>
       <div className="records-modal management-modal staff-account-modal">
         <header>
-          <div><strong>{modalTitle}</strong><span>Grove Way Health Centre</span></div>
+          <div><strong>{modalTitle}</strong><span>{ORGANISATION.name}</span></div>
           <button onClick={onClose}><X size={18}/></button>
         </header>
-        <div className="modal-patient-strip">Account usernames use the @GW.HC namespace</div>
+        <div className="modal-patient-strip">Account usernames use the {organisationSuffix} namespace</div>
 
         <div className="records-form-grid staff-account-grid">
           <label>
@@ -105,7 +109,7 @@ export default function StaffAccountModal({ account = null, currentUserId, onClo
               readOnly={editing}
               onChange={(event) => { setTouchedUsername(true); set('username', event.target.value) }}
               onBlur={(event) => !editing && set('username', normaliseLoginName(event.target.value))}
-              placeholder="first.last@GW.HC"
+              placeholder={`first.last${organisationSuffix}`}
             />
             {editing && <small>Usernames are fixed after account creation.</small>}
           </label>

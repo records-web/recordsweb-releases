@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Mail, RefreshCcw, Reply, Send, X } from 'lucide-react'
 import ModalPortal from '../ModalPortal'
 import { listMessageStaff, listScreenMessages, markScreenMessageRead, sendScreenMessages, subscribeStaffPresence, subscribeToScreenMessages } from '../../lib/staffMessaging'
-import { setUrgentTabState } from '../../lib/webRuntime'
 
 export default function ScreenMessageCenter({ session }) {
   const profile = session?.profile || {}
@@ -28,7 +27,8 @@ export default function ScreenMessageCenter({ session }) {
     setMessages((current) => [row, ...current.filter((x) => x.id !== row.id)])
     if (row.urgent) {
       setUrgentPopup(row)
-      setUrgentTabState(true)
+      // Windows flashes the taskbar icon rather than forcing RecordsWeb above other applications.
+      Promise.resolve(window.recordsWebDesktop?.flashWindow?.(true)).catch(() => {})
     }
   }), [userId])
 
@@ -38,7 +38,7 @@ export default function ScreenMessageCenter({ session }) {
   async function viewMessage(message) {
     setSelectedMessage(message)
     setUrgentPopup(null)
-    setUrgentTabState(false)
+    Promise.resolve(window.recordsWebDesktop?.flashWindow?.(false)).catch(() => {})
     if (!message.read_at) {
       await markScreenMessageRead(message.id).catch(() => {})
       setMessages((current) => current.map((x) => x.id === message.id ? { ...x, read_at: new Date().toISOString() } : x))

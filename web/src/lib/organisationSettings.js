@@ -1,10 +1,17 @@
-import { ORGANISATION } from './demoData'
+import { ORGANISATION, updateRuntimeOrganisation } from './demoData'
+import { getInstalledOrganisationCode } from './installation'
 import { supabase, supabaseConfigured } from './supabase'
 
-export const ORGANISATION_SETTINGS_KEY = 'recordsweb-organisation-settings-v2'
+export const ORGANISATION_SETTINGS_KEY = `recordsweb-organisation-settings-v3-${(getInstalledOrganisationCode() || 'unconfigured').toLowerCase()}`
 export const BRANDING_BUCKET = 'recordsweb-branding'
 
 export const DEFAULT_ORGANISATION_SETTINGS = {
+  organisationId: ORGANISATION.id,
+  organisationName: ORGANISATION.name,
+  organisationCode: ORGANISATION.org_code,
+  systemMode: ORGANISATION.system_mode || 'general_practice',
+  defaultLocation: ORGANISATION.default_location || 'Main Site',
+  active: true,
   primaryColor: '#0f6fbd',
   navigationColor: '#cfe7f8',
   patientBannerColor: '#753b0d',
@@ -44,6 +51,12 @@ export function normaliseOrganisationSettings(settings = {}) {
   return {
     ...DEFAULT_ORGANISATION_SETTINGS,
     ...settings,
+    organisationId: String(settings.organisationId || DEFAULT_ORGANISATION_SETTINGS.organisationId || ''),
+    organisationName: String(settings.organisationName || DEFAULT_ORGANISATION_SETTINGS.organisationName || ''),
+    organisationCode: String(settings.organisationCode || DEFAULT_ORGANISATION_SETTINGS.organisationCode || ''),
+    systemMode: settings.systemMode === 'hospital' ? 'hospital' : 'general_practice',
+    defaultLocation: String(settings.defaultLocation || DEFAULT_ORGANISATION_SETTINGS.defaultLocation || 'Main Site'),
+    active: settings.active !== false,
     primaryColor: cleanHex(settings.primaryColor, DEFAULT_ORGANISATION_SETTINGS.primaryColor),
     navigationColor: cleanHex(settings.navigationColor, DEFAULT_ORGANISATION_SETTINGS.navigationColor),
     patientBannerColor: cleanHex(settings.patientBannerColor, DEFAULT_ORGANISATION_SETTINGS.patientBannerColor),
@@ -97,27 +110,60 @@ export async function loadOrganisationSettings() {
   let settings = getCachedOrganisationSettings()
   applyOrganisationSettings(settings)
 
-  if (!supabaseConfigured) return settings
+  const organisationCode = getInstalledOrganisationCode()
+  if (!organisationCode) throw new Error('This RecordsWeb installation has not been assigned an organisation extension.')
 
-  const { data, error } = await supabase
-    .from('organisations')
-    .select('primary_color,navigation_color,patient_banner_color,logo_path,logo_file_name,logo_updated_at,logo_data_url')
-    .eq('org_code', ORGANISATION.org_code)
-    .single()
+  if (!supabaseConfigured) {
+    updateRuntimeOrganisation({
+      org_code: organisationCode,
+      name: settings.organisationName || ORGANISATION.name,
+      system_mode: settings.systemMode || 'general_practice',
+      default_location: settings.defaultLocation || 'Main Site',
+    })
+    return settings
+  }
 
-  if (error) throw error
+  const { data, error } = await supabase.rpc('recordsweb_public_organisation_config', {
+    p_organisation_code: organisationCode,
+  })
 
-  const path = data.logo_path || ''
-  const updatedAt = data.logo_updated_at || ''
-  const legacyDataUrl = !path && data.logo_data_url ? data.logo_data_url : ''
+  if (error) {
+    if (/recordsweb_public_organisation_config|does not exist|schema cache/i.test(error.message || '')) {
+      throw new Error('Multi-organisation support is not installed in Supabase. Run supabase/recordsweb-3.1.9-multi-organisation.sql.')
+    }
+    throw error
+  }
+
+  const row = Array.isArray(data) ? data[0] : data
+  if (!row?.id || row?.active === false) {
+    throw new Error(`The organisation extension @${organisationCode} is not registered or is not active in RecordsWeb.`)
+  }
+
+  updateRuntimeOrganisation({
+    id: row.id,
+    org_code: row.org_code || organisationCode,
+    name: row.name || organisationCode,
+    system_mode: row.system_mode || 'general_practice',
+    default_location: row.default_location || 'Main Site',
+  })
+
+  const path = row.logo_path || ''
+  const updatedAt = row.logo_updated_at || ''
+  const legacyDataUrl = !path && row.logo_data_url ? row.logo_data_url : ''
 
   settings = publishSettings({
-    primaryColor: data.primary_color || DEFAULT_ORGANISATION_SETTINGS.primaryColor,
-    navigationColor: data.navigation_color || DEFAULT_ORGANISATION_SETTINGS.navigationColor,
-    patientBannerColor: data.patient_banner_color || DEFAULT_ORGANISATION_SETTINGS.patientBannerColor,
+    organisationId: row.id,
+    organisationName: row.name || organisationCode,
+    organisationCode: row.org_code || organisationCode,
+    systemMode: row.system_mode || 'general_practice',
+    defaultLocation: row.default_location || 'Main Site',
+    active: row.active !== false,
+    primaryColor: row.primary_color || DEFAULT_ORGANISATION_SETTINGS.primaryColor,
+    navigationColor: row.navigation_color || DEFAULT_ORGANISATION_SETTINGS.navigationColor,
+    patientBannerColor: row.patient_banner_color || DEFAULT_ORGANISATION_SETTINGS.patientBannerColor,
     logoPath: path,
     logoUrl: path ? publicLogoUrl(path, updatedAt) : legacyDataUrl,
-    logoFileName: data.logo_file_name || '',
+    logoFileName: row.logo_file_name || '',
     logoUpdatedAt: updatedAt,
     logoDataUrl: legacyDataUrl,
   })
@@ -172,7 +218,8 @@ export async function saveOrganisationSettings(settings, options = {}) {
 
   if (logoFile) {
     const ext = logoExtension(logoFile)
-    const uploadedPath = `${ORGANISATION.id}/logo.${ext}`
+    const organisationId = next.organisationId || ORGANISATION.id
+    const uploadedPath = `${organisationId}/logo.${ext}`
     const { error: uploadError } = await supabase.storage
       .from(BRANDING_BUCKET)
       .upload(uploadedPath, logoFile, {
@@ -208,7 +255,7 @@ export async function saveOrganisationSettings(settings, options = {}) {
       // Clear the old database-embedded image whenever branding is saved.
       logo_data_url: null,
     })
-    .eq('org_code', ORGANISATION.org_code)
+    .eq('org_code', getInstalledOrganisationCode())
   if (error) throw error
 
   return publishSettings({
@@ -223,7 +270,15 @@ export async function saveOrganisationSettings(settings, options = {}) {
 
 export async function resetOrganisationSettings() {
   const current = await loadOrganisationSettings().catch(() => getCachedOrganisationSettings())
-  return saveOrganisationSettings(DEFAULT_ORGANISATION_SETTINGS, {
+  return saveOrganisationSettings({
+    ...DEFAULT_ORGANISATION_SETTINGS,
+    organisationId: current.organisationId,
+    organisationName: current.organisationName,
+    organisationCode: current.organisationCode,
+    systemMode: current.systemMode,
+    defaultLocation: current.defaultLocation,
+    active: current.active,
+  }, {
     removeLogo: Boolean(current.logoPath || current.logoUrl || current.logoDataUrl),
   })
 }

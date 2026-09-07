@@ -1,11 +1,12 @@
 import { ORGANISATION } from './demoData'
+import { getInstalledOrganisationCode } from './installation'
 import { supabase, supabaseConfigured } from './supabase'
 
-const DEMO_KEY = 'recordsweb-demo-maintenance-v1'
+const DEMO_KEY = `recordsweb-demo-maintenance-v2-${(getInstalledOrganisationCode() || 'unconfigured').toLowerCase()}`
 const DEFAULT_MESSAGE = 'RecordsWeb is currently unavailable while scheduled maintenance is being carried out.'
 
 export const DEFAULT_MAINTENANCE_STATE = {
-  organisation_code: ORGANISATION.org_code,
+  organisation_code: getInstalledOrganisationCode() || ORGANISATION.org_code,
   enabled: false,
   message: DEFAULT_MESSAGE,
   estimated_end_at: null,
@@ -46,7 +47,7 @@ export async function loadMaintenanceState() {
   if (!supabaseConfigured || !supabase) return readDemoState()
 
   const { data, error } = await supabase.rpc('recordsweb_public_maintenance_state', {
-    p_organisation_code: ORGANISATION.org_code,
+    p_organisation_code: getInstalledOrganisationCode() || ORGANISATION.org_code,
   })
 
   if (error) {
@@ -101,12 +102,12 @@ export function subscribeToMaintenance(callback) {
   }
 
   const channel = supabase
-    .channel(`recordsweb-maintenance-${ORGANISATION.org_code}`)
+    .channel(`recordsweb-maintenance-${getInstalledOrganisationCode() || ORGANISATION.org_code}`)
     .on('postgres_changes', {
       event: '*',
       schema: 'public',
       table: 'system_maintenance',
-      filter: `organisation_code=eq.${ORGANISATION.org_code}`,
+      filter: `organisation_code=eq.${getInstalledOrganisationCode() || ORGANISATION.org_code}`,
     }, (payload) => {
       const next = payload?.new
       if (next && Object.keys(next).length) callback(normaliseState(next))

@@ -136,7 +136,7 @@ export default function SecurityPage() {
             <div><span>Primary role</span><strong>{profile.role || roles[0]}</strong></div>
             <div><span>All roles</span><strong>{roles.join(' · ')}</strong></div>
             <div><span>Account status</span><strong className="security-good"><CheckCircle2 size={13}/> Active</strong></div>
-            <div><span>Session</span><strong><Clock3 size={13}/> Current web session</strong></div>
+            <div><span>Session</span><strong><Clock3 size={13}/> Current desktop session</strong></div>
           </div>
           <div className="security-signout-row">
             <p>Signing out closes access to clinical records on this workstation until credentials are entered again.</p>

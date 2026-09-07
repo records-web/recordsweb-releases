@@ -1,6 +1,4 @@
--- Desktop release example. For a shared desktop + web release, run only AFTER
--- the matching GitHub Release AND website deployment are ready.
--- The matching GitHub Release contains:
+-- Run this only AFTER the matching GitHub Release has been published and contains:
 --   latest.yml
 --   RecordsWeb-Setup-2.5.0.exe
 --   RecordsWeb-Setup-2.5.0.exe.blockmap

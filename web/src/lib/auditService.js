@@ -1,7 +1,8 @@
 import { supabase, supabaseConfigured } from './supabase'
 import { ORGANISATION } from './demoData'
+import { getInstallationNamespace } from './installation'
 
-const DEMO_AUDIT_KEY = 'recordsweb-demo-audit-v1'
+const DEMO_AUDIT_KEY = `recordsweb-demo-audit-v1-${getInstallationNamespace()}`
 
 function getDemoAudit() {
   try { return JSON.parse(localStorage.getItem(DEMO_AUDIT_KEY) || '[]') } catch { return [] }

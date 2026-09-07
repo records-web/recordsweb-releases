@@ -22,7 +22,8 @@ function cleanRoles(value: unknown, fallback = 'Patient Coordinator') {
 function cleanTitle(value: unknown) { const title=String(value||'').trim(); return ALLOWED_TITLES.includes(title as typeof ALLOWED_TITLES[number]) ? title : '' }
 function buildDisplayName(title:string, firstName:string, lastName:string){ return [title,firstName,lastName].map(v=>v.trim()).filter(Boolean).join(' ') }
 function requiredEnv(name:string){ const value=Deno.env.get(name); if(!value) throw new Error(`Server configuration error: ${name} is unavailable.`); return value }
-function normaliseUsername(value:unknown){ const raw=String(value||'').trim(); const withDomain=raw.includes('@')?raw:`${raw}@GW.HC`; const [local,domain]=withDomain.split('@'); return domain?.toLowerCase()==='gw.hc' ? `${local.toLowerCase()}@GW.HC` : withDomain }
+function normaliseOrganisationCode(value:unknown){ const clean=String(value||'').trim().replace(/^@+/,'').replace(/\s+/g,'').toUpperCase(); return /^[A-Z]{2}\.[A-Z]{2}$/.test(clean)?clean:'' }
+function normaliseUsername(value:unknown,orgCode:string){ const safeOrg=normaliseOrganisationCode(orgCode); const raw=String(value||'').trim(); if(!safeOrg)return raw; const withDomain=raw.includes('@')?raw:`${raw}@${safeOrg}`; const at=withDomain.lastIndexOf('@'); const local=withDomain.slice(0,at).trim().toLowerCase(); const domain=normaliseOrganisationCode(withDomain.slice(at+1)); return local&&domain===safeOrg?`${local}@${safeOrg}`:withDomain }
 function validatePassword(password:string, username=''){
   if(password.length<10) return 'Password must contain at least 10 characters.'
   if(!/[A-Za-z]/.test(password)||!/[0-9]/.test(password)) return 'Password must contain at least one letter and one number.'
@@ -45,9 +46,10 @@ Deno.serve(async (req) => {
     // they are used from the compact sign-in window. Recovery codes are hashed server-side,
     // rate-limited in SQL and these routes never return profile data beyond the verified username.
     if(body.action==='username-reminder'){
-      const firstName=String(body.first_name||'').trim(), lastName=String(body.last_name||'').trim(), code=String(body.recovery_code||'').trim()
+      const firstName=String(body.first_name||'').trim(), lastName=String(body.last_name||'').trim(), code=String(body.recovery_code||'').trim(), organisationCode=normaliseOrganisationCode(body.organisation_code)
+      if(!organisationCode) return json({error:'This RecordsWeb installation has an invalid organisation extension.'},400)
       if(!firstName||!lastName||!/^\d{6}$/.test(code)) return json({error:'Enter your name and 6-digit recovery code.'},400)
-      const {data:candidates,error}=await admin.from('profiles').select('id,username,organisations!inner(org_code)').ilike('first_name',firstName).ilike('last_name',lastName).eq('active',true).eq('organisations.org_code','GW.HC').limit(10)
+      const {data:candidates,error}=await admin.from('profiles').select('id,username,organisations!inner(org_code)').ilike('first_name',firstName).ilike('last_name',lastName).eq('active',true).eq('organisations.org_code',organisationCode).limit(10)
       if(error) return json({error:'Unable to verify recovery details.'},400)
       const verified=[] as any[]
       for(const candidate of candidates||[]){ const {data:ok}=await admin.rpc('recordsweb_service_verify_recovery_code',{p_user_id:candidate.id,p_code:code}); if(ok) verified.push(candidate) }
@@ -56,10 +58,11 @@ Deno.serve(async (req) => {
     }
 
     if(body.action==='recover-password'){
-      const username=normaliseUsername(body.username), code=String(body.recovery_code||'').trim(), password=String(body.new_password||'')
+      const organisationCode=normaliseOrganisationCode(body.organisation_code), username=normaliseUsername(body.username,organisationCode), code=String(body.recovery_code||'').trim(), password=String(body.new_password||'')
       const policy=validatePassword(password,username); if(policy) return json({error:policy},400)
       if(!/^\d{6}$/.test(code)) return json({error:'Enter your 6-digit recovery code.'},400)
-      const {data:profile,error}=await admin.from('profiles').select('id,username,display_name,role,organisation_id,organisations!inner(org_code)').ilike('username',username).eq('active',true).eq('organisations.org_code','GW.HC').maybeSingle()
+      if(!organisationCode) return json({error:'This RecordsWeb installation has an invalid organisation extension.'},400)
+      const {data:profile,error}=await admin.from('profiles').select('id,username,display_name,role,organisation_id,organisations!inner(org_code)').ilike('username',username).eq('active',true).eq('organisations.org_code',organisationCode).maybeSingle()
       if(error||!profile) return json({error:'The username or recovery code is incorrect.'},400)
       const {data:verified,error:verifyError}=await admin.rpc('recordsweb_service_verify_recovery_code',{p_user_id:profile.id,p_code:code})
       if(verifyError||!verified) return json({error:'The username or recovery code is incorrect, or recovery is temporarily locked.'},400)
@@ -80,9 +83,11 @@ Deno.serve(async (req) => {
     if(!token||token===authHeader) return json({error:'Unauthorised: missing bearer token.'},401)
     const {data:callerData,error:callerError}=await admin.auth.getUser(token)
     if(callerError||!callerData.user) return json({error:'Unauthorised session.'},401)
-    const {data:callerProfile,error:profileError}=await admin.from('profiles').select('id,organisation_id,is_management,active,display_name,role,username').eq('id',callerData.user.id).single()
+    const {data:callerProfile,error:profileError}=await admin.from('profiles').select('id,organisation_id,is_management,active,display_name,role,username,organisations!inner(org_code,active)').eq('id',callerData.user.id).single()
     if(profileError) return json({error:`Unable to verify RecordsWeb profile: ${profileError.message}`},500)
     if(!callerProfile?.active) return json({error:'This RecordsWeb account is disabled.'},403)
+    const callerOrganisation=(callerProfile as any).organisations
+    if(!callerOrganisation?.active) return json({error:'This RecordsWeb organisation is inactive.'},403)
 
     if(body.action==='change-own-password'){
       const currentPassword=String(body.current_password||''), password=String(body.new_password||'')
@@ -107,12 +112,12 @@ Deno.serve(async (req) => {
     }
 
     if(!callerProfile?.is_management) return json({error:'Management permission is required.'},403)
-    if(body.action==='health') return json({ok:true,admin_api:true,service_role_available:true,caller_id:callerData.user.id})
+    if(body.action==='health') return json({ok:true,admin_api:true,service_role_available:true,caller_id:callerData.user.id,organisation_code:callerOrganisation?.org_code||null})
 
     if(body.action==='create'){
-      const username=normaliseUsername(body.username), authUsername=username.toLowerCase(), password=String(body.password||''), title=cleanTitle(body.title), firstName=String(body.first_name||'').trim(), lastName=String(body.last_name||'').trim()
+      const organisationCode=normaliseOrganisationCode(callerOrganisation?.org_code), username=normaliseUsername(body.username,organisationCode), authUsername=username.toLowerCase(), password=String(body.password||''), title=cleanTitle(body.title), firstName=String(body.first_name||'').trim(), lastName=String(body.last_name||'').trim()
       const roles=cleanRoles(body.roles,String(body.role||'Patient Coordinator')), requestedPrimary=String(body.role||'').trim(), role=roles.includes(requestedPrimary)?requestedPrimary:roles[0], displayName=buildDisplayName(title,firstName,lastName)
-      if(!authUsername.endsWith('@gw.hc')) return json({error:'Username must end in @GW.HC.'},400)
+      if(!organisationCode || !authUsername.endsWith(`@${organisationCode.toLowerCase()}`)) return json({error:`Username must end in @${organisationCode||'XX.XX'}.`},400)
       if(!firstName||!lastName) return json({error:'First and last name are required.'},400)
       const policy=validatePassword(password,username); if(policy) return json({error:policy},400)
       const {data:created,error:createError}=await admin.auth.admin.createUser({email:authUsername,password,email_confirm:true,user_metadata:{recordsweb:true,display_name:displayName}})

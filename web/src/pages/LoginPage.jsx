@@ -3,12 +3,12 @@ import { Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { normaliseLoginName, signInRecordsWeb, supabaseConfigured } from '../lib/supabase'
 import { ORGANISATION } from '../lib/demoData'
+import { getInstalledOrganisationCode, getInstalledOrganisationSuffix } from '../lib/installation'
 import { applyOrganisationSettings, getCachedOrganisationSettings, loadOrganisationSettings } from '../lib/organisationSettings'
 import AccountRecoveryModal from '../components/security/AccountRecoveryModal'
-import { APP_RUNTIME_LABEL, APP_VERSION } from '../lib/webRuntime'
 
 export default function LoginPage() {
-  const [username, setUsername] = useState(supabaseConfigured ? '' : 'manager.grove@GW.HC')
+  const [username, setUsername] = useState(supabaseConfigured ? '' : (getInstalledOrganisationCode() === 'GW.HC' ? 'manager.grove@GW.HC' : `manager.recordsweb${getInstalledOrganisationSuffix()}`))
   const [password, setPassword] = useState(supabaseConfigured ? '' : 'demo')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -20,7 +20,7 @@ export default function LoginPage() {
     } catch { return '' }
   })
   const [organisationSettings, setOrganisationSettings] = useState(() => getCachedOrganisationSettings())
-  const [appVersion] = useState(APP_VERSION)
+  const [appVersion, setAppVersion] = useState('3.1.9')
   const [recoveryMode, setRecoveryMode] = useState('')
   const usernameRef = useRef(null)
   const { login, session } = useAuth()
@@ -48,10 +48,16 @@ export default function LoginPage() {
     let cancelled = false
     let delayedFocus = null
 
-    window.requestAnimationFrame(() => restoreLoginFocus(true))
-    delayedFocus = window.setTimeout(() => {
-      if (!cancelled) restoreLoginFocus()
-    }, 120)
+    Promise.resolve(window.recordsWebDesktop?.setWindowMode?.('login'))
+      .catch(() => {})
+      .finally(() => {
+        if (cancelled) return
+        window.requestAnimationFrame(() => restoreLoginFocus(true))
+        delayedFocus = window.setTimeout(() => restoreLoginFocus(), 120)
+      })
+    window.recordsWebDesktop?.getAppInfo?.().then((info) => {
+      if (info?.version) setAppVersion(info.version)
+    }).catch(() => {})
 
     applyOrganisationSettings(organisationSettings)
     const sync = (event) => setOrganisationSettings(event?.detail || getCachedOrganisationSettings())
@@ -63,7 +69,7 @@ export default function LoginPage() {
     window.addEventListener('recordsweb-organisation-settings-changed', sync)
     window.addEventListener('focus', recoverFocus)
     document.addEventListener('visibilitychange', recoverVisibleFocus)
-    loadOrganisationSettings().then(setOrganisationSettings).catch(() => {})
+    loadOrganisationSettings().then(setOrganisationSettings).catch((err) => setError(err?.message || 'Unable to load this RecordsWeb organisation.'))
     return () => {
       cancelled = true
       if (delayedFocus) window.clearTimeout(delayedFocus)
@@ -76,6 +82,10 @@ export default function LoginPage() {
   }, [restoreLoginFocus])
 
   if (session) return <Navigate to="/" replace />
+
+  const organisationName = organisationSettings.organisationName || ORGANISATION.name
+  const organisationCode = organisationSettings.organisationCode || getInstalledOrganisationCode() || ORGANISATION.org_code
+  const organisationSuffix = `@${organisationCode}`
 
   async function submit(event) {
     event.preventDefault()
@@ -98,12 +108,12 @@ export default function LoginPage() {
   return (
     <div className="emis-login-screen">
       <div className="emis-login-window simplified-login-window">
-        <div className="login-version">RecordsWeb {appVersion} · {APP_RUNTIME_LABEL}</div>
+        <div className="login-version">RecordsWeb {appVersion} · Desktop Clinical System</div>
 
         <div className="legacy-brand-row simplified-brand-row">
-          <div className="recordsweb-logo recordsweb-logo-text">{organisationSettings.logoUrl && <img draggable={false} className="login-organisation-logo" src={organisationSettings.logoUrl} alt={`${ORGANISATION.name} logo`} />}<strong>RecordsWeb</strong></div>
+          <div className="recordsweb-logo recordsweb-logo-text">{organisationSettings.logoUrl && <img draggable={false} className="login-organisation-logo" src={organisationSettings.logoUrl} alt={`${organisationName} logo`} />}<strong>RecordsWeb</strong></div>
           <div className="centre-lockup">
-            <strong>{ORGANISATION.name}</strong>
+            <strong>{organisationName}</strong>
             <span>Health care records</span>
           </div>
         </div>
@@ -121,7 +131,7 @@ export default function LoginPage() {
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
                 onBlur={() => setUsername(normaliseLoginName(username))}
-                placeholder="first.last@GW.HC"
+                placeholder={`first.last${organisationSuffix}`}
                 autoComplete="off"
                 autoFocus
                 required
@@ -160,17 +170,17 @@ export default function LoginPage() {
 
         {!supabaseConfigured && (
           <div className="legacy-demo-notice">
-            <strong>Demo mode:</strong> <code>manager.grove@GW.HC</code> / <code>demo</code>. Accounts created in Management are saved locally on this computer.
+            <strong>Demo mode:</strong> <code>{getInstalledOrganisationCode() === 'GW.HC' ? 'manager.grove@GW.HC' : `manager.recordsweb${organisationSuffix}`}</code> / <code>demo</code>. Accounts created in Management are saved locally on this computer.
           </div>
         )}
 
         <div className="legacy-login-footer">
-          <span>Connection: {supabaseConfigured ? 'Grove Way Supabase' : 'Local demo database'}</span>
-          <span>Organisation: {ORGANISATION.org_code}</span>
+          <span>Connection: {supabaseConfigured ? 'RecordsWeb Supabase' : 'Local demo database'}</span>
+          <span>Organisation: {organisationCode}</span>
         </div>
 
         <div className="legacy-copyright">
-          RecordsWeb · {ORGANISATION.name}. Prototype clinical software. Do not use with live patient data until security, information-governance and clinical-safety requirements have been completed.
+          RecordsWeb · {organisationName}. Prototype clinical software. Do not use with live patient data until security, information-governance and clinical-safety requirements have been completed.
         </div>
         {recoveryMode && <AccountRecoveryModal mode={recoveryMode} onClose={() => setRecoveryMode('')} />}
       </div>

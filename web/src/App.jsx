@@ -21,9 +21,10 @@ import SecurityPage from './pages/SecurityPage'
 import SettingsPage from './pages/SettingsPage'
 import AppShell from './components/AppShell'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import UpdateGate from './components/update/UpdateGate'
 import MaintenanceGate from './components/maintenance/MaintenanceGate'
 import AccountAccessGuard from './components/security/AccountAccessGuard'
-import WebUpdateManager from './components/WebUpdateManager'
+import InstallationGate from './components/installation/InstallationGate'
 
 function Protected({ children }) {
   const { session } = useAuth()
@@ -40,8 +41,9 @@ function ManagementOnly({ children }) {
 
 export default function App() {
   return (
-    <AuthProvider>
-        <WebUpdateManager />
+    <InstallationGate>
+    <UpdateGate>
+      <AuthProvider>
         <MaintenanceGate>
         <AccountAccessGuard>
         <Routes>
@@ -76,6 +78,8 @@ export default function App() {
         </Routes>
         </AccountAccessGuard>
         </MaintenanceGate>
-    </AuthProvider>
+      </AuthProvider>
+    </UpdateGate>
+    </InstallationGate>
   )
 }

@@ -296,7 +296,7 @@ button.med-row:hover { background: #e8f4ff; }
 }
 
 /* ========================================================================== 
-   RecordsWeb desktop skin — Grove Way Health Centre
+   RecordsWeb desktop skin — organisation deployment
    Deliberately follows the dense, ribbon-based visual language used by
    traditional UK primary-care desktop systems while keeping spacing and
    typography slightly cleaner for modern displays.
@@ -1681,32 +1681,10 @@ button.message-audit-row:hover, button.message-audit-row.selected { background: 
 .message-audit-id { display: block; margin-top: 10px; color: #81919b; word-break: break-all; }
 
 /* RecordsWeb 2.5.6 — light/dark workspace toggle in the bottom status bar */
-.status-download-software {
-  align-self: stretch;
-  min-width: 112px;
-  margin-left: auto;
-  padding: 0 10px;
-  border: 0;
-  border-left: 1px solid #a9c8dc;
-  border-right: 1px solid #a9c8dc;
-  background: transparent;
-  color: #245f86;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-  font: 9px "Segoe UI", Tahoma, Arial, sans-serif;
-  font-weight: 600;
-  white-space: nowrap;
-}
-.status-download-software:hover:not(:disabled) { background: rgba(255,255,255,.48); color: #0d4e78; }
-.status-download-software:disabled { opacity: .65; cursor: wait; }
-.status-download-software > span { padding: 0 !important; border: 0 !important; }
-
 .status-theme-toggle {
   align-self: stretch;
   min-width: 82px;
-  margin-left: 0;
+  margin-left: auto;
   padding: 0 9px;
   border: 0;
   border-left: 1px solid #a9c8dc;
@@ -1768,8 +1746,6 @@ html.rw-dark-mode .worklist-strip a { border-color: #365466; }
 html.rw-dark-mode .worklist-strip > span { color: #8fa7b5; }
 html.rw-dark-mode .status-bar { background: #14242d; border-color: #35586e; color: #a8bfcd; }
 html.rw-dark-mode .status-bar span,
-html.rw-dark-mode .status-download-software { border-color: #365568; color: #b8d6e8; }
-html.rw-dark-mode .status-download-software:hover:not(:disabled) { background: #233742; color: #fff; }
 html.rw-dark-mode .status-theme-toggle { border-color: #365568; }
 html.rw-dark-mode .status-theme-toggle { color: #b7ceda; }
 html.rw-dark-mode .status-theme-toggle:hover { background: #233742; color: #fff; }
@@ -3265,100 +3241,3 @@ html.rw-dark-mode .legacy-consultation-entries {
 html.rw-dark-mode .appointment-wait.wait-normal { color: #83c995; }
 html.rw-dark-mode .appointment-wait.wait-warning { color: #ffd66e; background: #514514; }
 html.rw-dark-mode .appointment-wait.wait-critical { color: #ff9da5; background: #5c262a; }
-
-
-/* RecordsWeb website runtime: retain the desktop-system visual language while
-   making the full application fill a normal browser viewport. */
-html.rw-web-runtime, html.rw-web-runtime body, html.rw-web-runtime #root { width: 100%; height: 100%; }
-html.rw-web-runtime body { overscroll-behavior: none; }
-html.rw-web-runtime .desktop-titlebar { -webkit-app-region: no-drag; }
-@media (max-width: 720px) {
-  html.rw-web-runtime .desktop-titlebar > strong { margin-left: 0; text-align: left; }
-}
-
-/* RecordsWeb Web 3.1.9 — Supabase-driven browser update gate */
-.web-update-notice {
-  position: fixed;
-  z-index: 100000;
-  top: 18px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: min(680px, calc(100vw - 32px));
-  min-height: 72px;
-  display: grid;
-  grid-template-columns: 38px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
-  border: 1px solid #c78b18;
-  border-top: 4px solid #d39b21;
-  background: #fff8df;
-  color: #253f50;
-  box-shadow: 0 8px 24px rgba(16, 44, 61, 0.28);
-  font-size: 10px;
-}
-.web-update-notice.is-deferred { border-color: #9f6c00; background: #fff4cf; }
-.web-update-icon {
-  width: 34px;
-  height: 34px;
-  display: grid;
-  place-items: center;
-  border: 1px solid #d8b35a;
-  background: #ffedb1;
-  color: #765000;
-}
-.web-update-copy { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
-.web-update-copy strong { color: #233f52; font-size: 11px; }
-.web-update-copy span { color: #405f70; }
-.web-update-copy small { color: #617886; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.web-update-copy em { color: #845b00; font-style: normal; font-weight: 700; }
-.web-update-refresh {
-  min-height: 31px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  border: 1px solid #1a658e;
-  background: #1672a5;
-  color: #fff;
-  padding: 0 11px;
-  font-size: 10px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.web-update-refresh:hover { background: #0f638f; }
-.web-update-channel {
-  position: absolute;
-  right: 7px;
-  bottom: 3px;
-  color: #9b8b63;
-  font-size: 7px;
-  text-transform: uppercase;
-  letter-spacing: .06em;
-}
-html.rw-dark .web-update-notice,
-html[data-theme='dark'] .web-update-notice { background: #2e2b20; color: #e8edf0; border-color: #c89b37; }
-html.rw-dark .web-update-copy strong,
-html[data-theme='dark'] .web-update-copy strong { color: #fff; }
-html.rw-dark .web-update-copy span,
-html[data-theme='dark'] .web-update-copy span { color: #d1d9de; }
-@media (max-width: 640px) {
-  .web-update-notice { grid-template-columns: 34px 1fr; }
-  .web-update-refresh { grid-column: 1 / -1; width: 100%; }
-}
-
-
-/* Platform-aware RecordsWeb desktop download */
-.software-download-backdrop { z-index: 260; }
-.software-download-modal { width: min(520px, 94vw); }
-.software-download-modal > header span { margin-top: 2px; color: #6b8191; font-size: 10px; font-weight: 500; }
-.software-download-body { padding: 16px; font-size: 11px; line-height: 1.5; }
-.software-download-body p { margin: 0 0 10px; }
-.software-device-detected { display: flex; flex-direction: column; gap: 3px; padding: 10px 12px; margin-bottom: 12px; border: 1px solid #b8d5ea; background: #eef7fd; color: #214f6f; }
-.software-device-detected span { color: #557286; font-size: 10px; }
-.software-download-choice-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
-.software-download-choice-grid button { min-height: 42px; }
-.software-download-actions { min-height: 48px; }
-html.rw-dark-mode .software-device-detected { background: #172a35; border-color: #365568; color: #d6edf9; }
-html.rw-dark-mode .software-device-detected span { color: #9fc0d1; }
-@media (max-width: 560px) { .software-download-choice-grid { grid-template-columns: 1fr; } }

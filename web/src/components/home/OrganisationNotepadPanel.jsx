@@ -98,12 +98,12 @@ export default function OrganisationNotepadPanel() {
         )}
       </Panel>
 
-      {modal && <NotepadModal item={modal.item} onClose={() => setModal(null)} onSave={save}/>} 
+      {modal && <NotepadModal item={modal.item} organisationName={profile.organisation_name || 'organisation'} onClose={() => setModal(null)} onSave={save}/>} 
     </>
   )
 }
 
-function NotepadModal({ item, onClose, onSave }) {
+function NotepadModal({ item, organisationName, onClose, onSave }) {
   const [form, setForm] = useState({
     title: item?.title || '',
     body: item?.body || '',
@@ -125,7 +125,7 @@ function NotepadModal({ item, onClose, onSave }) {
   return (
     <HomeContentModal
       title={item ? 'Edit organisation note' : 'Add organisation note'}
-      subtitle="Visible to Grove Way Health Centre staff"
+      subtitle={`Visible to ${organisationName} staff`}
       onClose={onClose}
       error={error}
       footer={<><button className="secondary-button" type="button" onClick={onClose}>Cancel</button><button className="primary-button" type="button" disabled={saving || !form.title.trim() || !form.body.trim()} onClick={submit}>{saving ? 'Saving…' : 'Save note'}</button></>}
