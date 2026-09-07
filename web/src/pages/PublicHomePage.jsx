@@ -85,7 +85,7 @@ export default function PublicHomePage() {
           </div>
           <div className="public-hero-panel">
             <div className="public-panel-title"><Building2 size={17}/><strong>Multi-organisation deployment</strong></div>
-            <div className="public-org-example"><span>Grove Way Health Centre</span><strong>@GW.HC</strong></div>
+            <div className="public-org-example"><span>Example Medical Community</span><strong>@ZX.QV</strong></div>
             <div className="public-org-example"><span>Your community</span><strong>@XX.XX</strong></div>
             <p>Approved deployments receive a unique four-letter RecordsWeb extension used for logins, branding and data separation.</p>
           </div>
@@ -132,7 +132,7 @@ export default function PublicHomePage() {
               <label><span>Discord URL *</span><input type="url" placeholder="https://discord.gg/..." value={form.discordUrl} onChange={(e) => update('discordUrl', e.target.value)} required /></label>
               <label><span>Roblox group link *</span><input type="url" placeholder="https://www.roblox.com/communities/..." value={form.robloxGroupUrl} onChange={(e) => update('robloxGroupUrl', e.target.value)} required /></label>
               <label><span>Community members *</span><select value={form.memberRange} onChange={(e) => update('memberRange', e.target.value)} required><option value="">Select size</option><option value="10-99">10+</option><option value="100-999">100+</option><option value="1000-9999">1,000+</option><option value="10000+">10,000+</option></select></label>
-              <label className="public-logo-field"><span>Community logo *</span><div className="public-file-input"><ImagePlus size={17}/><input type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setLogoFile(e.target.files?.[0] || null)} required /><small>{logoFile ? logoFile.name : 'PNG, JPG or WebP · max 4 MB'}</small></div></label>
+              <label className="public-logo-field"><span>Community logo *</span><div className="public-file-input"><ImagePlus size={17}/><span className="public-file-button">Choose logo</span><span className="public-file-name">{logoFile ? logoFile.name : 'No file chosen'}</span><small>PNG, JPG or WebP · max 4 MB</small><input className="public-file-native" type="file" accept="image/png,image/jpeg,image/webp" onChange={(e) => setLogoFile(e.target.files?.[0] || null)} required /></div></label>
               <label><span>Your name *</span><input value={form.contactName} onChange={(e) => update('contactName', e.target.value)} maxLength={120} required /></label>
               <label><span>Contact email *</span><input type="email" value={form.contactEmail} onChange={(e) => update('contactEmail', e.target.value)} required /></label>
               <label><span>Discord username</span><input value={form.discordUsername} onChange={(e) => update('discordUsername', e.target.value)} maxLength={80} placeholder="username" /></label>
