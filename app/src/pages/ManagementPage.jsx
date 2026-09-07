@@ -15,9 +15,12 @@ import StaffProfileDetailsModal from '../components/management/StaffProfileDetai
 import { checkAdminService, createAccount, forceLogoutAccount, listAccounts, resetAccountPassword, setAccountActive, updateAccount } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { listStaffSessions, subscribeToStaffSessionChanges, summariseStaffSessions } from '../lib/staffSessions'
+import { getInstalledOrganisationSuffix } from '../lib/installation'
 
 export default function ManagementPage() {
   const { session, updateProfile } = useAuth()
+  const organisationName = session?.profile?.organisation_name || 'RecordsWeb organisation'
+  const organisationSuffix = getInstalledOrganisationSuffix() || '@XX.XX'
   const [rows, setRows] = useState([])
   const [section, setSection] = useState('staff')
   const [createOpen, setCreateOpen] = useState(false)
@@ -91,7 +94,7 @@ export default function ManagementPage() {
       <div className="page-title-row">
         <div>
           <h1>Management</h1>
-          <p>Manage RecordsWeb staff access, roles and Grove Way Health Centre appearance.</p>
+          <p>Manage RecordsWeb staff access, roles and {organisationName} appearance.</p>
         </div>
       </div>
 
@@ -100,7 +103,7 @@ export default function ManagementPage() {
       <div className="management-summary">
         <div><UsersRound size={20}/><strong>{rows.filter((item) => item.active).length}</strong><span>Active accounts</span></div>
         <div><ShieldCheck size={20}/><strong>{rows.filter((item) => item.is_management).length}</strong><span>Management accounts</span></div>
-        <div><KeyRound size={20}/><strong>@GW.HC</strong><span>Login namespace</span></div>
+        <div><KeyRound size={20}/><strong>{organisationSuffix}</strong><span>Login namespace</span></div>
         <div className={adminService.ok ? 'admin-service-online' : 'admin-service-offline'} title={adminService.message}><ServerCog size={20}/><strong>{adminService.checking ? 'Checking…' : adminService.ok ? 'Online' : 'Unavailable'}</strong><span>Admin service</span></div>
       </div>
 

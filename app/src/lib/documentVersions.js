@@ -1,5 +1,6 @@
 import { supabase, supabaseConfigured } from './supabase'
-const KEY='recordsweb-demo-document-versions-v1'
+import { getInstallationNamespace } from './installation'
+const KEY=`recordsweb-demo-document-versions-v1-${getInstallationNamespace()}`
 function read(){try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch{return[]}}
 function write(v){localStorage.setItem(KEY,JSON.stringify(v))}
 export async function recordDocumentVersion(document) {

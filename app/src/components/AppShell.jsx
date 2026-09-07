@@ -29,6 +29,8 @@ export default function AppShell({ children }) {
   const [appointmentCount, setAppointmentCount] = useState(0)
   const [settings, setSettings] = useState(() => getSettings())
   const [organisationSettings, setOrganisationSettings] = useState(() => getCachedOrganisationSettings())
+  const organisationName = profile.organisation_name || organisationSettings.organisationName || ORGANISATION.name
+  const organisationLocation = profile.organisation_location || organisationSettings.defaultLocation || ORGANISATION.default_location || 'Main Site'
   const [recordUpdate, setRecordUpdate] = useState(null)
   const [contentRevision, setContentRevision] = useState(0)
   const [patientPeers, setPatientPeers] = useState([])
@@ -133,7 +135,7 @@ export default function AppShell({ children }) {
   return (
     <div className="app-frame">
       <header className="desktop-titlebar">
-        <strong>RecordsWeb Health Care System - {ORGANISATION.name}</strong>
+        <strong>RecordsWeb Health Care System - {organisationName}</strong>
         <div className="titlebar-spacer" />
         <button onClick={() => temporaryNotice('RecordsWeb Help is managed by the local deployment administrator.')} title="Help"><CircleHelp size={15} /></button>
         <SystemNotificationCenter session={session} />
@@ -150,8 +152,8 @@ export default function AppShell({ children }) {
 
       <header className="global-header">
         <div className="brand-lockup" onClick={() => navigate('/')} role="button" tabIndex={0}>
-          {organisationSettings.logoUrl && <img draggable={false} className="brand-logo-image" src={organisationSettings.logoUrl} alt={`${ORGANISATION.name} logo`} />}
-          <div><div className="brand-name">RecordsWeb</div><div className="brand-subtitle">{ORGANISATION.name}</div></div>
+          {organisationSettings.logoUrl && <img draggable={false} className="brand-logo-image" src={organisationSettings.logoUrl} alt={`${organisationName} logo`} />}
+          <div><div className="brand-name">RecordsWeb</div><div className="brand-subtitle">{organisationName}</div></div>
         </div>
         <div className="global-search">
           <Search size={16} />
@@ -173,7 +175,7 @@ export default function AppShell({ children }) {
         <Link to="/registration">Registration</Link>
         <Link to="/staff-area">Staff Area</Link>
         <div className="worklist-spacer" />
-        <span>Organisation: {ORGANISATION.name}</span>
+        <span>Organisation: {organisationName}</span>
       </div>
 
       {notice && <div className="system-toast">{notice}</div>}
@@ -184,8 +186,8 @@ export default function AppShell({ children }) {
       <footer className="status-bar recordsweb-status-bar">
         <img draggable={false} className="status-nhs-logo" src="./nhs-logo-footer.jpg" alt="NHS" />
         <span>{staffIdentity}</span>
-        <span>Organisation: {ORGANISATION.name}</span>
-        <span>Location: Main Building</span>
+        <span>Organisation: {organisationName}</span>
+        <span>Location: {organisationLocation}</span>
         <button
           type="button"
           className="status-theme-toggle"

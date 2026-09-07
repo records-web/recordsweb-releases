@@ -1,7 +1,9 @@
 import { supabase, supabaseConfigured, listAccounts } from './supabase'
 import { recordAudit } from './auditService'
+import { ORGANISATION } from './demoData'
+import { getInstallationNamespace } from './installation'
 
-const DEMO_KEY = 'recordsweb-demo-screen-messages-v1'
+const DEMO_KEY = `recordsweb-demo-screen-messages-v1-${getInstallationNamespace()}`
 
 function getDemoMessages() {
   try { return JSON.parse(localStorage.getItem(DEMO_KEY) || '[]') } catch { return [] }
@@ -57,7 +59,7 @@ export async function sendScreenMessages({ sender, recipientIds, subject, body, 
     const rows = getDemoMessages()
     const created = recipientIds.map((recipientId) => ({
       id: `demo-message-${Date.now()}-${Math.random().toString(36).slice(2,7)}`,
-      organisation_id: 'grove-way-health-centre',
+      organisation_id: ORGANISATION.id,
       sender_id: sender.id,
       recipient_id: recipientId,
       sender_name: sender.display_name || sender.username,

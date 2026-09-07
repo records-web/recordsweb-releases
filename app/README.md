@@ -1,8 +1,16 @@
-# RecordsWeb 2.4
+# RecordsWeb 3.1.9
 
-RecordsWeb is an Electron + React desktop clinical-record prototype for **Grove Way Health Centre**.
+RecordsWeb is an Electron + React desktop clinical-record platform. The same application can be bound to an approved organisation through its four-letter `@XX.XX` extension while preserving organisation-level data isolation.
+
+## Organisation installation
+
+A fresh Windows installer asks for the organisation extension in the format `@XX.XX`. macOS asks on first launch. Existing Grove Way upgrades are preserved as `@GW.HC`.
+
+For the complete deployment/onboarding flow, see `docs/RECORDSWEB-3.1.9-MULTI-ORGANISATION.md`.
 
 ## Demo sign-in
+
+For `@GW.HC` demo mode:
 
 - Username: `manager.grove@GW.HC`
 - Password: `demo`
@@ -51,7 +59,7 @@ npm run package:win
 
 Management users can:
 
-- Create staff accounts using the `first.last@GW.HC` login format.
+- Create staff accounts using the installed `first.last@XX.XX` organisation namespace.
 - Assign a staff title such as Mr, Mrs, Miss, Ms, Dr or Prof.
 - Assign multiple roles to the same staff account and choose a primary role.
 - Edit existing staff names, titles, roles and Management access.
@@ -59,7 +67,7 @@ Management users can:
 - Change the organisation-wide primary interface colour.
 - Change the ribbon/navigation colour.
 - Change the active-patient banner colour.
-- Upload, replace or remove a Grove Way Health Centre logo.
+- Upload, replace or remove the current organisation logo.
 
 A logo is rendered only when a logo file has actually been uploaded. There is no placeholder image.
 

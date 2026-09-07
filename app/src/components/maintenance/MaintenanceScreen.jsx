@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { Clock3, RefreshCcw, ShieldCheck, Wrench } from 'lucide-react'
 import { ORGANISATION } from '../../lib/demoData'
+import { getInstalledOrganisationCode } from '../../lib/installation'
 import { normaliseLoginName, signInRecordsWeb, signOut as supabaseSignOut, supabaseConfigured } from '../../lib/supabase'
 import { applyOrganisationSettings, getCachedOrganisationSettings, loadOrganisationSettings } from '../../lib/organisationSettings'
 
@@ -35,6 +36,10 @@ export default function MaintenanceScreen({ state, onRetry, onManagementLogin })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  const organisationName = organisationSettings.organisationName || ORGANISATION.name
+  const organisationCode = organisationSettings.organisationCode || getInstalledOrganisationCode() || ORGANISATION.org_code
+  const organisationSuffix = `@${organisationCode}`
+
   async function managementSignIn(event) {
     event.preventDefault()
     setBusy(true)
@@ -63,10 +68,10 @@ export default function MaintenanceScreen({ state, onRetry, onManagementLogin })
 
         <div className="legacy-brand-row simplified-brand-row">
           <div className="recordsweb-logo recordsweb-logo-text">
-            {organisationSettings.logoUrl && <img draggable={false} className="login-organisation-logo" src={organisationSettings.logoUrl} alt={`${ORGANISATION.name} logo`} />}
+            {organisationSettings.logoUrl && <img draggable={false} className="login-organisation-logo" src={organisationSettings.logoUrl} alt={`${organisationName} logo`} />}
             <strong>RecordsWeb</strong>
           </div>
-          <div className="centre-lockup"><strong>{ORGANISATION.name}</strong><span>Health care records</span></div>
+          <div className="centre-lockup"><strong>{organisationName}</strong><span>Health care records</span></div>
         </div>
 
         <div className="legacy-blue-rule" />
@@ -89,7 +94,7 @@ export default function MaintenanceScreen({ state, onRetry, onManagementLogin })
             <h2>Management access</h2>
             <p className="maintenance-help">Only active RecordsWeb Management accounts can sign in while maintenance mode is enabled.</p>
             <form onSubmit={managementSignIn} autoComplete="off">
-              <label><span>Username</span><input value={username} onChange={(event) => setUsername(event.target.value)} onBlur={() => setUsername(normaliseLoginName(username))} placeholder="first.last@GW.HC" autoComplete="off" autoFocus required /></label>
+              <label><span>Username</span><input value={username} onChange={(event) => setUsername(event.target.value)} onBlur={() => setUsername(normaliseLoginName(username))} placeholder={`first.last${organisationSuffix}`} autoComplete="off" autoFocus required /></label>
               <label><span>Password</span><input value={password} onChange={(event) => setPassword(event.target.value)} type="password" autoComplete="off" required /></label>
               {error && <div className="form-error legacy-error">{error}</div>}
               <div className="legacy-login-actions">
@@ -100,8 +105,8 @@ export default function MaintenanceScreen({ state, onRetry, onManagementLogin })
           </section>
         )}
 
-        <div className="legacy-login-footer"><span>Connection: {supabaseConfigured ? 'Grove Way Supabase' : 'Local demo database'}</span><span>Organisation: {ORGANISATION.org_code}</span></div>
-        <div className="legacy-copyright">RecordsWeb · {ORGANISATION.name}. Prototype clinical software. Do not use with live patient data until security, information-governance and clinical-safety requirements have been completed.</div>
+        <div className="legacy-login-footer"><span>Connection: {supabaseConfigured ? 'RecordsWeb Supabase' : 'Local demo database'}</span><span>Organisation: {organisationCode}</span></div>
+        <div className="legacy-copyright">RecordsWeb · {organisationName}. Prototype clinical software. Do not use with live patient data until security, information-governance and clinical-safety requirements have been completed.</div>
       </div>
     </div>
   )

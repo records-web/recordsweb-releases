@@ -3,6 +3,7 @@ const { autoUpdater } = require('electron-updater')
 const path = require('node:path')
 const fs = require('node:fs')
 const os = require('node:os')
+const { spawnSync } = require('node:child_process')
 
 const APP_NAME = 'RecordsWeb'
 const APP_ID = 'uk.recordsweb.desktop'
@@ -19,6 +20,116 @@ const LOGIN_CONTENT_SIZE = { width: 560, height: 438 }
 const UPDATE_CONTENT_SIZE = { width: 760, height: 710 }
 const APP_DEFAULT_SIZE = { width: 1540, height: 960 }
 const APP_MIN_SIZE = { width: 1180, height: 720 }
+
+const ORG_CODE_PATTERN = /^[A-Z]{2}\.[A-Z]{2}$/
+
+function normaliseOrganisationCode(value) {
+  const clean = String(value || '').trim().replace(/^@+/, '').replace(/\s+/g, '').toUpperCase()
+  return ORG_CODE_PATTERN.test(clean) ? clean : ''
+}
+
+function installationConfigPath() {
+  return path.join(app.getPath('userData'), 'install-config.json')
+}
+
+function readWindowsRegistryOrganisationCode() {
+  if (process.platform !== 'win32') return ''
+
+  for (const hive of ['HKCU', 'HKLM']) {
+    try {
+      const result = spawnSync('reg.exe', [
+        'QUERY',
+        `${hive}\\Software\\RecordsWeb`,
+        '/v',
+        'OrganisationCode',
+      ], {
+        encoding: 'utf8',
+        windowsHide: true,
+      })
+      if (result.status !== 0) continue
+      const match = String(result.stdout || '').match(/OrganisationCode\s+REG_\w+\s+([^\r\n]+)/i)
+      const organisationCode = normaliseOrganisationCode(match?.[1] || '')
+      if (organisationCode) return organisationCode
+    } catch {}
+  }
+
+  return ''
+}
+
+function writeWindowsRegistryOrganisationCode(organisationCode) {
+  if (process.platform !== 'win32') return true
+  try {
+    const result = spawnSync('reg.exe', [
+      'ADD',
+      'HKCU\\Software\\RecordsWeb',
+      '/v',
+      'OrganisationCode',
+      '/t',
+      'REG_SZ',
+      '/d',
+      organisationCode,
+      '/f',
+    ], {
+      encoding: 'utf8',
+      windowsHide: true,
+    })
+    return result.status === 0
+  } catch {
+    return false
+  }
+}
+
+function persistInstallationConfigFile(organisationCode) {
+  const filePath = installationConfigPath()
+  fs.mkdirSync(path.dirname(filePath), { recursive: true })
+  const tempPath = `${filePath}.tmp`
+  fs.writeFileSync(tempPath, JSON.stringify({ organisationCode }, null, 2), 'utf8')
+  fs.rmSync(filePath, { force: true })
+  fs.renameSync(tempPath, filePath)
+}
+
+function readInstallationConfig() {
+  try {
+    const filePath = installationConfigPath()
+    if (fs.existsSync(filePath)) {
+      const payload = JSON.parse(fs.readFileSync(filePath, 'utf8'))
+      const organisationCode = normaliseOrganisationCode(payload?.organisationCode)
+      if (organisationCode) return { configured: true, organisationCode }
+    }
+
+    // On Windows the installer also stores the organisation in HKCU so future
+    // assisted-installer upgrades can preserve the deployment namespace. If a
+    // config file is ever removed/corrupted, recover it from that registry key.
+    const registryCode = readWindowsRegistryOrganisationCode()
+    if (registryCode) {
+      try { persistInstallationConfigFile(registryCode) } catch {}
+      return { configured: true, organisationCode: registryCode }
+    }
+  } catch {}
+  return { configured: false, organisationCode: '' }
+}
+
+function writeInstallationConfig(payload = {}) {
+  const organisationCode = normaliseOrganisationCode(payload.organisationCode)
+  if (!organisationCode) {
+    return { ok: false, message: 'Organisation extension must contain four letters in the format @XX.XX.' }
+  }
+
+  try {
+    persistInstallationConfigFile(organisationCode)
+  } catch (error) {
+    return { ok: false, message: `Unable to save the RecordsWeb organisation extension: ${error?.message || error}` }
+  }
+
+  if (!writeWindowsRegistryOrganisationCode(organisationCode)) {
+    return {
+      ok: false,
+      message: 'RecordsWeb saved the organisation locally but could not update the Windows installer registry value. Try again before installing a future update.',
+    }
+  }
+
+  return { ok: true, configured: true, organisationCode }
+}
 
 function sendUpdateState(state) {
   if (!mainWindow || mainWindow.isDestroyed()) return
@@ -282,6 +393,16 @@ async function printHtml(html) {
 }
 
 function registerDesktopIpc() {
+  ipcMain.on('recordsweb:get-install-config-sync', (event) => {
+    event.returnValue = readInstallationConfig()
+  })
+
+  ipcMain.handle('recordsweb:get-install-config', () => readInstallationConfig())
+
+  ipcMain.handle('recordsweb:set-install-config', (_event, payload = {}) => {
+    return writeInstallationConfig(payload)
+  })
+
   ipcMain.handle('recordsweb:get-app-info', () => ({
     name: APP_NAME,
     version: app.getVersion(),

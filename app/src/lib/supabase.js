@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { DEFAULT_DEMO_ACCOUNTS, ORGANISATION } from './demoData'
+import { getInstalledOrganisationCode, getInstalledOrganisationSuffix, getInstallationNamespace, normaliseOrganisationCode } from './installation'
 import { buildStaffDisplayName, normaliseRoles } from './staffOptions'
 import { assertRecordsWebPassword } from './passwordPolicy'
 
@@ -35,7 +36,8 @@ export const supabase = supabaseConfigured
 async function invokeRecordsWebAdmin(body) {
   if (!supabase) throw new Error('Supabase is not configured.')
 
-  const { data, error } = await supabase.functions.invoke('recordsweb-admin', { body })
+  const organisationCode = getInstalledOrganisationCode()
+  const { data, error } = await supabase.functions.invoke('recordsweb-admin', { body: { organisation_code: organisationCode, ...body } })
 
   if (error) {
     let message = error.message || 'RecordsWeb administration service failed.'
@@ -72,15 +74,20 @@ export async function checkAdminService() {
   return invokeRecordsWebAdmin({ action: 'health' })
 }
 
-const DEMO_ACCOUNTS_KEY = 'recordsweb-demo-accounts-v2'
+const DEMO_ACCOUNTS_KEY = `recordsweb-demo-accounts-v3-${(getInstalledOrganisationCode() || 'unconfigured').toLowerCase()}`
 
 export function normaliseLoginName(value) {
   const trimmed = String(value || '').trim()
   if (!trimmed) return ''
-  const withDomain = trimmed.includes('@') ? trimmed : `${trimmed}@GW.HC`
-  const [local, domain] = withDomain.split('@')
-  if (!local || !domain || domain.toLowerCase() !== 'gw.hc') return withDomain
-  return `${local.toLowerCase()}@GW.HC`
+  const organisationCode = getInstalledOrganisationCode()
+  if (!organisationCode) return trimmed
+  const suffix = `@${organisationCode}`
+  const withDomain = trimmed.includes('@') ? trimmed : `${trimmed}${suffix}`
+  const atIndex = withDomain.lastIndexOf('@')
+  const local = withDomain.slice(0, atIndex).trim().toLowerCase()
+  const domain = normaliseOrganisationCode(withDomain.slice(atIndex + 1))
+  if (!local || domain !== organisationCode) return withDomain
+  return `${local}${suffix}`
 }
 
 function normaliseAccount(account) {
@@ -112,7 +119,7 @@ function saveDemoAccounts(accounts) {
   })))
 }
 
-const LOGIN_GUARD_KEY = 'recordsweb-login-guard-v1'
+const LOGIN_GUARD_KEY = `recordsweb-login-guard-v1-${getInstallationNamespace()}`
 const LOGIN_MAX_FAILURES = 5
 const LOGIN_LOCK_MS = 10 * 60 * 1000
 
@@ -139,8 +146,11 @@ function clearLoginFailures(email) { const all = readLoginGuard(); delete all[lo
 
 export async function signInRecordsWeb({ username, password }) {
   const email = normaliseLoginName(username)
-  if (!email.toLowerCase().endsWith('@gw.hc')) {
-    throw new Error('Use your Grove Way Health Centre login in the format first.last@GW.HC.')
+  const organisationCode = getInstalledOrganisationCode()
+  const organisationSuffix = getInstalledOrganisationSuffix()
+  if (!organisationCode) throw new Error('This RecordsWeb installation has not been assigned an organisation extension.')
+  if (!email.toUpperCase().endsWith(organisationSuffix)) {
+    throw new Error(`Use your RecordsWeb login in the format first.last${organisationSuffix}.`)
   }
   checkLoginGuard(email)
 
@@ -155,6 +165,20 @@ export async function signInRecordsWeb({ username, password }) {
     const { password: _password, ...profile } = account
     await auditAccountEvent({ action: 'account.login', entityType: 'profile', entityId: account.id, description: 'Signed in to RecordsWeb.' })
     return { user: { id: account.id, email }, profile }
+  }
+
+  const { data: organisationRows, error: organisationError } = await supabase.rpc('recordsweb_public_organisation_config', {
+    p_organisation_code: organisationCode,
+  })
+  if (organisationError) {
+    if (/recordsweb_public_organisation_config|does not exist|schema cache/i.test(organisationError.message || '')) {
+      throw new Error('Multi-organisation support is not installed in Supabase. Run supabase/recordsweb-3.1.9-multi-organisation.sql.')
+    }
+    throw new Error('Unable to verify this RecordsWeb organisation.')
+  }
+  const installedOrganisation = Array.isArray(organisationRows) ? organisationRows[0] : organisationRows
+  if (!installedOrganisation?.id || installedOrganisation?.active === false) {
+    throw new Error(`The organisation extension ${organisationSuffix} is not registered or is not active in RecordsWeb.`)
   }
 
   const { data, error } = await supabase.auth.signInWithPassword({ email: email.toLowerCase(), password })
@@ -172,9 +196,13 @@ export async function signInRecordsWeb({ username, password }) {
     await supabase.auth.signOut()
     throw new Error(reason ? `This RecordsWeb account has been disabled. Reason: ${reason}` : 'This RecordsWeb account has been disabled.')
   }
-  if (profile.organisations?.org_code?.toLowerCase() !== ORGANISATION.org_code.toLowerCase()) {
+  if (profile.organisations?.active === false) {
     await supabase.auth.signOut()
-    throw new Error('This account is not registered to Grove Way Health Centre.')
+    throw new Error(`The ${organisationSuffix} RecordsWeb organisation is currently inactive.`)
+  }
+  if (String(profile.organisations?.org_code || '').toUpperCase() !== organisationCode) {
+    await supabase.auth.signOut()
+    throw new Error(`This account is not registered to the ${organisationSuffix} RecordsWeb organisation.`)
   }
   clearLoginFailures(email)
   try {
@@ -202,7 +230,10 @@ export async function listAccounts() {
 
 export async function createAccount(payload) {
   const username = normaliseLoginName(payload.username)
-  if (!username.toLowerCase().endsWith('@gw.hc')) throw new Error('Account usernames must end in @GW.HC.')
+  const organisationSuffix = getInstalledOrganisationSuffix()
+  if (!organisationSuffix || !username.toUpperCase().endsWith(organisationSuffix)) {
+    throw new Error(`Account usernames must end in ${organisationSuffix || 'the installed organisation extension'}.`)
+  }
   assertRecordsWebPassword(payload.password, username)
   const roles = normaliseRoles(payload.roles, payload.role || 'Patient Coordinator')
   const role = roles.includes(payload.role) ? payload.role : roles[0]

@@ -2,8 +2,8 @@
   "name": "recordsweb",
   "productName": "RecordsWeb",
   "private": true,
-  "version": "3.1.9",
-  "description": "RecordsWeb desktop clinical records application for Grove Way Health Centre",
+  "version": "3.2.1",
+  "description": "RecordsWeb desktop clinical records platform",
   "main": "electron/main.cjs",
   "type": "module",
   "scripts": {
@@ -63,7 +63,7 @@
       "icon": "build/icon.ico"
     },
     "nsis": {
-      "oneClick": true,
+      "oneClick": false,
       "allowToChangeInstallationDirectory": false,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
@@ -71,7 +71,8 @@
       "installerIcon": "build/icon.ico",
       "uninstallerIcon": "build/icon.ico",
       "perMachine": false,
-      "allowElevation": false
+      "allowElevation": false,
+      "include": "build/installer.nsh"
     },
     "publish": [
       {
@@ -110,5 +111,5 @@
       ]
     }
   },
-  "author": "RecordsWeb / Grove Way Health Centre"
+  "author": "RecordsWeb"
 }

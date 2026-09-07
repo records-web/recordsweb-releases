@@ -24,6 +24,7 @@ import { AuthProvider, useAuth } from './contexts/AuthContext'
 import UpdateGate from './components/update/UpdateGate'
 import MaintenanceGate from './components/maintenance/MaintenanceGate'
 import AccountAccessGuard from './components/security/AccountAccessGuard'
+import InstallationGate from './components/installation/InstallationGate'
 
 function Protected({ children }) {
   const { session } = useAuth()
@@ -40,6 +41,7 @@ function ManagementOnly({ children }) {
 
 export default function App() {
   return (
+    <InstallationGate>
     <UpdateGate>
       <AuthProvider>
         <MaintenanceGate>
@@ -78,5 +80,6 @@ export default function App() {
         </MaintenanceGate>
       </AuthProvider>
     </UpdateGate>
+    </InstallationGate>
   )
 }

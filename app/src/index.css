@@ -296,7 +296,7 @@ button.med-row:hover { background: #e8f4ff; }
 }
 
 /* ========================================================================== 
-   RecordsWeb desktop skin — Grove Way Health Centre
+   RecordsWeb desktop skin — organisation deployment
    Deliberately follows the dense, ribbon-based visual language used by
    traditional UK primary-care desktop systems while keeping spacing and
    typography slightly cleaner for modern displays.
@@ -3241,3 +3241,28 @@ html.rw-dark-mode .legacy-consultation-entries {
 html.rw-dark-mode .appointment-wait.wait-normal { color: #83c995; }
 html.rw-dark-mode .appointment-wait.wait-warning { color: #ffd66e; background: #514514; }
 html.rw-dark-mode .appointment-wait.wait-critical { color: #ff9da5; background: #5c262a; }
+
+/* RecordsWeb 3.2.0 — login organisation switching */
+.legacy-login-organisation { display:flex; align-items:center; gap:8px; white-space:nowrap; }
+.legacy-login-organisation button { border:0; background:transparent; color:#2269ab; text-decoration:underline; padding:0; font-size:9px; cursor:pointer; }
+.legacy-login-organisation button:hover { color:#0f548f; }
+.legacy-login-organisation button:disabled { opacity:.55; cursor:default; }
+.login-organisation-modal { width:min(500px,calc(100vw - 40px)); }
+.login-organisation-form { display:flex; flex-direction:column; gap:11px; padding:13px 14px 10px; }
+.login-organisation-form label { display:grid; grid-template-columns:105px minmax(0,1fr); align-items:center; gap:9px; color:#456579; font-size:9px; font-weight:700; }
+.login-organisation-form input { height:30px; min-width:0; border:1px solid #a9c4d5; background:#fff; color:#294657; padding:0 8px; outline:0; font-size:10px; text-transform:uppercase; }
+.login-organisation-form input:focus { border-color:#4d9fd0; box-shadow:inset 0 0 0 1px #a8d6ef; }
+.organisation-change-heading { display:flex; align-items:flex-start; gap:8px; padding:8px 9px; border:1px solid #c6dce9; background:#f2f8fc; color:#356a8d; }
+.organisation-change-heading > div { display:flex; flex-direction:column; gap:2px; }
+.organisation-change-heading strong { font-size:10px; }
+.organisation-change-heading span { color:#708897; font-size:9px; font-weight:400; }
+.organisation-change-help { margin:0; color:#657c8a; font-size:9px; line-height:1.45; }
+.organisation-change-warning { padding:7px 8px; border:1px solid #dbc67c; background:#fff9dc; color:#665317; font-size:9px; line-height:1.4; }
+.organisation-change-error { margin:0; }
+html.rw-dark-mode .legacy-login-organisation button { color:#79bde7; }
+html.rw-dark-mode .login-organisation-form label { color:#aec5d2; }
+html.rw-dark-mode .login-organisation-form input { background:#0f1b22; border-color:#436173; color:#dcebf3; }
+html.rw-dark-mode .organisation-change-heading { background:#172a34; border-color:#3f6073; color:#87c4e6; }
+html.rw-dark-mode .organisation-change-heading span,
+html.rw-dark-mode .organisation-change-help { color:#9db4c0; }
+html.rw-dark-mode .organisation-change-warning { background:#312b18; border-color:#716331; color:#e0d39b; }

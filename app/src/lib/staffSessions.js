@@ -1,7 +1,8 @@
 import { supabase, supabaseConfigured } from './supabase'
 import { ORGANISATION } from './demoData'
+import { getInstallationNamespace } from './installation'
 
-const DEMO_SESSION_KEY = 'recordsweb-demo-staff-sessions-v1'
+const DEMO_SESSION_KEY = `recordsweb-demo-staff-sessions-v1-${getInstallationNamespace()}`
 const HEARTBEAT_STALE_MS = 90 * 1000
 let currentSessionKey = null
 

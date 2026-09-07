@@ -1,6 +1,7 @@
 import { supabase, supabaseConfigured, normaliseLoginName, publicAdminAction, listAccounts, demoRecoverPassword } from './supabase'
+import { getInstallationNamespace } from './installation'
 
-const DEMO_KEY = 'recordsweb-demo-recovery-v1'
+const DEMO_KEY = `recordsweb-demo-recovery-v1-${getInstallationNamespace()}`
 function readDemo() { try { return JSON.parse(localStorage.getItem(DEMO_KEY) || '{}') } catch { return {} } }
 function writeDemo(value) { localStorage.setItem(DEMO_KEY, JSON.stringify(value)) }
 function validateCode(code) { const clean = String(code || '').trim(); if (!/^\d{6}$/.test(clean)) throw new Error('Recovery code must contain exactly 6 digits.'); return clean }

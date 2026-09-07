@@ -3,6 +3,7 @@ import { verifyDemoPrescribingPin, validatePrescribingPin } from './prescribingS
 import { recordAudit } from './auditService'
 import { recordDocumentVersion } from './documentVersions'
 import { archiveDeletedRecord } from './deletedItems'
+import { getInstallationNamespace } from './installation'
 
 import {
   demoPatients,
@@ -22,7 +23,7 @@ import {
   ORGANISATION,
 } from './demoData'
 
-const DEMO_DB_KEY = 'recordsweb-demo-database-v3'
+const DEMO_DB_KEY = `recordsweb-demo-database-v3-${getInstallationNamespace()}`
 const seedDb = () => ({
   patients: structuredClone(demoPatients),
   problems: structuredClone(demoProblems),
@@ -159,11 +160,9 @@ export async function createPatient(payload) {
     const nhsNumber = generateUniqueDemoNhsNumber(patients)
     created = demoInsert('patients', { organisation_id: ORGANISATION.id, status: 'Active', emis_number: nextNumber, nhs_number: nhsNumber, ...cleanPayload })
   } else {
-    const { data: org, error: orgError } = await supabase.from('organisations').select('id').eq('org_code', ORGANISATION.org_code).single()
-    if (orgError) throw orgError
     for (let attempt = 0; attempt < 12; attempt += 1) {
       const nhsNumber = generateNhsNumberCandidate()
-      const { data, error } = await supabase.from('patients').insert({ organisation_id: org.id, status: 'Active', nhs_number: nhsNumber, ...cleanPayload }).select().single()
+      const { data, error } = await supabase.from('patients').insert({ status: 'Active', nhs_number: nhsNumber, ...cleanPayload }).select().single()
       if (!error) { created = data; break }
       if (error.code !== '23505') throw error
     }
@@ -281,7 +280,7 @@ export async function archiveFitNotePdf(patientId, documentId, base64Pdf) {
     throw new Error('The generated fit note PDF could not be prepared for secure storage.')
   }
 
-  const storagePath = `grove-way-health-centre/${patientId}/fit-notes/${documentId}.pdf`
+  const storagePath = `${ORGANISATION.id}/${patientId}/fit-notes/${documentId}.pdf`
   const { error: uploadError } = await supabase.storage
     .from('recordsweb-documents')
     .upload(storagePath, bytes, { contentType: 'application/pdf', upsert: true, cacheControl: '0' })
