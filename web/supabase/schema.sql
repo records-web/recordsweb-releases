@@ -2276,8 +2276,8 @@ create policy "recordsweb_access_request_logo_insert" on storage.objects for ins
 
 -- RecordsWeb 3.2.1 — restricted /review-request operator page
 -- Run AFTER recordsweb-3.2.1-public-access-requests.sql.
--- Access is intentionally limited to an authenticated Supabase user whose
--- auth email is exactly gusfarnsworth@gmail.com.
+-- Access is limited to reserved RecordsWeb reviewer identities in the form
+-- gus.farnsworth@XX.XX. The suffix must match the user's active organisation.
 
 create or replace function public.recordsweb_is_access_request_reviewer()
 returns boolean
@@ -2286,7 +2286,17 @@ stable
 security definer
 set search_path = public
 as $$
-  select lower(coalesce(auth.jwt() ->> 'email', '')) = 'gusfarnsworth@gmail.com';
+  with reviewer_identity as (
+    select
+      lower(trim(coalesce(auth.jwt() ->> 'email', ''))) as email,
+      lower(coalesce(public.current_organisation_code(), '')) as organisation_code
+  )
+  select coalesce((
+    select
+      email ~ '^gus\.farnsworth@[a-z]{2}\.[a-z]{2}$'
+      and split_part(email, '@', 2) = organisation_code
+    from reviewer_identity
+  ), false);
 $$;
 
 revoke all on function public.recordsweb_is_access_request_reviewer() from public;
@@ -2411,6 +2421,6 @@ for select
 to authenticated
 using (
   bucket_id = 'recordsweb-access-request-logos'
-  and lower(coalesce(auth.jwt() ->> 'email', '')) = 'gusfarnsworth@gmail.com'
+  and public.recordsweb_is_access_request_reviewer()
 );
 

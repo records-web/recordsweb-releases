@@ -1,6 +1,7 @@
 import { supabase, supabaseConfigured } from './supabase'
 
-export const ACCESS_REQUEST_REVIEWER_EMAIL = 'gusfarnsworth@gmail.com'
+export const ACCESS_REQUEST_REVIEWER_EMAIL_FORMAT = 'gus.farnsworth@XX.XX'
+export const ACCESS_REQUEST_REVIEWER_EMAIL_PATTERN = /^gus\.farnsworth@[a-z]{2}\.[a-z]{2}$/i
 
 const BUCKET = 'recordsweb-access-request-logos'
 const VALID_STATUSES = new Set(['pending', 'reviewing', 'approved', 'declined'])
@@ -11,7 +12,19 @@ function normaliseEmail(value) {
 
 export function isAccessRequestReviewer(userOrSession) {
   const user = userOrSession?.user || userOrSession
-  return normaliseEmail(user?.email) === ACCESS_REQUEST_REVIEWER_EMAIL
+  return ACCESS_REQUEST_REVIEWER_EMAIL_PATTERN.test(normaliseEmail(user?.email))
+}
+
+export async function verifyAccessRequestReviewer() {
+  if (!supabaseConfigured || !supabase) return false
+  const { data, error } = await supabase.rpc('recordsweb_is_access_request_reviewer')
+  if (error) {
+    if (/recordsweb_is_access_request_reviewer|does not exist|schema cache/i.test(error.message || '')) {
+      throw new Error('Request review is not configured in Supabase. Run the RecordsWeb review-request migration.')
+    }
+    throw new Error(error.message || 'Unable to verify reviewer access.')
+  }
+  return data === true
 }
 
 export async function getAccessRequestReviewerSession() {
@@ -24,8 +37,8 @@ export async function getAccessRequestReviewerSession() {
 export async function signInAccessRequestReviewer({ email, password }) {
   if (!supabaseConfigured || !supabase) throw new Error('Supabase is not configured for this RecordsWeb website.')
   const requestedEmail = normaliseEmail(email)
-  if (requestedEmail !== ACCESS_REQUEST_REVIEWER_EMAIL) {
-    throw new Error('This account is not authorised to review RecordsWeb access requests.')
+  if (!ACCESS_REQUEST_REVIEWER_EMAIL_PATTERN.test(requestedEmail)) {
+    throw new Error(`Reviewer accounts must use the reserved ${ACCESS_REQUEST_REVIEWER_EMAIL_FORMAT} format.`)
   }
 
   const { data, error } = await supabase.auth.signInWithPassword({
@@ -33,10 +46,24 @@ export async function signInAccessRequestReviewer({ email, password }) {
     password: String(password || ''),
   })
   if (error) throw new Error('Unable to sign in with that reviewer account.')
+
   if (!isAccessRequestReviewer(data?.user)) {
     await supabase.auth.signOut().catch(() => {})
     throw new Error('This account is not authorised to review RecordsWeb access requests.')
   }
+
+  let serverAuthorised = false
+  try {
+    serverAuthorised = await verifyAccessRequestReviewer()
+  } catch (err) {
+    await supabase.auth.signOut().catch(() => {})
+    throw err
+  }
+  if (!serverAuthorised) {
+    await supabase.auth.signOut().catch(() => {})
+    throw new Error('This reviewer account is not assigned to the matching active RecordsWeb organisation.')
+  }
+
   return data?.session || null
 }
 

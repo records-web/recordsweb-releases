@@ -220,6 +220,6 @@ After the existing multi-organisation migration, run `supabase/recordsweb-3.2.1-
 
 RecordsWeb includes a restricted review page at `/#/review-request`.
 
-Run `supabase/recordsweb-3.2.1-review-request.sql` after the public access-request migration. The database functions and private logo policy only permit an authenticated Supabase user whose auth email is exactly `gusfarnsworth@gmail.com`.
+Run `supabase/recordsweb-3.2.1-review-request.sql` after the public access-request migration. The database functions and private logo policy permit reserved `gus.farnsworth@XX.XX` RecordsWeb accounts, provided the `XX.XX` suffix matches the active organisation assigned to that authenticated profile.
 
 That Supabase Auth user must already exist and have a password. The reviewer page uses its own restricted sign-in and does not require an organisation extension.

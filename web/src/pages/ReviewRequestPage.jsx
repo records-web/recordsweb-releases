@@ -16,7 +16,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import recordsWebLogo from '../assets/recordsweb-update-logo.png'
 import {
-  ACCESS_REQUEST_REVIEWER_EMAIL,
+  ACCESS_REQUEST_REVIEWER_EMAIL_FORMAT,
   createAccessRequestLogoUrl,
   getAccessRequestReviewerSession,
   isAccessRequestReviewer,
@@ -66,7 +66,7 @@ function safeHref(value) {
 
 function ReviewerSignIn({ onSignedIn, currentSession }) {
   const navigate = useNavigate()
-  const [email, setEmail] = useState(ACCESS_REQUEST_REVIEWER_EMAIL)
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
@@ -95,14 +95,14 @@ function ReviewerSignIn({ onSignedIn, currentSession }) {
           <div><strong>RecordsWeb</strong><span>Access request review</span></div>
         </div>
         <div className="review-request-auth-rule" />
-        <div className="review-request-auth-heading"><ShieldCheck size={20}/><div><strong>Restricted review area</strong><span>Sign in with the authorised RecordsWeb reviewer account.</span></div></div>
+        <div className="review-request-auth-heading"><ShieldCheck size={20}/><div><strong>Restricted review area</strong><span>Sign in with a reserved RecordsWeb reviewer account for any active organisation.</span></div></div>
         {wrongAccount && (
           <div className="review-request-auth-warning">
             The currently signed-in account <strong>{currentSession.user.email}</strong> does not have access to this page. Signing in below will sign that account out first.
           </div>
         )}
         <form onSubmit={submit}>
-          <label><span>Account email</span><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="username" required /></label>
+          <label><span>Account email</span><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={ACCESS_REQUEST_REVIEWER_EMAIL_FORMAT} autoComplete="username" required /></label>
           <label><span>Password</span><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required /></label>
           {error && <div className="review-request-auth-error">{error}</div>}
           <div className="review-request-auth-actions">
@@ -229,7 +229,7 @@ export default function ReviewRequestPage() {
       <div className="review-request-loading">
         <div>
           <strong>Sign out of the staff session first</strong>
-          <span>The current RecordsWeb staff account does not have access to request review. Sign it out before using the authorised reviewer account.</span>
+          <span>The current RecordsWeb staff account does not use the reserved gus.farnsworth@XX.XX reviewer identity. Sign it out before using an authorised reviewer account.</span>
           <button onClick={async () => { await logoutClinicalSession('reviewer_switch'); setReviewerSession(null) }}>Sign out staff account</button>
           <button onClick={() => navigate('/')}>Return home</button>
         </div>

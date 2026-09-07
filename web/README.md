@@ -41,4 +41,4 @@ The web root is now a public RecordsWeb overview. Staff enter through **Staff si
 
 ### Access request review
 
-`/#/review-request` provides the restricted operator interface for access requests. Server-side Supabase checks limit the review APIs and private logo access to the configured reviewer auth email. Run `supabase/recordsweb-3.2.1-review-request.sql` after the public request migration.
+`/#/review-request` provides the restricted operator interface for access requests. Server-side Supabase checks limit the review APIs and private logo access to reserved `gus.farnsworth@XX.XX` accounts whose suffix matches their active RecordsWeb organisation. Run `supabase/recordsweb-3.2.1-review-request.sql` after the public request migration.
