@@ -38,3 +38,7 @@ See `WEB-DEPLOYMENT.md` and `docs/RECORDSWEB-3.2.0-WEB-MULTI-ORGANISATION.md` be
 ## Public homepage and access requests
 
 The web root is now a public RecordsWeb overview. Staff enter through **Staff sign in**. Run `supabase/recordsweb-3.2.1-public-access-requests.sql` to enable the public Request access form and private community-logo uploads.
+
+### Access request review
+
+`/#/review-request` provides the restricted operator interface for access requests. Server-side Supabase checks limit the review APIs and private logo access to the configured reviewer auth email. Run `supabase/recordsweb-3.2.1-review-request.sql` after the public request migration.
