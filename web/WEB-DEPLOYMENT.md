@@ -210,3 +210,8 @@ The website footer detects the visitor's desktop OS and queries the GitHub **Lat
 The browser starts the matching release asset download directly; it does not redirect users to the GitHub Releases page.
 
 Keep `https://api.github.com` in the Content Security Policy `connect-src` list.
+
+
+## RecordsWeb 3.2.1 public access requests
+
+After the existing multi-organisation migration, run `supabase/recordsweb-3.2.1-public-access-requests.sql`. This creates the private request table, submission RPC and private 4 MB logo bucket. The website root is public; organisation selection is only requested when entering the staff sign-in area.

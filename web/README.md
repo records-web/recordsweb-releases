@@ -33,3 +33,8 @@ RecordsWeb Web is the browser-hosted version of the RecordsWeb clinical records 
 The existing RecordsWeb UI is retained. The organisation `system_mode` field is available for GP/Hospital-specific interfaces without changing the current clinical UI in this build.
 
 See `WEB-DEPLOYMENT.md` and `docs/RECORDSWEB-3.2.0-WEB-MULTI-ORGANISATION.md` before deploying.
+
+
+## Public homepage and access requests
+
+The web root is now a public RecordsWeb overview. Staff enter through **Staff sign in**. Run `supabase/recordsweb-3.2.1-public-access-requests.sql` to enable the public Request access form and private community-logo uploads.
