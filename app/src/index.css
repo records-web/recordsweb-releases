@@ -3266,3 +3266,6 @@ html.rw-dark-mode .organisation-change-heading { background:#172a34; border-colo
 html.rw-dark-mode .organisation-change-heading span,
 html.rw-dark-mode .organisation-change-help { color:#9db4c0; }
 html.rw-dark-mode .organisation-change-warning { background:#312b18; border-color:#716331; color:#e0d39b; }
+
+/* RecordsWeb brand is product-owned and fixed across organisations. */
+.recordsweb-fixed-logo { object-fit: contain; background: transparent !important; }

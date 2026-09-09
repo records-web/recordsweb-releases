@@ -3,6 +3,7 @@ import { CircleHelp, LogOut, Moon, Search, Settings, ShieldCheck, Sun, UserCog, 
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { ORGANISATION } from '../lib/demoData'
+import recordsWebIcon from '../assets/recordsweb-update-logo.png'
 import { listAppointments } from '../lib/dataService'
 import { getSettings, saveSettings } from '../lib/settings'
 import { getCachedOrganisationSettings, loadOrganisationSettings } from '../lib/organisationSettings'
@@ -152,7 +153,7 @@ export default function AppShell({ children }) {
 
       <header className="global-header">
         <div className="brand-lockup" onClick={() => navigate('/')} role="button" tabIndex={0}>
-          {organisationSettings.logoUrl && <img draggable={false} className="brand-logo-image" src={organisationSettings.logoUrl} alt={`${organisationName} logo`} />}
+          <img draggable={false} className="brand-logo-image recordsweb-fixed-logo" src={recordsWebIcon} alt="RecordsWeb" />
           <div><div className="brand-name">RecordsWeb</div><div className="brand-subtitle">{organisationName}</div></div>
         </div>
         <div className="global-search">

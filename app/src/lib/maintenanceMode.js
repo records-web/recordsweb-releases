@@ -1,12 +1,10 @@
-import { ORGANISATION } from './demoData'
-import { getInstalledOrganisationCode } from './installation'
 import { supabase, supabaseConfigured } from './supabase'
 
-const DEMO_KEY = `recordsweb-demo-maintenance-v2-${(getInstalledOrganisationCode() || 'unconfigured').toLowerCase()}`
+const DEMO_KEY = 'recordsweb-demo-platform-maintenance-v1'
 const DEFAULT_MESSAGE = 'RecordsWeb is currently unavailable while scheduled maintenance is being carried out.'
 
 export const DEFAULT_MAINTENANCE_STATE = {
-  organisation_code: getInstalledOrganisationCode() || ORGANISATION.org_code,
+  organisation_code: 'PLATFORM',
   enabled: false,
   message: DEFAULT_MESSAGE,
   estimated_end_at: null,
@@ -46,14 +44,9 @@ function writeDemoState(value) {
 export async function loadMaintenanceState() {
   if (!supabaseConfigured || !supabase) return readDemoState()
 
-  const { data, error } = await supabase.rpc('recordsweb_public_maintenance_state', {
-    p_organisation_code: getInstalledOrganisationCode() || ORGANISATION.org_code,
-  })
-
+  const { data, error } = await supabase.rpc('recordsweb_public_platform_state')
   if (error) {
-    // A missing migration must never brick the sign-in screen. Management will
-    // see a clear setup error when they open the maintenance panel.
-    if (/recordsweb_public_maintenance_state|does not exist|schema cache/i.test(error.message || '')) {
+    if (/recordsweb_public_platform_state|does not exist|schema cache/i.test(error.message || '')) {
       return { ...DEFAULT_MAINTENANCE_STATE, setup_required: true }
     }
     throw error
@@ -63,33 +56,10 @@ export async function loadMaintenanceState() {
   return normaliseState(row || {})
 }
 
-export async function setMaintenanceMode({ enabled, message, estimatedEndAt = null, actorName = '' }) {
-  const cleanMessage = String(message || DEFAULT_MESSAGE).trim().slice(0, 500) || DEFAULT_MESSAGE
-
-  if (!supabaseConfigured || !supabase) {
-    return writeDemoState({
-      ...readDemoState(),
-      enabled: Boolean(enabled),
-      message: cleanMessage,
-      estimated_end_at: estimatedEndAt || null,
-      enabled_at: enabled ? new Date().toISOString() : null,
-      enabled_by_name: actorName || 'Management user',
-      updated_at: new Date().toISOString(),
-    })
-  }
-
-  const { data, error } = await supabase.rpc('recordsweb_set_maintenance', {
-    p_enabled: Boolean(enabled),
-    p_message: cleanMessage,
-    p_estimated_end_at: estimatedEndAt || null,
-  })
-  if (error) {
-    if (/recordsweb_set_maintenance|does not exist|schema cache/i.test(error.message || '')) {
-      throw new Error('System maintenance is not installed in Supabase. Run supabase/recordsweb-3.1.0.sql first.')
-    }
-    throw new Error(error.message || 'Unable to update maintenance mode.')
-  }
-  return normaliseState(Array.isArray(data) ? data[0] : data)
+// Deliberately unavailable to community clients. Platform-wide maintenance is
+// managed only from the restricted RecordsWeb website operator area.
+export async function setMaintenanceMode() {
+  throw new Error('Platform maintenance can only be changed from the RecordsWeb website operator management area.')
 }
 
 export function subscribeToMaintenance(callback) {
@@ -102,15 +72,25 @@ export function subscribeToMaintenance(callback) {
   }
 
   const channel = supabase
-    .channel(`recordsweb-maintenance-${getInstalledOrganisationCode() || ORGANISATION.org_code}`)
+    .channel('recordsweb-platform-maintenance')
     .on('postgres_changes', {
       event: '*',
       schema: 'public',
-      table: 'system_maintenance',
-      filter: `organisation_code=eq.${getInstalledOrganisationCode() || ORGANISATION.org_code}`,
+      table: 'recordsweb_platform_state',
+      filter: 'id=eq.global',
     }, (payload) => {
       const next = payload?.new
-      if (next && Object.keys(next).length) callback(normaliseState(next))
+      if (next && Object.keys(next).length) {
+        callback(normaliseState({
+          organisation_code: 'PLATFORM',
+          enabled: next.maintenance_enabled,
+          message: next.maintenance_message,
+          estimated_end_at: next.maintenance_estimated_end_at,
+          enabled_at: next.maintenance_enabled_at,
+          enabled_by_name: next.maintenance_enabled_by_name,
+          updated_at: next.updated_at,
+        }))
+      }
     })
     .subscribe()
 

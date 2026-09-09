@@ -135,7 +135,7 @@ Management users can upload, replace and remove the Grove Way Health Centre logo
 
 The logo image is rendered with no CSS border, outline, background plate or padding. If no logo exists, no image element is rendered.
 
-The **Windows/Electron application icon is separate from organisation branding**. It should remain bundled with the desktop build (for example as `build/icon.ico`) rather than being loaded from Supabase.
+The **Windows/Electron application icon is separate from organisation identity**. It should remain bundled with the desktop build (for example as `build/icon.ico`) rather than being loaded from Supabase.
 
 For an existing Supabase project, re-run `supabase/schema.sql` before using the new logo uploader. This adds `logo_path` / `logo_updated_at`, creates `recordsweb-branding`, and installs the Storage policies.
 
@@ -369,3 +369,8 @@ npm run package:mac
 The supplied repository workflow is intended to live at `.github/workflows/build-macos.yml` while this desktop source lives at `/desktop`. Run the workflow with the existing GitHub Release tag (for example `v3.2.0`) and it uploads the macOS assets to that same release alongside the Windows EXE.
 
 **Important:** macOS automatic updates require the application to be signed. An unsigned GitHub build can be generated for testing/manual installation, but automatic updating will only work once an Apple Developer `Developer ID Application` certificate is configured in GitHub Actions. See `MAC-BUILD-README.md` in the repo integration bundle.
+
+
+## Fixed RecordsWeb branding
+
+RecordsWeb uses one product-owned visual identity across every organisation. Organisation staff cannot replace the RecordsWeb logo or alter the product colour palette. Organisation names, extensions, modes and locations remain deployment-specific. Run `supabase/recordsweb-3.2.1-branding-lock.sql` once on existing Supabase deployments.
