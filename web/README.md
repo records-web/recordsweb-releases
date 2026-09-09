@@ -54,3 +54,7 @@ RecordsWeb uses one product-owned visual identity across every organisation. Org
 - Website Platform Management can create approved communities.
 - Creation automatically provisions the reserved `gus.farnsworth@XX.XX` Management account using a password entered by the platform operator.
 - Requires `supabase/recordsweb-3.2.2-community-creation.sql` and the `recordsweb-platform-admin` Edge Function.
+
+## RecordsWeb 3.2.2 community management
+
+Website Platform Management can create, edit, enable/disable communities and manage the reserved `gus.farnsworth@XX.XX` operator account. Run `supabase/recordsweb-3.2.2-community-management.sql` and redeploy `supabase/functions/recordsweb-platform-admin/` before using the new controls. Organisation extensions remain immutable after creation.

@@ -239,3 +239,15 @@ supabase functions deploy recordsweb-platform-admin
 ```
 
 Community creation is exposed only in the website Platform Management area. The service-role key is used only inside the Supabase Edge Function and must not be configured in Vercel.
+
+## Platform community management (3.2.2)
+
+After the community-creation migration, also run:
+
+`supabase/recordsweb-3.2.2-community-management.sql`
+
+Then redeploy the protected platform administration function:
+
+`supabase functions deploy recordsweb-platform-admin`
+
+This enables website-only community editing, enable/disable controls, and reserved operator password/create controls. No service-role key belongs in Vercel; it stays in the Supabase Edge Function environment.
