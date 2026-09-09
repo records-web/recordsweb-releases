@@ -176,3 +176,30 @@ export async function createPlatformCommunity({ organisationCode, communityName,
     password: String(password || ''),
   })
 }
+
+
+export async function updatePlatformCommunity({ organisationId, communityName, systemMode, defaultLocation }) {
+  return invokePlatformAdmin({
+    action: 'update-community',
+    organisation_id: organisationId,
+    community_name: String(communityName || '').trim(),
+    system_mode: String(systemMode || 'general_practice').trim(),
+    default_location: String(defaultLocation || '').trim(),
+  })
+}
+
+export async function setPlatformCommunityActive(organisationId, active) {
+  return invokePlatformAdmin({
+    action: 'set-community-active',
+    organisation_id: organisationId,
+    active: Boolean(active),
+  })
+}
+
+export async function setPlatformCommunityOperatorPassword({ organisationId, password }) {
+  return invokePlatformAdmin({
+    action: 'set-community-operator-password',
+    organisation_id: organisationId,
+    password: String(password || ''),
+  })
+}

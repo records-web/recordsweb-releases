@@ -7,14 +7,18 @@ import {
   Clock3,
   FileCheck2,
   LogOut,
+  KeyRound,
+  Pencil,
   Power,
   RefreshCw,
   Rocket,
   Save,
   ServerCog,
   ShieldCheck,
+  UserCheck,
   UserPlus,
   Wrench,
+  X,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import recordsWebLogo from '../assets/recordsweb-update-logo.png'
@@ -31,10 +35,13 @@ import {
   listPlatformCommunities,
   listPlatformReleases,
   publishPlatformRelease,
+  setPlatformCommunityActive,
+  setPlatformCommunityOperatorPassword,
   setPlatformMaintenance,
   setPlatformReleaseActive,
   signInPlatformOperator,
   signOutPlatformOperator,
+  updatePlatformCommunity,
   verifyPlatformOperator,
 } from '../lib/platformOperationsService'
 
@@ -244,7 +251,7 @@ function normaliseCommunityCode(value) {
   return String(value || '').trim().replace(/^@+/, '').replace(/\s+/g, '').toUpperCase()
 }
 
-function CommunitiesPanel() {
+function CommunitiesPanel({ operatorAccountEmail = '' }) {
   const [rows, setRows] = useState([])
   const [communityName, setCommunityName] = useState('')
   const [organisationCode, setOrganisationCode] = useState('')
@@ -255,9 +262,20 @@ function CommunitiesPanel() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
+  const [editCommunity, setEditCommunity] = useState(null)
+  const [editName, setEditName] = useState('')
+  const [editMode, setEditMode] = useState('general_practice')
+  const [editLocation, setEditLocation] = useState('')
+  const [operatorCommunity, setOperatorCommunity] = useState(null)
+  const [operatorPassword, setOperatorPassword] = useState('')
+  const [operatorConfirmPassword, setOperatorConfirmPassword] = useState('')
 
   const cleanCode = useMemo(() => normaliseCommunityCode(organisationCode), [organisationCode])
   const operatorEmail = `gus.farnsworth@${/^[A-Z]{2}\.[A-Z]{2}$/.test(cleanCode) ? cleanCode : 'XX.XX'}`
+  const currentOperatorCode = useMemo(() => {
+    const suffix = String(operatorAccountEmail || '').split('@')[1] || ''
+    return normaliseCommunityCode(suffix)
+  }, [operatorAccountEmail])
 
   const load = useCallback(async () => {
     setError('')
@@ -321,17 +339,104 @@ function CommunitiesPanel() {
     }
   }
 
+  function openEdit(row) {
+    setError('')
+    setNotice('')
+    setEditCommunity(row)
+    setEditName(row.name || '')
+    setEditMode(row.system_mode || 'general_practice')
+    setEditLocation(row.default_location || 'Main Site')
+  }
+
+  async function saveEdit(event) {
+    event.preventDefault()
+    if (!editCommunity) return
+    if (!editName.trim()) { setError('Enter the community name.'); return }
+    if (!editLocation.trim()) { setError('Enter the default location.'); return }
+    if (!window.confirm(`Save changes to ${editCommunity.name} (@${editCommunity.org_code})?`)) return
+    setBusy(true); setError(''); setNotice('')
+    try {
+      const result = await updatePlatformCommunity({
+        organisationId: editCommunity.id,
+        communityName: editName.trim(),
+        systemMode: editMode,
+        defaultLocation: editLocation.trim(),
+      })
+      setNotice(`${result?.community?.name || editName.trim()} updated.`)
+      setEditCommunity(null)
+      await load()
+    } catch (err) {
+      setError(err?.message || 'Unable to update the community.')
+    } finally { setBusy(false) }
+  }
+
+  async function toggleCommunity(row) {
+    const nextActive = !row.active
+    if (!nextActive && row.org_code === currentOperatorCode) {
+      setError(`You cannot disable @${row.org_code} while signed in through that community. Sign in with a reserved operator account from another active community first.`)
+      return
+    }
+    const question = nextActive
+      ? `Enable ${row.name} (@${row.org_code})? Staff will be able to sign in again.`
+      : `Disable ${row.name} (@${row.org_code})? New sign-ins and database access for that community will be blocked until it is enabled again.`
+    if (!window.confirm(question)) return
+    setBusy(true); setError(''); setNotice('')
+    try {
+      const result = await setPlatformCommunityActive(row.id, nextActive)
+      setNotice(`${result?.community?.name || row.name} is now ${nextActive ? 'enabled' : 'disabled'}.`)
+      await load()
+    } catch (err) {
+      setError(err?.message || 'Unable to change community status.')
+    } finally { setBusy(false) }
+  }
+
+  function openOperator(row) {
+    setError('')
+    setNotice('')
+    setOperatorCommunity(row)
+    setOperatorPassword('')
+    setOperatorConfirmPassword('')
+  }
+
+  async function saveOperatorPassword(event) {
+    event.preventDefault()
+    if (!operatorCommunity) return
+    const reservedEmail = `gus.farnsworth@${operatorCommunity.org_code}`
+    const passwordError = validateRecordsWebPassword(operatorPassword, reservedEmail)
+    if (passwordError) { setError(passwordError); return }
+    if (operatorPassword !== operatorConfirmPassword) { setError('The password confirmation does not match.'); return }
+    if (!operatorCommunity.active && !operatorCommunity.has_reserved_operator) {
+      setError('Enable the community before creating its missing reserved operator account.')
+      return
+    }
+    const actionLabel = operatorCommunity.has_reserved_operator ? 'reset the password for' : 'create'
+    if (!window.confirm(`${actionLabel.charAt(0).toUpperCase() + actionLabel.slice(1)} ${reservedEmail}?`)) return
+    setBusy(true); setError(''); setNotice('')
+    try {
+      const result = await setPlatformCommunityOperatorPassword({ organisationId: operatorCommunity.id, password: operatorPassword })
+      setNotice(result?.created
+        ? `Reserved operator ${result.operator_email || reservedEmail} created.`
+        : `Password reset for ${result?.operator_email || reservedEmail}.`)
+      setOperatorCommunity(null)
+      setOperatorPassword('')
+      setOperatorConfirmPassword('')
+      await load()
+    } catch (err) {
+      setError(err?.message || 'Unable to update the reserved operator account.')
+    } finally { setBusy(false) }
+  }
+
   return (
     <section className="platform-operator-panel">
       <header>
-        <div><span>OPERATOR ONLY</span><h2>Community creation</h2><p>Create an approved RecordsWeb community and its reserved platform operator account in one operation.</p></div>
+        <div><span>OPERATOR ONLY</span><h2>Community management</h2><p>Create, edit, enable or disable RecordsWeb communities and manage their reserved operator account.</p></div>
         <button onClick={load} disabled={busy}><RefreshCw size={14}/> Refresh</button>
       </header>
 
       <form className="platform-community-form" onSubmit={submit}>
         <div className="platform-community-grid">
           <label><span>Community name</span><input value={communityName} onChange={(e) => setCommunityName(e.target.value)} placeholder="Community or organisation name" maxLength={120} required /></label>
-          <label><span>Organisation extension</span><div className="platform-community-code"><b>@</b><input value={organisationCode} onChange={(e) => setOrganisationCode(e.target.value.replace(/^@+/, '').replace(/\s+/g, '').toUpperCase())} placeholder="XX.XX" maxLength={5} required /></div><small>Four letters in the format @XX.XX.</small></label>
+          <label><span>Organisation extension</span><div className="platform-community-code"><b>@</b><input value={organisationCode} onChange={(e) => setOrganisationCode(e.target.value.replace(/^@+/, '').replace(/\s+/g, '').toUpperCase())} placeholder="XX.XX" maxLength={5} required /></div><small>Four letters in the format @XX.XX. The extension becomes the permanent login namespace.</small></label>
           <label><span>RecordsWeb mode</span><select value={systemMode} onChange={(e) => setSystemMode(e.target.value)}><option value="general_practice">General Practitioner</option><option value="hospital">Hospital</option></select></label>
           <label><span>Default location</span><input value={defaultLocation} onChange={(e) => setDefaultLocation(e.target.value)} placeholder="Main Site" maxLength={120} required /></label>
         </div>
@@ -355,13 +460,43 @@ function CommunitiesPanel() {
         <div className="platform-release-list-head"><strong>RecordsWeb communities</strong><span>{rows.length}</span></div>
         {rows.length === 0 && <div className="platform-empty">No communities found.</div>}
         {rows.map((row) => (
-          <div className="platform-community-row" key={row.id}>
+          <div className={`platform-community-row ${row.active ? '' : 'disabled'}`} key={row.id}>
             <div><strong>{row.name}</strong><span>@{row.org_code}</span></div>
             <div><span>{row.system_mode === 'hospital' ? 'Hospital' : 'General Practitioner'}</span><small>{row.default_location || 'Main Site'}</small></div>
-            <div><span className={row.active ? 'community-active' : 'community-inactive'}>{row.active ? 'Active' : 'Inactive'}</span><small>{row.has_reserved_operator ? 'Operator ready' : 'Operator missing'}</small></div>
+            <div><span className={row.active ? 'community-active' : 'community-inactive'}>{row.active ? 'Active' : 'Disabled'}</span><small>{row.has_reserved_operator ? 'Operator ready' : 'Operator missing'}</small></div>
+            <div className="platform-community-actions">
+              <button onClick={() => openEdit(row)} disabled={busy} title="Edit community"><Pencil size={13}/> Edit</button>
+              <button onClick={() => toggleCommunity(row)} disabled={busy || (!row.active && false)} className={row.active ? 'danger-soft' : 'success-soft'} title={row.active ? 'Disable community' : 'Enable community'}><Power size={13}/>{row.active ? 'Disable' : 'Enable'}</button>
+              <button onClick={() => openOperator(row)} disabled={busy} title={row.has_reserved_operator ? 'Reset reserved operator password' : 'Create reserved operator'}>{row.has_reserved_operator ? <KeyRound size={13}/> : <UserCheck size={13}/>} {row.has_reserved_operator ? 'Password' : 'Create operator'}</button>
+            </div>
           </div>
         ))}
       </div>
+
+      {editCommunity && <div className="platform-community-modal-backdrop" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget && !busy) setEditCommunity(null) }}>
+        <form className="platform-community-modal" onSubmit={saveEdit}>
+          <header><div><span>EDIT COMMUNITY</span><h3>{editCommunity.name}</h3><p>@{editCommunity.org_code}</p></div><button type="button" onClick={() => setEditCommunity(null)} disabled={busy} aria-label="Close"><X size={16}/></button></header>
+          <div className="platform-community-modal-body">
+            <label><span>Community name</span><input value={editName} onChange={(e) => setEditName(e.target.value)} maxLength={120} required /></label>
+            <label><span>RecordsWeb mode</span><select value={editMode} onChange={(e) => setEditMode(e.target.value)}><option value="general_practice">General Practitioner</option><option value="hospital">Hospital</option></select></label>
+            <label><span>Default location</span><input value={editLocation} onChange={(e) => setEditLocation(e.target.value)} maxLength={120} required /></label>
+            <label><span>Organisation extension</span><input value={`@${editCommunity.org_code}`} readOnly /><small>The extension is permanent because it is used as the account login namespace.</small></label>
+          </div>
+          <div className="platform-community-modal-actions"><button type="button" onClick={() => setEditCommunity(null)} disabled={busy}>Cancel</button><button className="primary" disabled={busy}><Save size={13}/>{busy ? 'Saving…' : 'Save changes'}</button></div>
+        </form>
+      </div>}
+
+      {operatorCommunity && <div className="platform-community-modal-backdrop" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget && !busy) setOperatorCommunity(null) }}>
+        <form className="platform-community-modal" onSubmit={saveOperatorPassword}>
+          <header><div><span>RESERVED OPERATOR</span><h3>{operatorCommunity.has_reserved_operator ? 'Reset operator password' : 'Create missing operator'}</h3><p>gus.farnsworth@{operatorCommunity.org_code}</p></div><button type="button" onClick={() => setOperatorCommunity(null)} disabled={busy} aria-label="Close"><X size={16}/></button></header>
+          <div className="platform-community-modal-body">
+            <label><span>{operatorCommunity.has_reserved_operator ? 'New password' : 'Initial password'}</span><input type="password" value={operatorPassword} onChange={(e) => setOperatorPassword(e.target.value)} autoComplete="new-password" required /></label>
+            <label><span>Confirm password</span><input type="password" value={operatorConfirmPassword} onChange={(e) => setOperatorConfirmPassword(e.target.value)} autoComplete="new-password" required /></label>
+            <div className="platform-community-modal-note">{operatorCommunity.has_reserved_operator ? 'The existing operator account remains linked to this community. Only its password changes.' : 'A new reserved operator profile will be created and linked to this community.'}</div>
+          </div>
+          <div className="platform-community-modal-actions"><button type="button" onClick={() => setOperatorCommunity(null)} disabled={busy}>Cancel</button><button className="primary" disabled={busy}><KeyRound size={13}/>{busy ? 'Saving…' : (operatorCommunity.has_reserved_operator ? 'Reset password' : 'Create operator')}</button></div>
+        </form>
+      </div>}
     </section>
   )
 }
@@ -446,13 +581,13 @@ export default function PlatformManagementPage() {
         {section === 'overview' && <section className="platform-overview-grid">
           <button onClick={() => setSection('maintenance')}><Wrench size={22}/><div><strong>Platform maintenance</strong><span>Temporarily block all community staff access across RecordsWeb.</span></div></button>
           <button onClick={() => setSection('releases')}><Rocket size={22}/><div><strong>Release control</strong><span>Publish the active version used by desktop and website update checks.</span></div></button>
-          <button onClick={() => setSection('communities')}><Building2 size={22}/><div><strong>Community creation</strong><span>Create a new RecordsWeb organisation and the reserved operator account.</span></div></button>
+          <button onClick={() => setSection('communities')}><Building2 size={22}/><div><strong>Community management</strong><span>Create, edit, enable or disable RecordsWeb communities and manage reserved operators.</span></div></button>
           <button onClick={() => navigate('/review-request')}><FileCheck2 size={22}/><div><strong>Access requests</strong><span>Review communities requesting a RecordsWeb deployment.</span></div></button>
           <div><ServerCog size={22}/><div><strong>Operator-only controls</strong><span>Community managers cannot access or change these platform-wide settings.</span></div></div>
         </section>}
         {section === 'maintenance' && <MaintenancePanel />}
         {section === 'releases' && <ReleasesPanel />}
-        {section === 'communities' && <CommunitiesPanel />}
+        {section === 'communities' && <CommunitiesPanel operatorAccountEmail={operatorSession?.user?.email || ''} />}
       </main>
       <footer className="review-request-footer"><span>RecordsWeb · Restricted platform operator area</span><span>Version {APP_VERSION}</span></footer>
     </div>

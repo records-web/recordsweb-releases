@@ -3715,3 +3715,44 @@ html.rw-dark-mode .platform-community-row strong { color:#d4e6ee; }
 html.rw-dark-mode .platform-community-row>div:first-child span { background:#182a33; border-color:#3b6072; }
 @media (max-width:900px) { .platform-community-operator .platform-community-grid { grid-template-columns:1fr; } .platform-community-row { grid-template-columns:1fr 1fr; } }
 @media (max-width:620px) { .platform-community-grid { grid-template-columns:1fr; } .platform-community-row { grid-template-columns:1fr; } }
+
+/* RecordsWeb 3.2.2 — platform community management */
+.platform-community-row { grid-template-columns:minmax(220px,1fr) minmax(180px,1fr) 140px minmax(280px,auto); }
+.platform-community-row.disabled { background:rgba(150,58,58,.035); }
+.platform-community-actions { display:flex!important; flex-direction:row!important; align-items:center; justify-content:flex-end; gap:6px!important; flex-wrap:wrap; }
+.platform-community-actions button { display:inline-flex; align-items:center; justify-content:center; gap:5px; min-height:28px; padding:5px 8px; border:1px solid #b7cbd5; background:#f6f9fa; color:#315a6f; cursor:pointer; font:inherit; font-size:9px; white-space:nowrap; }
+.platform-community-actions button:hover:not(:disabled) { background:#eaf3f7; border-color:#86adbf; }
+.platform-community-actions button.danger-soft { color:#8d3131; border-color:#d4adad; background:#fff4f4; }
+.platform-community-actions button.success-soft { color:#1f7045; border-color:#9fc9af; background:#eff9f2; }
+.platform-community-actions button:disabled { opacity:.55; cursor:not-allowed; }
+.platform-community-modal-backdrop { position:fixed; inset:0; z-index:120; display:flex; align-items:center; justify-content:center; padding:24px; background:rgba(6,14,19,.64); }
+.platform-community-modal { width:min(620px,100%); border:1px solid #9eb9c7; background:#f8fbfc; color:#2f566a; box-shadow:0 18px 55px rgba(0,0,0,.3); }
+.platform-community-modal>header { display:flex; justify-content:space-between; align-items:flex-start; gap:14px; padding:13px 15px; border-bottom:1px solid #bfd1da; background:#e8f1f5; }
+.platform-community-modal>header span { display:block; color:#147dbb; font-size:8px; font-weight:800; letter-spacing:.12em; }
+.platform-community-modal>header h3 { margin:3px 0 0; color:#244f65; font-size:15px; }
+.platform-community-modal>header p { margin:3px 0 0; color:#718a96; font-size:9px; }
+.platform-community-modal>header>button { display:flex; align-items:center; justify-content:center; width:30px; height:30px; padding:0; border:1px solid #b7cbd5; background:#f7fafb; color:#476d80; cursor:pointer; }
+.platform-community-modal-body { display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:16px; }
+.platform-community-modal-body label { display:flex; flex-direction:column; gap:5px; min-width:0; color:#456a7e; font-size:9px; font-weight:600; }
+.platform-community-modal-body input,.platform-community-modal-body select { width:100%; min-height:34px; padding:7px 8px; border:1px solid #9db9c8; background:#fff; color:#274f64; font:inherit; font-size:10px; }
+.platform-community-modal-body input[readonly] { background:#eef4f7; color:#667f8b; }
+.platform-community-modal-body small { color:#8197a3; font-size:8px; font-weight:400; }
+.platform-community-modal-note { grid-column:1/-1; padding:10px 11px; border:1px solid #c3d5de; background:#eef5f8; color:#5d7886; font-size:9px; line-height:1.45; }
+.platform-community-modal-actions { display:flex; justify-content:flex-end; gap:7px; padding:11px 15px 14px; border-top:1px solid #bfd1da; }
+.platform-community-modal-actions button { display:inline-flex; align-items:center; gap:5px; min-height:30px; padding:6px 10px; border:1px solid #b8cad3; background:#f5f8fa; color:#365e72; cursor:pointer; font:inherit; font-size:9px; }
+.platform-community-modal-actions button.primary { background:#147dbb; border-color:#0e6ea8; color:#fff; }
+html.rw-dark-mode .platform-community-row.disabled { background:rgba(170,74,74,.06); }
+html.rw-dark-mode .platform-community-actions button { background:#14242d; border-color:#3a5b6b; color:#c4d9e3; }
+html.rw-dark-mode .platform-community-actions button:hover:not(:disabled) { background:#1b303a; }
+html.rw-dark-mode .platform-community-actions button.danger-soft { background:#2a1b1d; border-color:#6b3c41; color:#efb7b7; }
+html.rw-dark-mode .platform-community-actions button.success-soft { background:#15291f; border-color:#37644a; color:#b9e4c8; }
+html.rw-dark-mode .platform-community-modal { background:#111d24; border-color:#355668; color:#d6e5ec; }
+html.rw-dark-mode .platform-community-modal>header { background:#192b34; border-color:#355668; }
+html.rw-dark-mode .platform-community-modal>header h3 { color:#d8e9f0; }
+html.rw-dark-mode .platform-community-modal>header>button,html.rw-dark-mode .platform-community-modal-actions button { background:#15252d; border-color:#365768; color:#c0d5df; }
+html.rw-dark-mode .platform-community-modal-body input,html.rw-dark-mode .platform-community-modal-body select { background:#0e1a21; border-color:#406072; color:#d9e8ef; }
+html.rw-dark-mode .platform-community-modal-body input[readonly] { background:#14242d; color:#a9c3d0; }
+html.rw-dark-mode .platform-community-modal-note { background:#14242d; border-color:#355668; color:#adc6d2; }
+html.rw-dark-mode .platform-community-modal-actions { border-color:#355668; }
+@media (max-width:1120px) { .platform-community-row { grid-template-columns:1fr 1fr; } .platform-community-actions { justify-content:flex-start; } }
+@media (max-width:620px) { .platform-community-modal-body { grid-template-columns:1fr; } .platform-community-modal-backdrop { padding:10px; } }
