@@ -22,6 +22,7 @@ export default function WebUpdateManager() {
   const [release, setRelease] = useState(null)
   const [secondsLeft, setSecondsLeft] = useState(UPDATE_GRACE_SECONDS)
   const [safetyRevision, setSafetyRevision] = useState(0)
+  const [pageVisible, setPageVisible] = useState(() => typeof document === 'undefined' || !document.hidden)
   const dirtyRootsRef = useRef(new Set())
   const refreshStartedRef = useRef(false)
 
@@ -40,6 +41,11 @@ export default function WebUpdateManager() {
 
   const refreshIntoUpdate = useCallback((manual = false) => {
     if (!release || refreshStartedRef.current) return
+    // Never allow an automatic update refresh while the browser tab is hidden.
+    // Background-tab refreshes destroy unsaved React state and make returning to
+    // RecordsWeb look like the site randomly reloaded.
+    if (!manual && (typeof document !== 'undefined' && document.hidden)) return
+    if (!manual && updateBlocked) return
     if (manual && updateBlocked) {
       const confirmed = window.confirm('RecordsWeb has unsaved work open. Refreshing now may discard changes that have not been saved. Refresh anyway?')
       if (!confirmed) return
@@ -55,6 +61,9 @@ export default function WebUpdateManager() {
     let running = false
 
     const check = async () => {
+      // Do not perform a release check just because the tab is in the background.
+      // The normal interval will resume when RecordsWeb is visible again.
+      if (typeof document !== 'undefined' && document.hidden) return
       if (running) return
       running = true
       try {
@@ -75,15 +84,19 @@ export default function WebUpdateManager() {
 
     check()
     const timer = window.setInterval(check, UPDATE_CHECK_SECONDS * 1000)
-    const onVisible = () => { if (!document.hidden) check() }
-    window.addEventListener('online', check)
-    document.addEventListener('visibilitychange', onVisible)
+    const onOnline = () => { if (!document.hidden) check() }
+    window.addEventListener('online', onOnline)
     return () => {
       active = false
       window.clearInterval(timer)
-      window.removeEventListener('online', check)
-      document.removeEventListener('visibilitychange', onVisible)
+      window.removeEventListener('online', onOnline)
     }
+  }, [])
+
+  useEffect(() => {
+    const syncVisibility = () => setPageVisible(!document.hidden)
+    document.addEventListener('visibilitychange', syncVisibility)
+    return () => document.removeEventListener('visibilitychange', syncVisibility)
   }, [])
 
   useEffect(() => {
@@ -96,7 +109,7 @@ export default function WebUpdateManager() {
       if (location.pathname === '/login') return
       const target = event.target instanceof Element ? event.target : null
       if (!target) return
-      const root = target.closest('.modal-portal-content, .registration-form, .clinical-template-layout')
+      const root = target.closest('form, .modal-portal-content, .registration-form, .clinical-template-layout, .platform-operator-panel, .review-request-panel, .access-request-form')
       if (!root) return
       dirtyRootsRef.current.add(root)
       setSafetyRevision((value) => value + 1)
@@ -113,8 +126,11 @@ export default function WebUpdateManager() {
   }, [location.pathname])
 
   useEffect(() => {
-    if (!release || updateBlocked || refreshStartedRef.current) return undefined
+    if (!release || updateBlocked || !pageVisible || refreshStartedRef.current) return undefined
     const timer = window.setInterval(() => {
+      // Browsers can briefly deliver a timer tick while processing the
+      // visibilitychange event. Never consume countdown time in that case.
+      if (typeof document !== 'undefined' && document.hidden) return
       setSecondsLeft((current) => {
         if (current <= 1) {
           window.clearInterval(timer)
@@ -125,7 +141,7 @@ export default function WebUpdateManager() {
       })
     }, 1000)
     return () => window.clearInterval(timer)
-  }, [release, updateBlocked, refreshIntoUpdate])
+  }, [release, updateBlocked, pageVisible, refreshIntoUpdate])
 
   if (!release) return null
 
