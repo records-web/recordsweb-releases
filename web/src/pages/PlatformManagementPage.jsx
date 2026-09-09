@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Activity,
   ArrowLeft,
+  Building2,
   CheckCircle2,
   Clock3,
   FileCheck2,
@@ -12,6 +13,7 @@ import {
   Save,
   ServerCog,
   ShieldCheck,
+  UserPlus,
   Wrench,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -19,11 +21,14 @@ import recordsWebLogo from '../assets/recordsweb-update-logo.png'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase, supabaseConfigured } from '../lib/supabase'
 import { APP_VERSION } from '../lib/webRuntime'
+import { validateRecordsWebPassword } from '../lib/passwordPolicy'
 import {
   PLATFORM_OPERATOR_EMAIL_FORMAT,
+  createPlatformCommunity,
   getPlatformMaintenanceState,
   getPlatformOperatorSession,
   isPlatformOperator,
+  listPlatformCommunities,
   listPlatformReleases,
   publishPlatformRelease,
   setPlatformMaintenance,
@@ -217,7 +222,7 @@ function ReleasesPanel() {
     <section className="platform-operator-panel">
       <header><div><span>GLOBAL CONTROL</span><h2>RecordsWeb releases</h2><p>Publishing an active release can trigger desktop updates and the website refresh prompt.</p></div><button onClick={load} disabled={busy}><RefreshCw size={14}/> Refresh</button></header>
       <form className="platform-release-form" onSubmit={submit}>
-        <label><span>Version</span><input value={version} onChange={(e) => setVersion(e.target.value)} placeholder="3.2.2" required /></label>
+        <label><span>Version</span><input value={version} onChange={(e) => setVersion(e.target.value)} placeholder="3.2.3" required /></label>
         <label><span>Channel</span><select value={channel} onChange={(e) => setChannel(e.target.value)}><option value="stable">stable</option><option value="web">web</option><option value="beta">beta</option></select></label>
         <label className="platform-release-notes"><span>Release notes</span><textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="What changed in this release?" /></label>
         <label className="platform-checkbox"><input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} /><span>Publish as active</span></label>
@@ -229,6 +234,133 @@ function ReleasesPanel() {
         <div className="platform-release-list-head"><strong>Release history</strong><span>{rows.length}</span></div>
         {rows.length === 0 && <div className="platform-empty">No releases found.</div>}
         {rows.map((row) => <div className="platform-release-row" key={row.id}><div><strong>{row.version}</strong><span>{row.channel}</span></div><div><span>{row.release_notes || 'No release notes'}</span><small>{formatDate(row.published_at)}</small></div><button className={row.active ? 'active' : ''} onClick={() => toggle(row)} disabled={busy}>{row.active ? 'Active' : 'Inactive'}</button></div>)}
+      </div>
+    </section>
+  )
+}
+
+
+function normaliseCommunityCode(value) {
+  return String(value || '').trim().replace(/^@+/, '').replace(/\s+/g, '').toUpperCase()
+}
+
+function CommunitiesPanel() {
+  const [rows, setRows] = useState([])
+  const [communityName, setCommunityName] = useState('')
+  const [organisationCode, setOrganisationCode] = useState('')
+  const [systemMode, setSystemMode] = useState('general_practice')
+  const [defaultLocation, setDefaultLocation] = useState('Main Site')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+
+  const cleanCode = useMemo(() => normaliseCommunityCode(organisationCode), [organisationCode])
+  const operatorEmail = `gus.farnsworth@${/^[A-Z]{2}\.[A-Z]{2}$/.test(cleanCode) ? cleanCode : 'XX.XX'}`
+
+  const load = useCallback(async () => {
+    setError('')
+    try { setRows(await listPlatformCommunities()) }
+    catch (err) { setError(err?.message || 'Unable to load RecordsWeb communities.') }
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  async function submit(event) {
+    event.preventDefault()
+    setError('')
+    setNotice('')
+
+    if (!/^[A-Z]{2}\.[A-Z]{2}$/.test(cleanCode)) {
+      setError('Enter the community extension using four letters in the format @XX.XX.')
+      return
+    }
+    if (!communityName.trim()) {
+      setError('Enter the community name.')
+      return
+    }
+    if (!defaultLocation.trim()) {
+      setError('Enter the default location.')
+      return
+    }
+    const passwordError = validateRecordsWebPassword(password, operatorEmail)
+    if (passwordError) {
+      setError(passwordError)
+      return
+    }
+    if (password !== confirmPassword) {
+      setError('The password confirmation does not match.')
+      return
+    }
+
+    const accountEmail = `gus.farnsworth@${cleanCode}`
+    if (!window.confirm(`Create ${communityName.trim()} as @${cleanCode} and create the reserved operator account ${accountEmail}?`)) return
+
+    setBusy(true)
+    try {
+      const result = await createPlatformCommunity({
+        organisationCode: cleanCode,
+        communityName: communityName.trim(),
+        systemMode,
+        defaultLocation: defaultLocation.trim(),
+        password,
+      })
+      setNotice(`${result?.community?.name || communityName.trim()} created. Operator account: ${result?.operator_email || accountEmail}`)
+      setCommunityName('')
+      setOrganisationCode('')
+      setSystemMode('general_practice')
+      setDefaultLocation('Main Site')
+      setPassword('')
+      setConfirmPassword('')
+      await load()
+    } catch (err) {
+      setError(err?.message || 'Unable to create the RecordsWeb community.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <section className="platform-operator-panel">
+      <header>
+        <div><span>OPERATOR ONLY</span><h2>Community creation</h2><p>Create an approved RecordsWeb community and its reserved platform operator account in one operation.</p></div>
+        <button onClick={load} disabled={busy}><RefreshCw size={14}/> Refresh</button>
+      </header>
+
+      <form className="platform-community-form" onSubmit={submit}>
+        <div className="platform-community-grid">
+          <label><span>Community name</span><input value={communityName} onChange={(e) => setCommunityName(e.target.value)} placeholder="Community or organisation name" maxLength={120} required /></label>
+          <label><span>Organisation extension</span><div className="platform-community-code"><b>@</b><input value={organisationCode} onChange={(e) => setOrganisationCode(e.target.value.replace(/^@+/, '').replace(/\s+/g, '').toUpperCase())} placeholder="XX.XX" maxLength={5} required /></div><small>Four letters in the format @XX.XX.</small></label>
+          <label><span>RecordsWeb mode</span><select value={systemMode} onChange={(e) => setSystemMode(e.target.value)}><option value="general_practice">General Practitioner</option><option value="hospital">Hospital</option></select></label>
+          <label><span>Default location</span><input value={defaultLocation} onChange={(e) => setDefaultLocation(e.target.value)} placeholder="Main Site" maxLength={120} required /></label>
+        </div>
+
+        <div className="platform-community-operator">
+          <div className="platform-community-operator-heading"><UserPlus size={18}/><div><strong>Reserved operator account</strong><span>This account is created automatically and receives Management access in the new community.</span></div></div>
+          <div className="platform-community-grid">
+            <label><span>Account email</span><input value={operatorEmail} readOnly /></label>
+            <label><span>Initial password</span><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" required /></label>
+            <label><span>Confirm password</span><input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} autoComplete="new-password" required /></label>
+          </div>
+          <p className="platform-community-password-help">Minimum 10 characters with at least one letter and one number. The password is sent only to the protected Supabase Edge Function and is never stored in the website.</p>
+        </div>
+
+        {error && <div className="review-request-message error">{error}</div>}
+        {notice && <div className="review-request-message success"><CheckCircle2 size={15}/>{notice}</div>}
+        <div className="platform-panel-actions"><button className="primary" disabled={busy}><Building2 size={14}/>{busy ? 'Creating community…' : 'Create community'}</button></div>
+      </form>
+
+      <div className="platform-community-list">
+        <div className="platform-release-list-head"><strong>RecordsWeb communities</strong><span>{rows.length}</span></div>
+        {rows.length === 0 && <div className="platform-empty">No communities found.</div>}
+        {rows.map((row) => (
+          <div className="platform-community-row" key={row.id}>
+            <div><strong>{row.name}</strong><span>@{row.org_code}</span></div>
+            <div><span>{row.system_mode === 'hospital' ? 'Hospital' : 'General Practitioner'}</span><small>{row.default_location || 'Main Site'}</small></div>
+            <div><span className={row.active ? 'community-active' : 'community-inactive'}>{row.active ? 'Active' : 'Inactive'}</span><small>{row.has_reserved_operator ? 'Operator ready' : 'Operator missing'}</small></div>
+          </div>
+        ))}
       </div>
     </section>
   )
@@ -307,17 +439,20 @@ export default function PlatformManagementPage() {
           <button className={section === 'overview' ? 'active' : ''} onClick={() => setSection('overview')}><Activity size={14}/> Overview</button>
           <button className={section === 'maintenance' ? 'active' : ''} onClick={() => setSection('maintenance')}><Wrench size={14}/> Maintenance</button>
           <button className={section === 'releases' ? 'active' : ''} onClick={() => setSection('releases')}><Rocket size={14}/> Releases</button>
+          <button className={section === 'communities' ? 'active' : ''} onClick={() => setSection('communities')}><Building2 size={14}/> Communities</button>
           <button onClick={() => navigate('/review-request')}><FileCheck2 size={14}/> Review requests</button>
         </div>
 
         {section === 'overview' && <section className="platform-overview-grid">
           <button onClick={() => setSection('maintenance')}><Wrench size={22}/><div><strong>Platform maintenance</strong><span>Temporarily block all community staff access across RecordsWeb.</span></div></button>
           <button onClick={() => setSection('releases')}><Rocket size={22}/><div><strong>Release control</strong><span>Publish the active version used by desktop and website update checks.</span></div></button>
+          <button onClick={() => setSection('communities')}><Building2 size={22}/><div><strong>Community creation</strong><span>Create a new RecordsWeb organisation and the reserved operator account.</span></div></button>
           <button onClick={() => navigate('/review-request')}><FileCheck2 size={22}/><div><strong>Access requests</strong><span>Review communities requesting a RecordsWeb deployment.</span></div></button>
           <div><ServerCog size={22}/><div><strong>Operator-only controls</strong><span>Community managers cannot access or change these platform-wide settings.</span></div></div>
         </section>}
         {section === 'maintenance' && <MaintenancePanel />}
         {section === 'releases' && <ReleasesPanel />}
+        {section === 'communities' && <CommunitiesPanel />}
       </main>
       <footer className="review-request-footer"><span>RecordsWeb · Restricted platform operator area</span><span>Version {APP_VERSION}</span></footer>
     </div>

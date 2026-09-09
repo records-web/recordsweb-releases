@@ -130,3 +130,49 @@ export async function setPlatformReleaseActive(id, active) {
   if (error) throw new Error(error.message || 'Unable to update release status.')
   return data
 }
+
+
+export async function listPlatformCommunities() {
+  if (!supabaseConfigured || !supabase) throw new Error('Supabase is not configured.')
+  const { data, error } = await supabase.rpc('recordsweb_operator_list_organisations')
+  if (error) {
+    if (/recordsweb_operator_list_organisations|does not exist|schema cache/i.test(error.message || '')) {
+      throw new Error('Community creation is not configured in Supabase. Run the RecordsWeb 3.2.2 community-creation migration.')
+    }
+    throw new Error(error.message || 'Unable to load RecordsWeb communities.')
+  }
+  return Array.isArray(data) ? data : []
+}
+
+async function invokePlatformAdmin(body) {
+  if (!supabaseConfigured || !supabase) throw new Error('Supabase is not configured.')
+  const { data, error } = await supabase.functions.invoke('recordsweb-platform-admin', { body })
+  if (error) {
+    let message = error.message || 'RecordsWeb platform administration service failed.'
+    try {
+      const response = error.context
+      if (response && typeof response.clone === 'function') {
+        const payload = await response.clone().json()
+        if (payload?.error) message = payload.error
+        else if (payload?.message) message = payload.message
+      }
+    } catch {}
+    if (/non-2xx/i.test(message)) {
+      message = 'RecordsWeb platform administration returned an error. Check that the recordsweb-platform-admin Edge Function is deployed.'
+    }
+    throw new Error(message)
+  }
+  if (data?.error) throw new Error(data.error)
+  return data
+}
+
+export async function createPlatformCommunity({ organisationCode, communityName, systemMode, defaultLocation, password }) {
+  return invokePlatformAdmin({
+    action: 'create-community',
+    organisation_code: String(organisationCode || '').trim(),
+    community_name: String(communityName || '').trim(),
+    system_mode: String(systemMode || 'general_practice').trim(),
+    default_location: String(defaultLocation || '').trim(),
+    password: String(password || ''),
+  })
+}

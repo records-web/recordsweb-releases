@@ -228,3 +228,14 @@ That Supabase Auth user must already exist and have a password. The reviewer pag
 ## Fixed RecordsWeb branding
 
 RecordsWeb uses one product-owned visual identity across every organisation. Organisation staff cannot replace the RecordsWeb logo or alter the product colour palette. Organisation names, extensions, modes and locations remain deployment-specific. Run `supabase/recordsweb-3.2.1-branding-lock.sql` once on existing Supabase deployments.
+
+
+## RecordsWeb 3.2.2 platform community creation
+
+After running `supabase/recordsweb-3.2.2-community-creation.sql`, deploy the operator-only Edge Function:
+
+```bash
+supabase functions deploy recordsweb-platform-admin
+```
+
+Community creation is exposed only in the website Platform Management area. The service-role key is used only inside the Supabase Edge Function and must not be configured in Vercel.

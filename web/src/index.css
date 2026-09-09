@@ -3676,3 +3676,42 @@ html.rw-dark-mode .platform-release-row>div:first-child strong { color:#d4e6ee; 
 html.rw-dark-mode .platform-release-row>div:first-child span { background:#182a33; border-color:#3b6072; }
 @media (max-width:900px) { .platform-overview-grid { grid-template-columns:1fr; } .platform-form-grid { grid-template-columns:1fr; } .platform-release-form { grid-template-columns:1fr 1fr; } .platform-release-notes { grid-column:1/-1; } }
 @media (max-width:620px) { .platform-management-main { width:min(100% - 20px,1420px); } .platform-release-form { grid-template-columns:1fr; } .platform-release-notes { grid-column:auto; } .platform-release-row { grid-template-columns:1fr; } }
+
+
+/* RecordsWeb 3.2.2 — platform community creation */
+.platform-community-form { border-bottom:1px solid #c3d5de; }
+.platform-community-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; padding:16px 18px 8px; }
+.platform-community-grid label { display:flex; flex-direction:column; gap:5px; color:#456a7e; font-size:9px; font-weight:600; }
+.platform-community-grid input,.platform-community-grid select { width:100%; min-height:33px; border:1px solid #9db9c8; background:#fff; color:#274f64; padding:7px 8px; font:inherit; font-size:10px; }
+.platform-community-grid input[readonly] { background:#eef4f7; color:#506e7d; }
+.platform-community-grid small { color:#8298a4; font-size:8px; font-weight:400; }
+.platform-community-code { display:flex; align-items:center; border:1px solid #9db9c8; background:#fff; }
+.platform-community-code b { padding:0 0 0 9px; color:#4a6e80; font-size:10px; }
+.platform-community-code input { border:0; min-width:0; }
+.platform-community-operator { margin:8px 18px 14px; border:1px solid #aac4d2; background:#f6fafc; }
+.platform-community-operator-heading { display:flex; align-items:flex-start; gap:10px; padding:12px 14px; border-bottom:1px solid #c3d5de; color:#315c72; }
+.platform-community-operator-heading strong,.platform-community-operator-heading span { display:block; }
+.platform-community-operator-heading strong { font-size:11px; color:#2b556b; }
+.platform-community-operator-heading span { margin-top:2px; font-size:9px; color:#718a97; }
+.platform-community-operator .platform-community-grid { padding-top:12px; grid-template-columns:1fr 1fr 1fr; }
+.platform-community-password-help { margin:0; padding:0 18px 13px!important; color:#718995!important; font-size:8px!important; }
+.platform-community-list { padding:14px 18px 18px; }
+.platform-community-row { display:grid; grid-template-columns:minmax(220px,1fr) minmax(180px,1fr) 150px; gap:12px; align-items:center; padding:10px; border:1px solid #c4d5de; border-top:0; font-size:9px; }
+.platform-community-row>div { display:flex; flex-direction:column; gap:2px; min-width:0; }
+.platform-community-row>div:first-child { flex-direction:row; align-items:center; gap:8px; }
+.platform-community-row strong { color:#2c576e; font-size:11px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.platform-community-row>div:first-child span { border:1px solid #b2c8d4; padding:2px 5px; background:#f2f7f9; white-space:nowrap; }
+.platform-community-row small { color:#8aa0aa; }
+.platform-community-row .community-active { color:#1d7042; font-weight:700; }
+.platform-community-row .community-inactive { color:#973434; font-weight:700; }
+html.rw-dark-mode .platform-community-grid input,html.rw-dark-mode .platform-community-grid select,html.rw-dark-mode .platform-community-code { background:#0e1a21; color:#d9e8ef; border-color:#406072; }
+html.rw-dark-mode .platform-community-grid input[readonly] { background:#14242d; color:#a9c3d0; }
+html.rw-dark-mode .platform-community-code input { border:0; }
+html.rw-dark-mode .platform-community-operator { background:#14242d; border-color:#355668; }
+html.rw-dark-mode .platform-community-operator-heading { border-color:#355668; color:#c5dae4; }
+html.rw-dark-mode .platform-community-operator-heading strong { color:#d9e9f0; }
+html.rw-dark-mode .platform-community-row { border-color:#2d4958; }
+html.rw-dark-mode .platform-community-row strong { color:#d4e6ee; }
+html.rw-dark-mode .platform-community-row>div:first-child span { background:#182a33; border-color:#3b6072; }
+@media (max-width:900px) { .platform-community-operator .platform-community-grid { grid-template-columns:1fr; } .platform-community-row { grid-template-columns:1fr 1fr; } }
+@media (max-width:620px) { .platform-community-grid { grid-template-columns:1fr; } .platform-community-row { grid-template-columns:1fr; } }

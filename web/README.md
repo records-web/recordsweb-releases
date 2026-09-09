@@ -47,3 +47,10 @@ The web root is now a public RecordsWeb overview. Staff enter through **Staff si
 ## Fixed RecordsWeb branding
 
 RecordsWeb uses one product-owned visual identity across every organisation. Organisation staff cannot replace the RecordsWeb logo or alter the product colour palette. Organisation names, extensions, modes and locations remain deployment-specific. Run `supabase/recordsweb-3.2.1-branding-lock.sql` once on existing Supabase deployments.
+
+
+## RecordsWeb 3.2.2
+
+- Website Platform Management can create approved communities.
+- Creation automatically provisions the reserved `gus.farnsworth@XX.XX` Management account using a password entered by the platform operator.
+- Requires `supabase/recordsweb-3.2.2-community-creation.sql` and the `recordsweb-platform-admin` Edge Function.
