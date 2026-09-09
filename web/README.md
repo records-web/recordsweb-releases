@@ -42,3 +42,8 @@ The web root is now a public RecordsWeb overview. Staff enter through **Staff si
 ### Access request review
 
 `/#/review-request` provides the restricted operator interface for access requests. Server-side Supabase checks limit the review APIs and private logo access to reserved `gus.farnsworth@XX.XX` accounts whose suffix matches their active RecordsWeb organisation. Run `supabase/recordsweb-3.2.1-review-request.sql` after the public request migration.
+
+
+## Fixed RecordsWeb branding
+
+RecordsWeb uses one product-owned visual identity across every organisation. Organisation staff cannot replace the RecordsWeb logo or alter the product colour palette. Organisation names, extensions, modes and locations remain deployment-specific. Run `supabase/recordsweb-3.2.1-branding-lock.sql` once on existing Supabase deployments.

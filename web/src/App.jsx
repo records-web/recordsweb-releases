@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import LoginPage from './pages/LoginPage'
 import PublicHomePage from './pages/PublicHomePage'
 import ReviewRequestPage from './pages/ReviewRequestPage'
+import PlatformManagementPage from './pages/PlatformManagementPage'
 import HomePage from './pages/HomePage'
 import PatientSearchPage from './pages/PatientSearchPage'
 import PatientSummaryPage from './pages/PatientSummaryPage'
@@ -100,6 +101,7 @@ export default function App() {
         <Route path="/" element={<RootRoute />} />
         <Route path="/login" element={<StaffEnvironment><LoginPage /></StaffEnvironment>} />
         <Route path="/review-request" element={<ReviewRequestPage />} />
+        <Route path="/platform-management" element={<PlatformManagementPage />} />
         <Route path="/*" element={<StaffRoutes />} />
       </Routes>
     </AuthProvider>

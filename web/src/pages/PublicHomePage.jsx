@@ -1,7 +1,7 @@
 import React, { useRef, useState } from 'react'
 import { ArrowRight, Building2, CalendarDays, CheckCircle2, ClipboardList, FileText, Hospital, ImagePlus, LockKeyhole, Pill, Search, Send, Stethoscope, Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import recordsWebLogo from '../assets/recordsweb-update-logo.png'
+import recordsWebWordmark from '../assets/RW-Logo.png'
 import { submitRecordsWebAccessRequest } from '../lib/accessRequestService'
 import { APP_VERSION } from '../lib/webRuntime'
 
@@ -63,8 +63,8 @@ export default function PublicHomePage() {
     <div className="public-home">
       <header className="public-home-header">
         <div className="public-home-brand">
-          <img src={recordsWebLogo} alt="RecordsWeb" />
-          <div><strong>RecordsWeb</strong><span>Clinical records platform</span></div>
+          <img className="public-home-wordmark" src={recordsWebWordmark} alt="RecordsWeb" />
+          <span>Clinical records platform</span>
         </div>
         <nav>
           <button type="button" onClick={() => requestSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}>Request access</button>
@@ -87,7 +87,7 @@ export default function PublicHomePage() {
             <div className="public-panel-title"><Building2 size={17}/><strong>Multi-organisation deployment</strong></div>
             <div className="public-org-example"><span>Example Medical Community</span><strong>@ZX.QV</strong></div>
             <div className="public-org-example"><span>Your community</span><strong>@XX.XX</strong></div>
-            <p>Approved deployments receive a unique four-letter RecordsWeb extension used for logins, branding and data separation.</p>
+            <p>Approved deployments receive a unique four-letter RecordsWeb extension used for logins and data separation. RecordsWeb branding remains identical across every deployment.</p>
           </div>
         </section>
 
@@ -122,7 +122,7 @@ export default function PublicHomePage() {
             <span className="public-eyebrow">REQUEST ACCESS</span>
             <h2>Request a RecordsWeb deployment</h2>
             <p>Complete the form below. Submission does not guarantee approval; requests are reviewed before an organisation is provisioned.</p>
-            <div className="public-request-note"><CheckCircle2 size={18}/><span>Your logo and request details are stored privately for review and are not exposed on the public website.</span></div>
+            <div className="public-request-note"><CheckCircle2 size={18}/><span>Your community logo is collected only for request review. It never replaces or modifies RecordsWeb branding.</span></div>
           </div>
 
           <form ref={formRef} className="public-request-form" onSubmit={submit}>

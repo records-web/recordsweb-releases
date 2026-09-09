@@ -223,3 +223,8 @@ RecordsWeb includes a restricted review page at `/#/review-request`.
 Run `supabase/recordsweb-3.2.1-review-request.sql` after the public access-request migration. The database functions and private logo policy permit reserved `gus.farnsworth@XX.XX` RecordsWeb accounts, provided the `XX.XX` suffix matches the active organisation assigned to that authenticated profile.
 
 That Supabase Auth user must already exist and have a password. The reviewer page uses its own restricted sign-in and does not require an organisation extension.
+
+
+## Fixed RecordsWeb branding
+
+RecordsWeb uses one product-owned visual identity across every organisation. Organisation staff cannot replace the RecordsWeb logo or alter the product colour palette. Organisation names, extensions, modes and locations remain deployment-specific. Run `supabase/recordsweb-3.2.1-branding-lock.sql` once on existing Supabase deployments.

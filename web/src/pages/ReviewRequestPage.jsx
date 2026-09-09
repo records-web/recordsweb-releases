@@ -247,6 +247,7 @@ export default function ReviewRequestPage() {
         <div className="review-request-brand"><img src={recordsWebLogo} alt="RecordsWeb"/><div><strong>RecordsWeb</strong><span>Access request review</span></div></div>
         <div className="review-request-header-actions">
           <span><UserRoundCheck size={14}/>{reviewerSession?.user?.email}</span>
+          <button onClick={() => navigate('/platform-management')}><ShieldCheck size={14}/> Platform management</button>
           <button onClick={() => navigate('/')}><ArrowLeft size={14}/> Home</button>
           <button onClick={logoutReviewer}><LogOut size={14}/> Sign out</button>
         </div>

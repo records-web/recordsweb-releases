@@ -1,16 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Activity, KeyRound, MessageSquareText, Palette, RotateCcw, ServerCog, ShieldCheck, UsersRound, Wrench } from 'lucide-react'
+import { Activity, KeyRound, MessageSquareText, RotateCcw, ServerCog, ShieldCheck, UsersRound } from 'lucide-react'
 import StaffAccountsPanel from '../components/management/StaffAccountsPanel'
 import StaffAccountModal from '../components/management/StaffAccountModal'
 import ResetPasswordModal from '../components/management/ResetPasswordModal'
 import DisableAccountModal from '../components/management/DisableAccountModal'
 import ForceLogoutModal from '../components/management/ForceLogoutModal'
-import BrandingPanel from '../components/management/BrandingPanel'
 import ScreenMessageAuditPanel from '../components/management/ScreenMessageAuditPanel'
 import SystemStatusPanel from '../components/management/SystemStatusPanel'
 import DeletedItemsPanel from '../components/management/DeletedItemsPanel'
 import AuditLogPanel from '../components/management/AuditLogPanel'
-import MaintenancePanel from '../components/management/MaintenancePanel'
 import StaffProfileDetailsModal from '../components/management/StaffProfileDetailsModal'
 import { checkAdminService, createAccount, forceLogoutAccount, listAccounts, resetAccountPassword, setAccountActive, updateAccount } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
@@ -19,7 +17,6 @@ import { getInstalledOrganisationSuffix } from '../lib/installation'
 
 export default function ManagementPage() {
   const { session, updateProfile } = useAuth()
-  const organisationName = session?.profile?.organisation_name || 'RecordsWeb organisation'
   const organisationSuffix = getInstalledOrganisationSuffix() || '@XX.XX'
   const [rows, setRows] = useState([])
   const [section, setSection] = useState('staff')
@@ -94,7 +91,7 @@ export default function ManagementPage() {
       <div className="page-title-row">
         <div>
           <h1>Management</h1>
-          <p>Manage RecordsWeb staff access, roles and {organisationName} appearance.</p>
+          <p>Manage RecordsWeb staff access, roles and organisation operations.</p>
         </div>
       </div>
 
@@ -109,12 +106,10 @@ export default function ManagementPage() {
 
       <div className="management-section-tabs">
         <button className={section === 'staff' ? 'active' : ''} onClick={() => setSection('staff')}><UsersRound size={14}/> Staff accounts</button>
-        <button className={section === 'branding' ? 'active' : ''} onClick={() => setSection('branding')}><Palette size={14}/> Branding &amp; colours</button>
         <button className={section === 'messages' ? 'active' : ''} onClick={() => setSection('messages')}><MessageSquareText size={14}/> Screen message logs</button>
         <button className={section === 'audit' ? 'active' : ''} onClick={() => setSection('audit')}><Activity size={14}/> Audit log</button>
         <button className={section === 'deleted' ? 'active' : ''} onClick={() => setSection('deleted')}><RotateCcw size={14}/> Deleted items</button>
         <button className={section === 'status' ? 'active' : ''} onClick={() => setSection('status')}><ServerCog size={14}/> System status</button>
-        <button className={section === 'maintenance' ? 'active' : ''} onClick={() => setSection('maintenance')}><Wrench size={14}/> Maintenance</button>
       </div>
 
       {section === 'staff' && (
@@ -131,13 +126,10 @@ export default function ManagementPage() {
         />
       )}
 
-      {section === 'branding' && <BrandingPanel />}
-
       {section === 'messages' && <ScreenMessageAuditPanel staff={rows} />}
       {section === 'audit' && <AuditLogPanel />}
       {section === 'deleted' && <DeletedItemsPanel />}
       {section === 'status' && <SystemStatusPanel />}
-      {section === 'maintenance' && <MaintenancePanel />}
 
 
       {profileUser && (

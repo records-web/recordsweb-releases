@@ -20,7 +20,7 @@ export default function MaintenanceGate({ children }) {
       setState(next)
       return next
     } catch (error) {
-      console.warn('RecordsWeb maintenance check failed:', error)
+      console.warn('RecordsWeb platform maintenance check failed:', error)
       return state
     } finally {
       setLoading(false)
@@ -28,10 +28,11 @@ export default function MaintenanceGate({ children }) {
   }, [state])
 
   useEffect(() => {
+    Promise.resolve(window.recordsWebDesktop?.setWindowMode?.('login')).catch(() => {})
     let live = true
     loadMaintenanceState()
       .then((next) => { if (live) setState(next) })
-      .catch((error) => console.warn('RecordsWeb maintenance check failed:', error))
+      .catch((error) => console.warn('RecordsWeb platform maintenance check failed:', error))
       .finally(() => { if (live) setLoading(false) })
     return () => { live = false }
   }, [])
@@ -49,7 +50,10 @@ export default function MaintenanceGate({ children }) {
   }, [session])
 
   useEffect(() => {
-    const staffMustExit = Boolean(state.enabled && session && !session.profile?.is_management)
+    // Platform maintenance applies to every community account, including local
+    // community management. The restricted website operator area is outside
+    // this gate and is the only place that can end platform maintenance.
+    const staffMustExit = Boolean(state.enabled && session)
     if (!staffMustExit) {
       deadlineRef.current = null
       setSeconds(null)
@@ -62,7 +66,7 @@ export default function MaintenanceGate({ children }) {
       setSeconds(remaining)
       if (remaining <= 0) {
         deadlineRef.current = null
-        auth.logout('maintenance').catch(() => {})
+        auth.logout('platform_maintenance').catch(() => {})
       }
     }
     tick()
@@ -71,19 +75,18 @@ export default function MaintenanceGate({ children }) {
   }, [state.enabled, session, auth])
 
   if (loading && !session) {
-    // Keep the compact launch surface stable while the public maintenance state is checked.
     return <div className="emis-login-screen"><div className="emis-login-window simplified-login-window maintenance-loading"><strong>RecordsWeb</strong><span>Checking system availability…</span></div></div>
   }
 
   if (state.enabled && !session) {
-    return <MaintenanceScreen state={state} onRetry={refresh} onManagementLogin={auth.login} />
+    return <MaintenanceScreen state={state} onRetry={refresh} />
   }
 
   return (
     <>
       {children}
-      {state.enabled && session && !session.profile?.is_management && seconds !== null && (
-        <MaintenanceSessionCountdown seconds={seconds} message={state.message} onSignOut={() => auth.logout('maintenance').catch(() => {})} />
+      {state.enabled && session && seconds !== null && (
+        <MaintenanceSessionCountdown seconds={seconds} message={state.message} onSignOut={() => auth.logout('platform_maintenance').catch(() => {})} />
       )}
     </>
   )
