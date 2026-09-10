@@ -3331,3 +3331,28 @@ html.rw-dark-mode .roblox-heartbeat-card dd { color:#d1e3eb; }
 html.rw-dark-mode .roblox-notice { background:#172a20; border-color:#35664a; color:#b9e4c8; }
 @media (max-width:900px) { .roblox-status-grid { grid-template-columns:1fr 1fr; } }
 @media (max-width:650px) { .roblox-status-grid,.roblox-form-grid,.roblox-heartbeat-card dl { grid-template-columns:1fr; } .roblox-wide { grid-column:auto; } .roblox-copy-line,.roblox-endpoint-row { grid-template-columns:1fr; } }
+
+/* RecordsWeb 3.2.4 — per-community branding */
+.community-brand-preview {
+  min-height: 72px;
+  margin: 0 0 9px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  border: 1px solid #b8cbd7;
+  border-top: 3px solid var(--community-preview-primary, var(--rw-brand));
+  background: #f8fbfd;
+}
+.community-brand-preview-left,
+.community-brand-preview-right { display: flex; align-items: center; }
+.community-brand-preview-left { gap: 9px; color: var(--community-preview-primary, var(--rw-brand)); }
+.community-brand-preview-left img { width: 42px; height: 42px; object-fit: contain; background: transparent; }
+.community-brand-preview-left strong { font-size: 18px; letter-spacing: -.45px; }
+.community-brand-preview-right { flex-direction: column; align-items: flex-end; gap: 2px; color: #274d63; }
+.community-brand-preview-right strong { font-size: 11px; }
+.community-brand-preview-right span { font-size: 8px; color: #718795; }
+html.rw-dark-mode .community-brand-preview { background:#172731; border-color:#3f6276; }
+html.rw-dark-mode .community-brand-preview-right { color:#d5e6ef; }
+html.rw-dark-mode .community-brand-preview-right span { color:#9eb8c7; }

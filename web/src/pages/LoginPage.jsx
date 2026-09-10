@@ -113,7 +113,7 @@ export default function LoginPage() {
         <div className="login-version">RecordsWeb {APP_VERSION} · {APP_RUNTIME_LABEL}</div>
 
         <div className="legacy-brand-row simplified-brand-row">
-          <div className="recordsweb-logo recordsweb-logo-text"><img draggable={false} className="login-organisation-logo recordsweb-fixed-logo" src={recordsWebIcon} alt="RecordsWeb" /><strong>RecordsWeb</strong></div>
+          <div className="recordsweb-logo recordsweb-logo-text"><img draggable={false} className="login-organisation-logo" src={organisationSettings.logoUrl || recordsWebIcon} alt={organisationSettings.logoUrl ? `${organisationName} logo` : 'RecordsWeb'} /><strong>RecordsWeb</strong></div>
           <div className="centre-lockup">
             <strong>{organisationName}</strong>
             <span>Health care records</span>

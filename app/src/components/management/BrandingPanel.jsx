@@ -2,13 +2,13 @@ import React, { useEffect, useRef, useState } from 'react'
 import { Image, Palette, RotateCcw, Save, Trash2, Upload } from 'lucide-react'
 import Panel from '../Panel'
 import { DEFAULT_ORGANISATION_SETTINGS, loadOrganisationSettings, resetOrganisationSettings, saveOrganisationSettings } from '../../lib/organisationSettings'
-import { ORGANISATION } from '../../lib/demoData'
+import recordsWebIcon from '../../assets/recordsweb-update-logo.png'
 import { supabaseConfigured } from '../../lib/supabase'
 
 const colourFields = [
-  ['primaryColor', 'Primary interface colour', 'Used for RecordsWeb branding, buttons and active highlights.'],
-  ['navigationColor', 'Navigation colour', 'Used across the ribbon and navigation areas.'],
-  ['patientBannerColor', 'Patient banner colour', 'Used for the active patient identity banner.'],
+  ['primaryColor', 'Primary colour', 'Buttons, active items, borders and RecordsWeb accent text.'],
+  ['navigationColor', 'Navigation colour', 'Ribbon and navigation areas throughout this community.'],
+  ['patientBannerColor', 'Patient banner colour', 'The active patient identity banner across clinical records.'],
 ]
 
 export default function BrandingPanel() {
@@ -26,8 +26,9 @@ export default function BrandingPanel() {
     let live = true
     loadOrganisationSettings()
       .then((settings) => live && setForm(settings))
-      .catch((err) => live && setError(err.message || 'Unable to load organisation branding.'))
+      .catch((err) => live && setError(err.message || 'Unable to load community branding.'))
       .finally(() => live && setLoading(false))
+
     return () => {
       live = false
       if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current)
@@ -40,24 +41,26 @@ export default function BrandingPanel() {
   }
 
   function clearPreviewUrl() {
-    if (previewUrlRef.current) {
-      URL.revokeObjectURL(previewUrlRef.current)
-      previewUrlRef.current = ''
-    }
+    if (!previewUrlRef.current) return
+    URL.revokeObjectURL(previewUrlRef.current)
+    previewUrlRef.current = ''
   }
 
   function chooseLogo(event) {
     const file = event.target.files?.[0]
     event.target.value = ''
     if (!file) return
+
     setError('')
     setSuccess('')
+
     if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type)) {
-      setError('Logo must be a PNG, JPEG or WebP image.')
+      setError('Community logo must be a PNG, JPEG or WebP image.')
       return
     }
-    if (file.size > 1024 * 1024) {
-      setError('Logo files must be 1 MB or smaller.')
+
+    if (file.size > 4 * 1024 * 1024) {
+      setError('Community logo files must be 4 MB or smaller.')
       return
     }
 
@@ -78,55 +81,85 @@ export default function BrandingPanel() {
     setLogoFile(null)
     setRemoveLogo(true)
     setSuccess('')
-    setForm((current) => ({ ...current, logoUrl: '', logoPath: '', logoDataUrl: '', logoFileName: '' }))
+    setForm((current) => ({
+      ...current,
+      logoUrl: '',
+      logoDataUrl: '',
+      logoFileName: '',
+    }))
   }
 
   async function save() {
     setSaving(true)
     setError('')
     setSuccess('')
+
     try {
       const next = await saveOrganisationSettings(form, { logoFile, removeLogo })
       clearPreviewUrl()
       setLogoFile(null)
       setRemoveLogo(false)
       setForm(next)
-      setSuccess(supabaseConfigured ? 'Organisation appearance saved to Supabase.' : 'Organisation appearance saved locally.')
+      setSuccess(supabaseConfigured ? 'Community branding saved.' : 'Community branding saved locally.')
     } catch (err) {
-      setError(err.message || 'Unable to save organisation appearance.')
+      setError(err.message || 'Unable to save community branding.')
     } finally {
       setSaving(false)
     }
   }
 
   async function reset() {
-    if (!window.confirm('Restore the default RecordsWeb colours and remove the organisation logo?')) return
+    if (!window.confirm('Restore the standard RecordsWeb colours and RecordsWeb icon for this community?')) return
+
     setSaving(true)
     setError('')
     setSuccess('')
+
     try {
       clearPreviewUrl()
       setLogoFile(null)
       setRemoveLogo(false)
       const next = await resetOrganisationSettings()
       setForm(next)
-      setSuccess('Default organisation appearance restored.')
+      setSuccess('Standard RecordsWeb appearance restored for this community.')
     } catch (err) {
-      setError(err.message || 'Unable to restore defaults.')
+      setError(err.message || 'Unable to restore the standard appearance.')
     } finally {
       setSaving(false)
     }
   }
 
+  const previewLogo = form.logoUrl || recordsWebIcon
+
   return (
-    <Panel title="Organisation appearance">
+    <Panel title="Community branding">
       <div className="branding-settings">
-        <div className="branding-intro"><Palette size={19}/><div><strong>{ORGANISATION.name}</strong><span>These settings apply to RecordsWeb workstations for this organisation.</span></div></div>
+        <div className="branding-intro">
+          <Palette size={19}/>
+          <div>
+            <strong>{form.organisationName || 'RecordsWeb community'}</strong>
+            <span>Customise this community only. The RecordsWeb product name remains fixed.</span>
+          </div>
+        </div>
+
+        <div className="community-brand-preview" style={{ '--community-preview-primary': form.primaryColor }}>
+          <div className="community-brand-preview-left">
+            <img src={previewLogo} alt="Community branding preview" draggable={false}/>
+            <strong>RecordsWeb</strong>
+          </div>
+          <div className="community-brand-preview-right">
+            <strong>{form.organisationName || 'Community name'}</strong>
+            <span>Health care records</span>
+          </div>
+        </div>
 
         <div className="branding-colour-grid">
           {colourFields.map(([key, label, description]) => (
             <label className="branding-colour-card" key={key}>
-              <div><strong>{label}</strong><span>{description}</span></div>
+              <div>
+                <strong>{label}</strong>
+                <span>{description}</span>
+              </div>
               <div className="colour-input-row">
                 <input type="color" value={form[key]} onChange={(event) => set(key, event.target.value)} />
                 <input className="colour-hex-input" value={form[key]} onChange={(event) => set(key, event.target.value)} maxLength={7} />
@@ -136,28 +169,50 @@ export default function BrandingPanel() {
         </div>
 
         <div className="branding-logo-section">
-          <div className="branding-logo-heading"><Image size={18}/><div><strong>Organisation logo</strong><span>Displayed beside RecordsWeb in the application header and on the sign-in window.</span></div></div>
-          <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={chooseLogo} />
-          <div className="branding-logo-box">
-            {form.logoUrl ? (
-              <div className="branding-logo-preview"><img draggable={false} src={form.logoUrl} alt="Organisation logo preview" /><div><strong>{form.logoFileName || 'Uploaded logo'}</strong><span>{logoFile ? 'Ready to upload when you save.' : (supabaseConfigured ? 'Stored in Supabase Storage.' : 'Stored locally in demo mode.')}</span></div></div>
-            ) : (
-              <div className="branding-no-logo"><span>No logo uploaded.</span><small>RecordsWeb will not render an image when no logo exists.</small></div>
-            )}
-            <div className="branding-logo-actions">
-              <button className="secondary-button" type="button" onClick={() => fileRef.current?.click()}><Upload size={13}/>{form.logoUrl ? 'Replace logo' : 'Upload logo'}</button>
-              {form.logoUrl && <button className="secondary-button" type="button" onClick={markLogoForRemoval}><Trash2 size={13}/> Remove logo</button>}
+          <div className="branding-logo-heading">
+            <Image size={18}/>
+            <div>
+              <strong>Community icon</strong>
+              <span>Replaces the RecordsWeb icon on this community's sign-in screen and staff header. RecordsWeb text remains visible.</span>
             </div>
           </div>
-          <small className="branding-file-note">PNG, JPEG or WebP. Maximum file size 1 MB. In Supabase mode the file is stored in the <code>recordsweb-branding</code> Storage bucket.</small>
+
+          <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/webp" hidden onChange={chooseLogo} />
+
+          <div className="branding-logo-box">
+            <div className="branding-logo-preview">
+              <img draggable={false} src={previewLogo} alt="Community icon preview" />
+              <div>
+                <strong>{form.logoUrl ? (form.logoFileName || 'Community icon') : 'Standard RecordsWeb icon'}</strong>
+                <span>{logoFile ? 'Ready to upload when saved.' : form.logoUrl ? 'This community is using a custom icon.' : 'Upload an icon to replace the standard RecordsWeb icon for this community.'}</span>
+              </div>
+            </div>
+
+            <div className="branding-logo-actions">
+              <button className="secondary-button" type="button" onClick={() => fileRef.current?.click()}>
+                <Upload size={13}/>{form.logoUrl ? 'Replace icon' : 'Upload icon'}
+              </button>
+              {form.logoUrl && (
+                <button className="secondary-button" type="button" onClick={markLogoForRemoval}>
+                  <Trash2 size={13}/> Use RecordsWeb icon
+                </button>
+              )}
+            </div>
+          </div>
+
+          <small className="branding-file-note">PNG, JPEG or WebP. Maximum file size 4 MB.</small>
         </div>
 
         {error && <div className="form-error branding-message">{error}</div>}
         {success && <div className="form-success branding-message">{success}</div>}
 
         <div className="branding-actions">
-          <button className="secondary-button" disabled={saving || loading} onClick={reset}><RotateCcw size={13}/> Restore defaults</button>
-          <button className="primary-button" disabled={saving || loading} onClick={save}><Save size={13}/>{saving ? 'Saving…' : 'Save appearance'}</button>
+          <button className="secondary-button" disabled={saving || loading} onClick={reset}>
+            <RotateCcw size={13}/> Restore RecordsWeb defaults
+          </button>
+          <button className="primary-button" disabled={saving || loading} onClick={save}>
+            <Save size={13}/>{saving ? 'Saving…' : 'Save community branding'}
+          </button>
         </div>
       </div>
     </Panel>

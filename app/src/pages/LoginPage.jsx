@@ -22,7 +22,7 @@ export default function LoginPage() {
     } catch { return '' }
   })
   const [organisationSettings, setOrganisationSettings] = useState(() => getCachedOrganisationSettings())
-  const [appVersion, setAppVersion] = useState('3.2.3')
+  const [appVersion, setAppVersion] = useState('3.2.4')
   const [recoveryMode, setRecoveryMode] = useState('')
   const [changeOrganisationOpen, setChangeOrganisationOpen] = useState(false)
   const usernameRef = useRef(null)
@@ -114,7 +114,7 @@ export default function LoginPage() {
         <div className="login-version">RecordsWeb {appVersion} · Desktop Clinical System</div>
 
         <div className="legacy-brand-row simplified-brand-row">
-          <div className="recordsweb-logo recordsweb-logo-text"><img draggable={false} className="login-organisation-logo recordsweb-fixed-logo" src={recordsWebIcon} alt="RecordsWeb" /><strong>RecordsWeb</strong></div>
+          <div className="recordsweb-logo recordsweb-logo-text"><img draggable={false} className="login-organisation-logo" src={organisationSettings.logoUrl || recordsWebIcon} alt={organisationSettings.logoUrl ? `${organisationName} logo` : 'RecordsWeb'} /><strong>RecordsWeb</strong></div>
           <div className="centre-lockup">
             <strong>{organisationName}</strong>
             <span>Health care records</span>

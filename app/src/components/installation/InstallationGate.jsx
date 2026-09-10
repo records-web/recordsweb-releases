@@ -14,7 +14,7 @@ export default function InstallationGate({ children }) {
   const [checking, setChecking] = useState(() => Boolean(getInstallationState().configured && supabaseConfigured))
   const [requiresCorrection, setRequiresCorrection] = useState(false)
   const [error, setError] = useState('')
-  const [appVersion, setAppVersion] = useState('3.2.3')
+  const [appVersion, setAppVersion] = useState('3.2.4')
 
   useEffect(() => {
     Promise.resolve(window.recordsWebDesktop?.setWindowMode?.('login')).catch(() => {})

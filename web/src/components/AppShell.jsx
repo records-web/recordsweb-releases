@@ -223,7 +223,7 @@ export default function AppShell({ children }) {
 
       <header className="global-header">
         <div className="brand-lockup" onClick={() => navigate('/')} role="button" tabIndex={0}>
-          <img draggable={false} className="brand-logo-image recordsweb-fixed-logo" src={recordsWebIcon} alt="RecordsWeb" />
+          <img draggable={false} className="brand-logo-image" src={organisationSettings.logoUrl || recordsWebIcon} alt={organisationSettings.logoUrl ? `${organisationName} logo` : 'RecordsWeb'} />
           <div><div className="brand-name">RecordsWeb</div><div className="brand-subtitle">{organisationName}</div></div>
         </div>
         <div className="global-search">

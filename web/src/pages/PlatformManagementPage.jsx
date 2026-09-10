@@ -25,6 +25,7 @@ import recordsWebLogo from '../assets/recordsweb-update-logo.png'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase, supabaseConfigured } from '../lib/supabase'
 import { APP_VERSION } from '../lib/webRuntime'
+import { applyRecordsWebProductBrand } from '../lib/organisationSettings'
 import { validateRecordsWebPassword } from '../lib/passwordPolicy'
 import {
   PLATFORM_OPERATOR_EMAIL_FORMAT,
@@ -229,7 +230,7 @@ function ReleasesPanel() {
     <section className="platform-operator-panel">
       <header><div><span>GLOBAL CONTROL</span><h2>RecordsWeb releases</h2><p>Publishing an active release can trigger desktop updates and the website refresh prompt.</p></div><button onClick={load} disabled={busy}><RefreshCw size={14}/> Refresh</button></header>
       <form className="platform-release-form" onSubmit={submit}>
-        <label><span>Version</span><input value={version} onChange={(e) => setVersion(e.target.value)} placeholder="3.2.3" required /></label>
+        <label><span>Version</span><input value={version} onChange={(e) => setVersion(e.target.value)} placeholder="3.2.4" required /></label>
         <label><span>Channel</span><select value={channel} onChange={(e) => setChannel(e.target.value)}><option value="stable">stable</option><option value="web">web</option><option value="beta">beta</option></select></label>
         <label className="platform-release-notes"><span>Release notes</span><textarea rows={3} value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="What changed in this release?" /></label>
         <label className="platform-checkbox"><input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} /><span>Publish as active</span></label>
@@ -502,6 +503,7 @@ function CommunitiesPanel({ operatorAccountEmail = '' }) {
 }
 
 export default function PlatformManagementPage() {
+  useEffect(() => { applyRecordsWebProductBrand() }, [])
   const navigate = useNavigate()
   const { session: clinicalSession, logout: logoutClinicalSession } = useAuth()
   const [authReady, setAuthReady] = useState(false)

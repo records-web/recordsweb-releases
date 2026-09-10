@@ -27,6 +27,7 @@ import {
 } from '../lib/accessRequestReviewService'
 import { supabase, supabaseConfigured } from '../lib/supabase'
 import { APP_VERSION } from '../lib/webRuntime'
+import { applyRecordsWebProductBrand } from '../lib/organisationSettings'
 import { useAuth } from '../contexts/AuthContext'
 
 const FILTERS = [
@@ -117,6 +118,7 @@ function ReviewerSignIn({ onSignedIn, currentSession }) {
 }
 
 export default function ReviewRequestPage() {
+  useEffect(() => { applyRecordsWebProductBrand() }, [])
   const navigate = useNavigate()
   const { session: clinicalSession, logout: logoutClinicalSession } = useAuth()
   const [authReady, setAuthReady] = useState(false)

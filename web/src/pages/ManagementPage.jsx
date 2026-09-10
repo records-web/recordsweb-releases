@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Activity, Gamepad2, KeyRound, MessageSquareText, RotateCcw, ServerCog, ShieldCheck, UsersRound } from 'lucide-react'
+import { Activity, Gamepad2, KeyRound, MessageSquareText, Palette, RotateCcw, ServerCog, ShieldCheck, UsersRound } from 'lucide-react'
 import StaffAccountsPanel from '../components/management/StaffAccountsPanel'
 import StaffAccountModal from '../components/management/StaffAccountModal'
 import ResetPasswordModal from '../components/management/ResetPasswordModal'
@@ -11,6 +11,7 @@ import DeletedItemsPanel from '../components/management/DeletedItemsPanel'
 import AuditLogPanel from '../components/management/AuditLogPanel'
 import StaffProfileDetailsModal from '../components/management/StaffProfileDetailsModal'
 import RobloxIntegrationPanel from '../components/management/RobloxIntegrationPanel'
+import BrandingPanel from '../components/management/BrandingPanel'
 import { checkAdminService, createAccount, forceLogoutAccount, listAccounts, resetAccountPassword, setAccountActive, updateAccount } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { listStaffSessions, subscribeToStaffSessionChanges, summariseStaffSessions } from '../lib/staffSessions'
@@ -92,7 +93,7 @@ export default function ManagementPage() {
       <div className="page-title-row">
         <div>
           <h1>Management</h1>
-          <p>Manage RecordsWeb staff access, roles and organisation operations.</p>
+          <p>Manage RecordsWeb staff access, community branding and organisation operations.</p>
         </div>
       </div>
 
@@ -107,6 +108,7 @@ export default function ManagementPage() {
 
       <div className="management-section-tabs">
         <button className={section === 'staff' ? 'active' : ''} onClick={() => setSection('staff')}><UsersRound size={14}/> Staff accounts</button>
+        <button className={section === 'branding' ? 'active' : ''} onClick={() => setSection('branding')}><Palette size={14}/> Community branding</button>
         <button className={section === 'messages' ? 'active' : ''} onClick={() => setSection('messages')}><MessageSquareText size={14}/> Screen message logs</button>
         <button className={section === 'audit' ? 'active' : ''} onClick={() => setSection('audit')}><Activity size={14}/> Audit log</button>
         <button className={section === 'deleted' ? 'active' : ''} onClick={() => setSection('deleted')}><RotateCcw size={14}/> Deleted items</button>
@@ -128,6 +130,7 @@ export default function ManagementPage() {
         />
       )}
 
+      {section === 'branding' && <BrandingPanel />}
       {section === 'messages' && <ScreenMessageAuditPanel staff={rows} />}
       {section === 'audit' && <AuditLogPanel />}
       {section === 'deleted' && <DeletedItemsPanel />}

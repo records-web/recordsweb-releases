@@ -4,12 +4,12 @@ import { HashRouter } from 'react-router-dom'
 import App from './App'
 import './index.css'
 import { applySettings } from './lib/settings'
-import { applyOrganisationSettings } from './lib/organisationSettings'
+import { applyRecordsWebProductBrand } from './lib/organisationSettings'
 import { installEmbeddedMediaBehavior } from './lib/embeddedMedia'
 
 document.documentElement.classList.add('rw-web-runtime')
 applySettings()
-applyOrganisationSettings()
+applyRecordsWebProductBrand()
 installEmbeddedMediaBehavior()
 
 ReactDOM.createRoot(document.getElementById('root')).render(

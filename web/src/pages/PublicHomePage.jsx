@@ -1,9 +1,10 @@
-import React, { useRef, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { ArrowRight, Building2, CalendarDays, CheckCircle2, ClipboardList, FileText, Gamepad2, Hospital, ImagePlus, LockKeyhole, Pill, Search, Send, Stethoscope, Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import recordsWebWordmark from '../assets/RW-Logo.png'
 import { submitRecordsWebAccessRequest } from '../lib/accessRequestService'
 import { APP_VERSION } from '../lib/webRuntime'
+import { applyRecordsWebProductBrand } from '../lib/organisationSettings'
 
 const INITIAL_FORM = {
   communityName: '',
@@ -30,6 +31,7 @@ const FEATURES = [
 
 export default function PublicHomePage() {
   const navigate = useNavigate()
+  useEffect(() => { applyRecordsWebProductBrand() }, [])
   const requestSectionRef = useRef(null)
   const formRef = useRef(null)
   const [form, setForm] = useState(INITIAL_FORM)

@@ -3,11 +3,8 @@ import { getInstalledOrganisationCode } from './installation'
 import { supabase, supabaseConfigured } from './supabase'
 
 export const ORGANISATION_SETTINGS_KEY = `recordsweb-organisation-settings-v3-${(getInstalledOrganisationCode() || 'unconfigured').toLowerCase()}`
+export const BRANDING_BUCKET = 'recordsweb-branding'
 
-// RecordsWeb branding is product-owned and deliberately identical for every
-// organisation. Organisation records can still provide their name, code,
-// deployment mode and location, but they cannot replace the RecordsWeb logo or
-// recolour the clinical interface.
 export const RECORDSWEB_BRAND = Object.freeze({
   primaryColor: '#0f6fbd',
   navigationColor: '#cfe7f8',
@@ -29,8 +26,13 @@ export const DEFAULT_ORGANISATION_SETTINGS = {
   logoDataUrl: '',
 }
 
+function cleanHex(value, fallback) {
+  const candidate = String(value || '').trim()
+  return /^#[0-9a-f]{6}$/i.test(candidate) ? candidate.toLowerCase() : fallback
+}
+
 function shadeHex(hex, amount = -22) {
-  const safe = String(hex || '#0f6fbd').replace('#', '')
+  const safe = cleanHex(hex, '#0f6fbd').slice(1)
   const number = parseInt(safe, 16)
   const r = Math.max(0, Math.min(255, (number >> 16) + amount))
   const g = Math.max(0, Math.min(255, ((number >> 8) & 0xff) + amount))
@@ -38,23 +40,34 @@ function shadeHex(hex, amount = -22) {
   return `#${[r, g, b].map((part) => part.toString(16).padStart(2, '0')).join('')}`
 }
 
+function publicLogoUrl(path, updatedAt = '') {
+  if (!path || !supabaseConfigured) return ''
+  const { data } = supabase.storage.from(BRANDING_BUCKET).getPublicUrl(path)
+  const url = data?.publicUrl || ''
+  if (!url) return ''
+  return updatedAt ? `${url}?v=${encodeURIComponent(updatedAt)}` : url
+}
+
 export function normaliseOrganisationSettings(settings = {}) {
+  const logoDataUrl = typeof settings.logoDataUrl === 'string' ? settings.logoDataUrl : ''
+  const logoUrl = typeof settings.logoUrl === 'string' ? settings.logoUrl : logoDataUrl
   return {
     ...DEFAULT_ORGANISATION_SETTINGS,
+    ...settings,
     organisationId: String(settings.organisationId || DEFAULT_ORGANISATION_SETTINGS.organisationId || ''),
     organisationName: String(settings.organisationName || DEFAULT_ORGANISATION_SETTINGS.organisationName || ''),
     organisationCode: String(settings.organisationCode || DEFAULT_ORGANISATION_SETTINGS.organisationCode || ''),
     systemMode: settings.systemMode === 'hospital' ? 'hospital' : 'general_practice',
     defaultLocation: String(settings.defaultLocation || DEFAULT_ORGANISATION_SETTINGS.defaultLocation || 'Main Site'),
     active: settings.active !== false,
-    ...RECORDSWEB_BRAND,
-    // Organisation imagery is intentionally ignored. The supplied RecordsWeb
-    // assets are rendered directly by the interface instead.
-    logoPath: '',
-    logoUrl: '',
-    logoFileName: '',
-    logoUpdatedAt: '',
-    logoDataUrl: '',
+    primaryColor: cleanHex(settings.primaryColor, RECORDSWEB_BRAND.primaryColor),
+    navigationColor: cleanHex(settings.navigationColor, RECORDSWEB_BRAND.navigationColor),
+    patientBannerColor: cleanHex(settings.patientBannerColor, RECORDSWEB_BRAND.patientBannerColor),
+    logoPath: typeof settings.logoPath === 'string' ? settings.logoPath : '',
+    logoUrl,
+    logoFileName: typeof settings.logoFileName === 'string' ? settings.logoFileName : '',
+    logoUpdatedAt: typeof settings.logoUpdatedAt === 'string' ? settings.logoUpdatedAt : '',
+    logoDataUrl,
   }
 }
 
@@ -69,18 +82,31 @@ export function getCachedOrganisationSettings() {
 
 function cacheOrganisationSettings(settings) {
   const next = normaliseOrganisationSettings(settings)
-  localStorage.setItem(ORGANISATION_SETTINGS_KEY, JSON.stringify(next))
+  const cacheable = {
+    ...next,
+    logoUrl: next.logoUrl.startsWith('blob:') ? '' : next.logoUrl,
+  }
+  localStorage.setItem(ORGANISATION_SETTINGS_KEY, JSON.stringify(cacheable))
   return next
 }
 
-export function applyOrganisationSettings(settings = getCachedOrganisationSettings()) {
-  const next = normaliseOrganisationSettings(settings)
+export function applyRecordsWebProductBrand() {
   const root = document.documentElement
   root.style.setProperty('--rw-brand', RECORDSWEB_BRAND.primaryColor)
   root.style.setProperty('--rw-brand-dark', shadeHex(RECORDSWEB_BRAND.primaryColor, -28))
   root.style.setProperty('--rw-navigation', RECORDSWEB_BRAND.navigationColor)
   root.style.setProperty('--patient', RECORDSWEB_BRAND.patientBannerColor)
   root.style.setProperty('--rw-patient-dark', shadeHex(RECORDSWEB_BRAND.patientBannerColor, -22))
+}
+
+export function applyOrganisationSettings(settings = getCachedOrganisationSettings()) {
+  const next = normaliseOrganisationSettings(settings)
+  const root = document.documentElement
+  root.style.setProperty('--rw-brand', next.primaryColor)
+  root.style.setProperty('--rw-brand-dark', shadeHex(next.primaryColor, -28))
+  root.style.setProperty('--rw-navigation', next.navigationColor)
+  root.style.setProperty('--patient', next.patientBannerColor)
+  root.style.setProperty('--rw-patient-dark', shadeHex(next.patientBannerColor, -22))
   return next
 }
 
@@ -136,6 +162,10 @@ export async function loadOrganisationSettings() {
     default_location: row.default_location || 'Main Site',
   })
 
+  const path = row.logo_path || ''
+  const updatedAt = row.logo_updated_at || ''
+  const legacyDataUrl = !path && row.logo_data_url ? row.logo_data_url : ''
+
   settings = publishSettings({
     organisationId: row.id,
     organisationName: row.name || organisationCode,
@@ -143,14 +173,128 @@ export async function loadOrganisationSettings() {
     systemMode: row.system_mode || 'general_practice',
     defaultLocation: row.default_location || 'Main Site',
     active: row.active !== false,
+    primaryColor: row.primary_color || RECORDSWEB_BRAND.primaryColor,
+    navigationColor: row.navigation_color || RECORDSWEB_BRAND.navigationColor,
+    patientBannerColor: row.patient_banner_color || RECORDSWEB_BRAND.patientBannerColor,
+    logoPath: path,
+    logoUrl: path ? publicLogoUrl(path, updatedAt) : legacyDataUrl,
+    logoFileName: row.logo_file_name || '',
+    logoUpdatedAt: updatedAt,
+    logoDataUrl: legacyDataUrl,
   })
+
   return settings
 }
 
-export async function saveOrganisationSettings() {
-  throw new Error('RecordsWeb branding is centrally managed and cannot be changed by an organisation.')
+function logoExtension(file) {
+  if (file?.type === 'image/png') return 'png'
+  if (file?.type === 'image/jpeg') return 'jpg'
+  if (file?.type === 'image/webp') return 'webp'
+  throw new Error('Logo must be a PNG, JPEG or WebP image.')
+}
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(String(reader.result || ''))
+    reader.onerror = () => reject(new Error('Unable to read that logo file.'))
+    reader.readAsDataURL(file)
+  })
+}
+
+async function removeStorageLogo(path) {
+  if (!path || !supabaseConfigured) return
+  const { error } = await supabase.storage.from(BRANDING_BUCKET).remove([path])
+  if (error && !/not found/i.test(error.message || '')) throw error
+}
+
+export async function saveOrganisationSettings(settings, options = {}) {
+  const next = normaliseOrganisationSettings(settings)
+  const logoFile = options.logoFile || null
+  const removeLogo = Boolean(options.removeLogo)
+
+  if (!supabaseConfigured) {
+    let logoDataUrl = next.logoDataUrl || next.logoUrl || ''
+    if (logoFile) logoDataUrl = await fileToDataUrl(logoFile)
+    if (removeLogo) logoDataUrl = ''
+    return publishSettings({
+      ...next,
+      logoPath: '',
+      logoUrl: logoDataUrl,
+      logoDataUrl,
+      logoFileName: removeLogo ? '' : (logoFile?.name || next.logoFileName),
+      logoUpdatedAt: logoFile ? new Date().toISOString() : next.logoUpdatedAt,
+    })
+  }
+
+  let logoPath = next.logoPath || ''
+  let logoFileName = next.logoFileName || ''
+  let logoUpdatedAt = next.logoUpdatedAt || ''
+  const previousPath = options.previousLogoPath || next.logoPath || ''
+
+  if (logoFile) {
+    const ext = logoExtension(logoFile)
+    const organisationId = next.organisationId || ORGANISATION.id
+    const uploadedPath = `${organisationId}/logo.${ext}`
+    const { error: uploadError } = await supabase.storage
+      .from(BRANDING_BUCKET)
+      .upload(uploadedPath, logoFile, {
+        upsert: true,
+        contentType: logoFile.type,
+        cacheControl: '3600',
+      })
+    if (uploadError) throw uploadError
+
+    if (previousPath && previousPath !== uploadedPath) {
+      await removeStorageLogo(previousPath)
+    }
+
+    logoPath = uploadedPath
+    logoFileName = logoFile.name
+    logoUpdatedAt = new Date().toISOString()
+  } else if (removeLogo) {
+    await removeStorageLogo(previousPath)
+    logoPath = ''
+    logoFileName = ''
+    logoUpdatedAt = new Date().toISOString()
+  }
+
+  const { error } = await supabase
+    .from('organisations')
+    .update({
+      primary_color: next.primaryColor,
+      navigation_color: next.navigationColor,
+      patient_banner_color: next.patientBannerColor,
+      logo_path: logoPath || null,
+      logo_file_name: logoFileName || null,
+      logo_updated_at: logoUpdatedAt || null,
+      logo_data_url: null,
+    })
+    .eq('id', next.organisationId || ORGANISATION.id)
+  if (error) throw error
+
+  return publishSettings({
+    ...next,
+    logoPath,
+    logoUrl: logoPath ? publicLogoUrl(logoPath, logoUpdatedAt) : '',
+    logoFileName,
+    logoUpdatedAt,
+    logoDataUrl: '',
+  })
 }
 
 export async function resetOrganisationSettings() {
-  return publishSettings(getCachedOrganisationSettings())
+  const current = await loadOrganisationSettings().catch(() => getCachedOrganisationSettings())
+  return saveOrganisationSettings({
+    ...DEFAULT_ORGANISATION_SETTINGS,
+    organisationId: current.organisationId,
+    organisationName: current.organisationName,
+    organisationCode: current.organisationCode,
+    systemMode: current.systemMode,
+    defaultLocation: current.defaultLocation,
+    active: current.active,
+  }, {
+    removeLogo: Boolean(current.logoPath || current.logoUrl || current.logoDataUrl),
+    previousLogoPath: current.logoPath || '',
+  })
 }
