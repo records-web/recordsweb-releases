@@ -803,25 +803,25 @@ html.rw-high-contrast .ribbon-tabs { color: #173e5a; }
 }
 
 .brand-lockup.community-brand-lockup {
-  min-width: 118px;
+  min-width: 160px;
   gap: 0;
 }
 .brand-lockup.community-brand-lockup .brand-logo-image {
-  width: 118px;
-  max-width: 150px;
-  height: 40px;
+  width: auto;
+  max-width: 190px;
+  height: 54px;
   flex: 0 1 auto;
   object-fit: contain;
   object-position: left center;
 }
 .recordsweb-logo.custom-community-logo-lockup {
-  min-width: 150px;
+  min-width: 190px;
   justify-content: flex-start;
 }
 .recordsweb-logo.custom-community-logo-lockup .login-organisation-logo {
-  width: 150px;
-  max-width: 185px;
-  height: 50px;
+  width: auto;
+  max-width: 220px;
+  height: 66px;
   margin-right: 0;
   object-position: left center;
 }
