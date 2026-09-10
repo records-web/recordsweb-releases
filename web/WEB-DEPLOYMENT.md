@@ -251,3 +251,7 @@ Then redeploy the protected platform administration function:
 `supabase functions deploy recordsweb-platform-admin`
 
 This enables website-only community editing, enable/disable controls, and reserved operator password/create controls. No service-role key belongs in Vercel; it stays in the Supabase Edge Function environment.
+
+## RecordsWeb 3.2.3 Roblox bridge
+
+After deploying the 3.2.3 website, run `supabase/recordsweb-3.2.3-roblox-integration.sql`, then deploy `recordsweb-roblox-admin` normally and `recordsweb-game-api` with `--no-verify-jwt`. Community Management can then generate its own game connection code under **Roblox integration**.

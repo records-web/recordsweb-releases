@@ -1,5 +1,5 @@
 import React, { useRef, useState } from 'react'
-import { ArrowRight, Building2, CalendarDays, CheckCircle2, ClipboardList, FileText, Hospital, ImagePlus, LockKeyhole, Pill, Search, Send, Stethoscope, Users } from 'lucide-react'
+import { ArrowRight, Building2, CalendarDays, CheckCircle2, ClipboardList, FileText, Gamepad2, Hospital, ImagePlus, LockKeyhole, Pill, Search, Send, Stethoscope, Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import recordsWebWordmark from '../assets/RW-Logo.png'
 import { submitRecordsWebAccessRequest } from '../lib/accessRequestService'
@@ -25,6 +25,7 @@ const FEATURES = [
   [FileText, 'Documents', 'Keep fit notes and other documents as clearly separated individual records.'],
   [CalendarDays, 'Appointments', 'Manage appointment books, arrival states and live waiting-time information.'],
   [LockKeyhole, 'Organisation isolation', 'Each approved community receives its own @XX.XX namespace and protected data boundary.'],
+  [Gamepad2, 'Roblox bridge', 'Optionally connect the community to its Roblox experience for live waiting-room patient calls.'],
 ]
 
 export default function PublicHomePage() {

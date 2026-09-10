@@ -1,0 +1,19 @@
+RecordsWeb 3.2.3 Roblox integration — Supabase deployment
+
+1) SQL Editor
+   Run: supabase/recordsweb-3.2.3-roblox-integration.sql
+
+2) Authenticated community-management Edge Function
+   supabase functions deploy recordsweb-roblox-admin
+
+3) Roblox game-facing Edge Function
+   supabase functions deploy recordsweb-game-api --no-verify-jwt
+
+IMPORTANT: recordsweb-game-api must be deployed with --no-verify-jwt. Roblox authenticates using the community's revocable x-recordsweb-key secret, not a Supabase staff JWT.
+
+4) In RecordsWeb, sign into the community as Management and open:
+   Management -> Roblox integration
+
+5) Generate the connection code, configure Universe/Place IDs, enable and save.
+
+6) In Roblox Studio, enable Game Settings -> Security -> Allow HTTP Requests and configure the supplied RecordsWeb Roblox model.

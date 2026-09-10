@@ -58,3 +58,7 @@ RecordsWeb uses one product-owned visual identity across every organisation. Org
 ## RecordsWeb 3.2.2 community management
 
 Website Platform Management can create, edit, enable/disable communities and manage the reserved `gus.farnsworth@XX.XX` operator account. Run `supabase/recordsweb-3.2.2-community-management.sql` and redeploy `supabase/functions/recordsweb-platform-admin/` before using the new controls. Organisation extensions remain immutable after creation.
+
+## RecordsWeb 3.2.3 — Roblox integration
+
+Community Management now includes a per-organisation Roblox integration for waiting-room patient-call displays. See `docs/RECORDSWEB-3.2.3-ROBLOX-INTEGRATION.md` and run `supabase/recordsweb-3.2.3-roblox-integration.sql` before deploying the two Roblox Edge Functions.

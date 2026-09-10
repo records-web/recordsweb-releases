@@ -14,7 +14,7 @@ function formatEstimate(value) {
 }
 
 export default function MaintenanceScreen({ state, onRetry }) {
-  const [appVersion, setAppVersion] = useState('3.2.0')
+  const [appVersion, setAppVersion] = useState('3.2.3')
   const [organisationSettings, setOrganisationSettings] = useState(() => getCachedOrganisationSettings())
 
   useEffect(() => {

@@ -22,7 +22,7 @@ export default function LoginPage() {
     } catch { return '' }
   })
   const [organisationSettings, setOrganisationSettings] = useState(() => getCachedOrganisationSettings())
-  const [appVersion, setAppVersion] = useState('3.2.0')
+  const [appVersion, setAppVersion] = useState('3.2.3')
   const [recoveryMode, setRecoveryMode] = useState('')
   const [changeOrganisationOpen, setChangeOrganisationOpen] = useState(false)
   const usernameRef = useRef(null)

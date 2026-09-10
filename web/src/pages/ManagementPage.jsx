@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Activity, KeyRound, MessageSquareText, RotateCcw, ServerCog, ShieldCheck, UsersRound } from 'lucide-react'
+import { Activity, Gamepad2, KeyRound, MessageSquareText, RotateCcw, ServerCog, ShieldCheck, UsersRound } from 'lucide-react'
 import StaffAccountsPanel from '../components/management/StaffAccountsPanel'
 import StaffAccountModal from '../components/management/StaffAccountModal'
 import ResetPasswordModal from '../components/management/ResetPasswordModal'
@@ -10,6 +10,7 @@ import SystemStatusPanel from '../components/management/SystemStatusPanel'
 import DeletedItemsPanel from '../components/management/DeletedItemsPanel'
 import AuditLogPanel from '../components/management/AuditLogPanel'
 import StaffProfileDetailsModal from '../components/management/StaffProfileDetailsModal'
+import RobloxIntegrationPanel from '../components/management/RobloxIntegrationPanel'
 import { checkAdminService, createAccount, forceLogoutAccount, listAccounts, resetAccountPassword, setAccountActive, updateAccount } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { listStaffSessions, subscribeToStaffSessionChanges, summariseStaffSessions } from '../lib/staffSessions'
@@ -110,6 +111,7 @@ export default function ManagementPage() {
         <button className={section === 'audit' ? 'active' : ''} onClick={() => setSection('audit')}><Activity size={14}/> Audit log</button>
         <button className={section === 'deleted' ? 'active' : ''} onClick={() => setSection('deleted')}><RotateCcw size={14}/> Deleted items</button>
         <button className={section === 'status' ? 'active' : ''} onClick={() => setSection('status')}><ServerCog size={14}/> System status</button>
+        <button className={section === 'roblox' ? 'active' : ''} onClick={() => setSection('roblox')}><Gamepad2 size={14}/> Roblox integration</button>
       </div>
 
       {section === 'staff' && (
@@ -130,6 +132,7 @@ export default function ManagementPage() {
       {section === 'audit' && <AuditLogPanel />}
       {section === 'deleted' && <DeletedItemsPanel />}
       {section === 'status' && <SystemStatusPanel />}
+      {section === 'roblox' && <RobloxIntegrationPanel />}
 
 
       {profileUser && (
