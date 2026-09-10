@@ -106,8 +106,8 @@ export default function PublicHomePage() {
         <section className="public-section public-modes-section">
           <div className="public-section-heading"><span>DEPLOYMENT MODES</span><h2>Configured around the organisation</h2></div>
           <div className="public-mode-grid">
-            <article><div className="public-mode-icon"><Stethoscope size={23}/></div><div><strong>General Practice</strong><p>The current full RecordsWeb workflow for consultations, medication, documents, appointments, registration, investigations, referrals and staff administration.</p></div></article>
-            <article><div className="public-mode-icon"><Hospital size={23}/></div><div><strong>Hospital</strong><p>RecordsWeb can register hospital deployments under the same organisation model, ready for hospital-specific modules and extensions as they are provisioned.</p></div></article>
+            <article><div className="public-mode-icon"><Stethoscope size={23}/></div><div><strong>Primary Care (GP)</strong><p>For general practice and primary care organisations using RecordsWeb for consultations, medication, documents, appointments, registration, investigations, referrals and staff administration.</p></div></article>
+            <article><div className="public-mode-icon"><Hospital size={23}/></div><div><strong>Secondary Care (Hospital)</strong><p>For hospital and secondary care organisations using a RecordsWeb environment configured for hospital-based services, departments and future secondary-care modules.</p></div></article>
           </div>
         </section>
 
@@ -131,7 +131,7 @@ export default function PublicHomePage() {
           <form ref={formRef} className="public-request-form" onSubmit={submit}>
             <div className="public-form-grid">
               <label><span>Community name *</span><input value={form.communityName} onChange={(e) => update('communityName', e.target.value)} maxLength={120} required /></label>
-              <label><span>Requested mode *</span><select value={form.requestedMode} onChange={(e) => update('requestedMode', e.target.value)}><option value="general_practice">General Practitioner</option><option value="hospital">Hospital</option></select></label>
+              <label><span>Organisation type *</span><select value={form.requestedMode} onChange={(e) => update('requestedMode', e.target.value)}><option value="general_practice">Primary Care (GP)</option><option value="hospital">Secondary Care (Hospital)</option></select><small>Select the care setting that best reflects how this RecordsWeb environment will be used.</small></label>
               <label><span>Discord URL *</span><input type="url" placeholder="https://discord.gg/..." value={form.discordUrl} onChange={(e) => update('discordUrl', e.target.value)} required /></label>
               <label><span>Roblox group link *</span><input type="url" placeholder="https://www.roblox.com/communities/..." value={form.robloxGroupUrl} onChange={(e) => update('robloxGroupUrl', e.target.value)} required /></label>
               <label><span>Community members *</span><select value={form.memberRange} onChange={(e) => update('memberRange', e.target.value)} required><option value="">Select size</option><option value="10-99">10+</option><option value="100-999">100+</option><option value="1000-9999">1,000+</option><option value="10000+">10,000+</option></select></label>

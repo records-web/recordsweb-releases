@@ -15,11 +15,12 @@ import BrandingPanel from '../components/management/BrandingPanel'
 import { checkAdminService, createAccount, forceLogoutAccount, listAccounts, resetAccountPassword, setAccountActive, updateAccount } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { listStaffSessions, subscribeToStaffSessionChanges, summariseStaffSessions } from '../lib/staffSessions'
-import { getInstalledOrganisationSuffix } from '../lib/installation'
+import { getInstalledOrganisationCode, normaliseOrganisationCode } from '../lib/installation'
 
 export default function ManagementPage() {
   const { session, updateProfile } = useAuth()
-  const organisationSuffix = getInstalledOrganisationSuffix() || '@XX.XX'
+  const organisationCode = normaliseOrganisationCode(session?.profile?.organisation_code) || getInstalledOrganisationCode()
+  const organisationSuffix = organisationCode ? `@${organisationCode}` : '@XX.XX'
   const [rows, setRows] = useState([])
   const [section, setSection] = useState('staff')
   const [createOpen, setCreateOpen] = useState(false)
@@ -149,9 +150,10 @@ export default function ManagementPage() {
       {createOpen && (
         <StaffAccountModal
           currentUserId={session?.user?.id}
+          organisationCode={organisationCode}
           onClose={() => setCreateOpen(false)}
           onSave={async (payload) => {
-            await createAccount(payload)
+            await createAccount({ ...payload, organisation_code: organisationCode })
             setCreateOpen(false)
             await load()
           }}
@@ -162,6 +164,7 @@ export default function ManagementPage() {
         <StaffAccountModal
           account={editUser}
           currentUserId={session?.user?.id}
+          organisationCode={organisationCode}
           onClose={() => setEditUser(null)}
           onSave={saveEdit}
         />

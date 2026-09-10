@@ -229,8 +229,14 @@ export async function listAccounts() {
 }
 
 export async function createAccount(payload) {
-  const username = normaliseLoginName(payload.username)
-  const organisationSuffix = getInstalledOrganisationSuffix()
+  const organisationCode = normaliseOrganisationCode(payload.organisation_code) || getInstalledOrganisationCode()
+  const organisationSuffix = organisationCode ? `@${organisationCode}` : ''
+  const rawUsername = String(payload.username || '').trim()
+  const withDomain = organisationCode && rawUsername && !rawUsername.includes('@') ? `${rawUsername}${organisationSuffix}` : rawUsername
+  const atIndex = withDomain.lastIndexOf('@')
+  const localPart = atIndex >= 0 ? withDomain.slice(0, atIndex).trim().toLowerCase() : withDomain.toLowerCase()
+  const domainPart = atIndex >= 0 ? normaliseOrganisationCode(withDomain.slice(atIndex + 1)) : ''
+  const username = localPart && domainPart === organisationCode ? `${localPart}${organisationSuffix}` : withDomain
   if (!organisationSuffix || !username.toUpperCase().endsWith(organisationSuffix)) {
     throw new Error(`Account usernames must end in ${organisationSuffix || 'the selected organisation extension'}.`)
   }

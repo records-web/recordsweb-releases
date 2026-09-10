@@ -6,22 +6,34 @@ import RoleSelector from './RoleSelector'
 import ModalPortal from '../ModalPortal'
 import { validateRecordsWebPassword } from '../../lib/passwordPolicy'
 import { ORGANISATION } from '../../lib/demoData'
-import { getInstalledOrganisationSuffix } from '../../lib/installation'
+import { getInstalledOrganisationCode, normaliseOrganisationCode } from '../../lib/installation'
 
-function suggestedUsername(firstName, lastName) {
+
+function normaliseStaffUsername(value, organisationCode) {
+  const localOrganisationCode = normaliseOrganisationCode(organisationCode)
+  const raw = String(value || '').trim()
+  if (!raw || !localOrganisationCode) return normaliseLoginName(raw)
+  const withDomain = raw.includes('@') ? raw : `${raw}@${localOrganisationCode}`
+  const atIndex = withDomain.lastIndexOf('@')
+  const local = withDomain.slice(0, atIndex).trim().toLowerCase()
+  const domain = normaliseOrganisationCode(withDomain.slice(atIndex + 1))
+  return local && domain === localOrganisationCode ? `${local}@${localOrganisationCode}` : withDomain
+}
+
+function suggestedUsername(firstName, lastName, organisationSuffix) {
   const local = `${firstName}.${lastName}`
     .normalize('NFKD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .replace(/[^a-z0-9.]/g, '')
     .replace(/^\.|\.$/g, '')
-  const suffix = getInstalledOrganisationSuffix() || '@XX.XX'
-  return local ? `${local}${suffix}` : ''
+  return local ? `${local}${organisationSuffix}` : ''
 }
 
-export default function StaffAccountModal({ account = null, currentUserId, onClose, onSave }) {
+export default function StaffAccountModal({ account = null, currentUserId, organisationCode = '', onClose, onSave }) {
   const editing = Boolean(account)
-  const organisationSuffix = getInstalledOrganisationSuffix() || '@XX.XX'
+  const activeOrganisationCode = normaliseOrganisationCode(organisationCode) || getInstalledOrganisationCode()
+  const organisationSuffix = activeOrganisationCode ? `@${activeOrganisationCode}` : '@XX.XX'
   const initialRoles = normaliseRoles(account?.roles, account?.role || 'Patient Coordinator')
   const [form, setForm] = useState({
     title: account?.title || '',
@@ -45,7 +57,7 @@ export default function StaffAccountModal({ account = null, currentUserId, onClo
     setForm((current) => {
       const next = { ...current, [key]: value }
       if (!editing && !touchedUsername && (key === 'first_name' || key === 'last_name')) {
-        next.username = suggestedUsername(key === 'first_name' ? value : current.first_name, key === 'last_name' ? value : current.last_name)
+        next.username = suggestedUsername(key === 'first_name' ? value : current.first_name, key === 'last_name' ? value : current.last_name, organisationSuffix)
       }
       return next
     })
@@ -75,7 +87,7 @@ export default function StaffAccountModal({ account = null, currentUserId, onClo
     try {
       await onSave({
         ...form,
-        username: editing ? account.username : normaliseLoginName(form.username),
+        username: editing ? account.username : normaliseStaffUsername(form.username, activeOrganisationCode),
         roles: normaliseRoles(form.roles, form.role),
       })
     } catch (err) {
@@ -108,7 +120,7 @@ export default function StaffAccountModal({ account = null, currentUserId, onClo
               value={form.username}
               readOnly={editing}
               onChange={(event) => { setTouchedUsername(true); set('username', event.target.value) }}
-              onBlur={(event) => !editing && set('username', normaliseLoginName(event.target.value))}
+              onBlur={(event) => !editing && set('username', normaliseStaffUsername(event.target.value, activeOrganisationCode))}
               placeholder={`first.last${organisationSuffix}`}
             />
             {editing && <small>Usernames are fixed after account creation.</small>}

@@ -438,7 +438,7 @@ function CommunitiesPanel({ operatorAccountEmail = '' }) {
         <div className="platform-community-grid">
           <label><span>Community name</span><input value={communityName} onChange={(e) => setCommunityName(e.target.value)} placeholder="Community or organisation name" maxLength={120} required /></label>
           <label><span>Organisation extension</span><div className="platform-community-code"><b>@</b><input value={organisationCode} onChange={(e) => setOrganisationCode(e.target.value.replace(/^@+/, '').replace(/\s+/g, '').toUpperCase())} placeholder="XX.XX" maxLength={5} required /></div><small>Four letters in the format @XX.XX. The extension becomes the permanent login namespace.</small></label>
-          <label><span>RecordsWeb mode</span><select value={systemMode} onChange={(e) => setSystemMode(e.target.value)}><option value="general_practice">General Practitioner</option><option value="hospital">Hospital</option></select></label>
+          <label><span>Organisation type</span><select value={systemMode} onChange={(e) => setSystemMode(e.target.value)}><option value="general_practice">Primary Care (GP)</option><option value="hospital">Secondary Care (Hospital)</option></select></label>
           <label><span>Default location</span><input value={defaultLocation} onChange={(e) => setDefaultLocation(e.target.value)} placeholder="Main Site" maxLength={120} required /></label>
         </div>
 
@@ -463,7 +463,7 @@ function CommunitiesPanel({ operatorAccountEmail = '' }) {
         {rows.map((row) => (
           <div className={`platform-community-row ${row.active ? '' : 'disabled'}`} key={row.id}>
             <div><strong>{row.name}</strong><span>@{row.org_code}</span></div>
-            <div><span>{row.system_mode === 'hospital' ? 'Hospital' : 'General Practitioner'}</span><small>{row.default_location || 'Main Site'}</small></div>
+            <div><span>{row.system_mode === 'hospital' ? 'Secondary Care (Hospital)' : 'Primary Care (GP)'}</span><small>{row.default_location || 'Main Site'}</small></div>
             <div><span className={row.active ? 'community-active' : 'community-inactive'}>{row.active ? 'Active' : 'Disabled'}</span><small>{row.has_reserved_operator ? 'Operator ready' : 'Operator missing'}</small></div>
             <div className="platform-community-actions">
               <button onClick={() => openEdit(row)} disabled={busy} title="Edit community"><Pencil size={13}/> Edit</button>
@@ -479,7 +479,7 @@ function CommunitiesPanel({ operatorAccountEmail = '' }) {
           <header><div><span>EDIT COMMUNITY</span><h3>{editCommunity.name}</h3><p>@{editCommunity.org_code}</p></div><button type="button" onClick={() => setEditCommunity(null)} disabled={busy} aria-label="Close"><X size={16}/></button></header>
           <div className="platform-community-modal-body">
             <label><span>Community name</span><input value={editName} onChange={(e) => setEditName(e.target.value)} maxLength={120} required /></label>
-            <label><span>RecordsWeb mode</span><select value={editMode} onChange={(e) => setEditMode(e.target.value)}><option value="general_practice">General Practitioner</option><option value="hospital">Hospital</option></select></label>
+            <label><span>Organisation type</span><select value={editMode} onChange={(e) => setEditMode(e.target.value)}><option value="general_practice">Primary Care (GP)</option><option value="hospital">Secondary Care (Hospital)</option></select></label>
             <label><span>Default location</span><input value={editLocation} onChange={(e) => setEditLocation(e.target.value)} maxLength={120} required /></label>
             <label><span>Organisation extension</span><input value={`@${editCommunity.org_code}`} readOnly /><small>The extension is permanent because it is used as the account login namespace.</small></label>
           </div>

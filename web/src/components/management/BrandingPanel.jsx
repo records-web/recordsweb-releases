@@ -138,14 +138,14 @@ export default function BrandingPanel() {
           <Palette size={19}/>
           <div>
             <strong>{form.organisationName || 'RecordsWeb community'}</strong>
-            <span>Customise this community only. The RecordsWeb product name remains fixed.</span>
+            <span>Customise this community only. Custom branding changes the community-facing header while RecordsWeb remains the underlying product.</span>
           </div>
         </div>
 
         <div className="community-brand-preview" style={{ '--community-preview-primary': form.primaryColor }}>
-          <div className="community-brand-preview-left">
+          <div className={`community-brand-preview-left ${form.logoUrl ? 'custom-logo-only' : ''}`}>
             <img src={previewLogo} alt="Community branding preview" draggable={false}/>
-            <strong>RecordsWeb</strong>
+            {!form.logoUrl && <strong>RecordsWeb</strong>}
           </div>
           <div className="community-brand-preview-right">
             <strong>{form.organisationName || 'Community name'}</strong>
@@ -173,7 +173,7 @@ export default function BrandingPanel() {
             <Image size={18}/>
             <div>
               <strong>Community icon</strong>
-              <span>Replaces the RecordsWeb icon on this community's sign-in screen and staff header. RecordsWeb text remains visible.</span>
+              <span>When set, this icon is shown on its own in the community sign-in and staff header instead of the standard RecordsWeb lockup.</span>
             </div>
           </div>
 

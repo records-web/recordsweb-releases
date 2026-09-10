@@ -115,8 +115,9 @@ Deno.serve(async (req) => {
     if(body.action==='health') return json({ok:true,admin_api:true,service_role_available:true,caller_id:callerData.user.id,organisation_code:callerOrganisation?.org_code||null})
 
     if(body.action==='create'){
-      const organisationCode=normaliseOrganisationCode(callerOrganisation?.org_code), username=normaliseUsername(body.username,organisationCode), authUsername=username.toLowerCase(), password=String(body.password||''), title=cleanTitle(body.title), firstName=String(body.first_name||'').trim(), lastName=String(body.last_name||'').trim()
+      const organisationCode=normaliseOrganisationCode(callerOrganisation?.org_code), requestedOrganisationCode=normaliseOrganisationCode(body.organisation_code), username=normaliseUsername(body.username,organisationCode), authUsername=username.toLowerCase(), password=String(body.password||''), title=cleanTitle(body.title), firstName=String(body.first_name||'').trim(), lastName=String(body.last_name||'').trim()
       const roles=cleanRoles(body.roles,String(body.role||'Patient Coordinator')), requestedPrimary=String(body.role||'').trim(), role=roles.includes(requestedPrimary)?requestedPrimary:roles[0], displayName=buildDisplayName(title,firstName,lastName)
+      if(requestedOrganisationCode && requestedOrganisationCode!==organisationCode) return json({error:`Your signed-in Management account belongs to @${organisationCode||'XX.XX'}. Refresh RecordsWeb or change organisation before creating this account.`},400)
       if(!organisationCode || !authUsername.endsWith(`@${organisationCode.toLowerCase()}`)) return json({error:`Username must end in @${organisationCode||'XX.XX'}.`},400)
       if(!firstName||!lastName) return json({error:'First and last name are required.'},400)
       const policy=validatePassword(password,username); if(policy) return json({error:policy},400)

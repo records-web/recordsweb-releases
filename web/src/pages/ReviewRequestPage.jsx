@@ -276,7 +276,7 @@ export default function ReviewRequestPage() {
             {requests.map((request) => (
               <button key={request.id} className={`review-request-list-item ${selected?.id === request.id ? 'selected' : ''}`} onClick={() => setSelectedId(request.id)}>
                 <div className="review-request-list-top"><strong>{request.community_name}</strong><span className={`review-request-status ${request.status}`}>{STATUS_LABELS[request.status] || request.status}</span></div>
-                <span>{request.requested_mode === 'hospital' ? 'Hospital' : 'General Practitioner'} · {memberRangeLabel(request.member_range)} members</span>
+                <span>{request.requested_mode === 'hospital' ? 'Secondary Care (Hospital)' : 'Primary Care (GP)'} · {memberRangeLabel(request.member_range)} members</span>
                 <small>{formatDate(request.created_at)}</small>
               </button>
             ))}
@@ -287,7 +287,7 @@ export default function ReviewRequestPage() {
               <>
                 <div className="review-request-detail-heading">
                   <div className="review-request-logo-wrap">{logoUrl ? <img src={logoUrl} alt={`${selected.community_name} logo`}/> : <FileCheck2 size={28}/>}</div>
-                  <div><span>{selected.requested_mode === 'hospital' ? <><Hospital size={14}/> Hospital</> : <><Stethoscope size={14}/> General Practitioner</>}</span><h2>{selected.community_name}</h2><p>Submitted {formatDate(selected.created_at)}</p></div>
+                  <div><span>{selected.requested_mode === 'hospital' ? <><Hospital size={14}/> Secondary Care (Hospital)</> : <><Stethoscope size={14}/> Primary Care (GP)</>}</span><h2>{selected.community_name}</h2><p>Submitted {formatDate(selected.created_at)}</p></div>
                   <span className={`review-request-status large ${selected.status}`}>{STATUS_LABELS[selected.status] || selected.status}</span>
                 </div>
 

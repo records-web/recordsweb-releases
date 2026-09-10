@@ -222,9 +222,9 @@ export default function AppShell({ children }) {
       </div>
 
       <header className="global-header">
-        <div className="brand-lockup" onClick={() => navigate('/')} role="button" tabIndex={0}>
+        <div className={`brand-lockup ${organisationSettings.logoUrl ? 'community-brand-lockup' : ''}`} onClick={() => navigate('/')} role="button" tabIndex={0}>
           <img draggable={false} className="brand-logo-image" src={organisationSettings.logoUrl || recordsWebIcon} alt={organisationSettings.logoUrl ? `${organisationName} logo` : 'RecordsWeb'} />
-          <div><div className="brand-name">RecordsWeb</div><div className="brand-subtitle">{organisationName}</div></div>
+          {!organisationSettings.logoUrl && <div><div className="brand-name">RecordsWeb</div><div className="brand-subtitle">{organisationName}</div></div>}
         </div>
         <div className="global-search">
           <Search size={16} />

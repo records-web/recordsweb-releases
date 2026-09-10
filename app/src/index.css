@@ -802,6 +802,30 @@ html.rw-high-contrast .ribbon-tabs { color: #173e5a; }
   margin-right: 8px;
 }
 
+.brand-lockup.community-brand-lockup {
+  min-width: 118px;
+  gap: 0;
+}
+.brand-lockup.community-brand-lockup .brand-logo-image {
+  width: 118px;
+  max-width: 150px;
+  height: 40px;
+  flex: 0 1 auto;
+  object-fit: contain;
+  object-position: left center;
+}
+.recordsweb-logo.custom-community-logo-lockup {
+  min-width: 150px;
+  justify-content: flex-start;
+}
+.recordsweb-logo.custom-community-logo-lockup .login-organisation-logo {
+  width: 150px;
+  max-width: 185px;
+  height: 50px;
+  margin-right: 0;
+  object-position: left center;
+}
+
 .management-section-tabs {
   min-height: 34px;
   display: flex;
@@ -3349,6 +3373,7 @@ html.rw-dark-mode .roblox-notice { background:#172a20; border-color:#35664a; col
 .community-brand-preview-right { display: flex; align-items: center; }
 .community-brand-preview-left { gap: 9px; color: var(--community-preview-primary, var(--rw-brand)); }
 .community-brand-preview-left img { width: 42px; height: 42px; object-fit: contain; background: transparent; }
+.community-brand-preview-left.custom-logo-only img { width: 118px; max-width: 150px; height: 42px; object-position: left center; }
 .community-brand-preview-left strong { font-size: 18px; letter-spacing: -.45px; }
 .community-brand-preview-right { flex-direction: column; align-items: flex-end; gap: 2px; color: #274d63; }
 .community-brand-preview-right strong { font-size: 11px; }
