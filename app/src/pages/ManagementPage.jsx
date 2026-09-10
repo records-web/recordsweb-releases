@@ -151,6 +151,7 @@ export default function ManagementPage() {
         <StaffAccountModal
           currentUserId={session?.user?.id}
           organisationCode={organisationCode}
+          organisationMode={session?.profile?.organisation_mode || 'general_practice'}
           onClose={() => setCreateOpen(false)}
           onSave={async (payload) => {
             await createAccount({ ...payload, organisation_code: organisationCode })
@@ -165,6 +166,7 @@ export default function ManagementPage() {
           account={editUser}
           currentUserId={session?.user?.id}
           organisationCode={organisationCode}
+          organisationMode={session?.profile?.organisation_mode || 'general_practice'}
           onClose={() => setEditUser(null)}
           onSave={saveEdit}
         />

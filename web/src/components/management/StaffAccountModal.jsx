@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { X } from 'lucide-react'
 import { normaliseLoginName } from '../../lib/supabase'
-import { STAFF_TITLES, normaliseRoles } from '../../lib/staffOptions'
+import { STAFF_TITLES, getDefaultStaffRole, normaliseRoles } from '../../lib/staffOptions'
 import RoleSelector from './RoleSelector'
 import ModalPortal from '../ModalPortal'
 import { validateRecordsWebPassword } from '../../lib/passwordPolicy'
@@ -30,11 +30,12 @@ function suggestedUsername(firstName, lastName, organisationSuffix) {
   return local ? `${local}${organisationSuffix}` : ''
 }
 
-export default function StaffAccountModal({ account = null, currentUserId, organisationCode = '', onClose, onSave }) {
+export default function StaffAccountModal({ account = null, currentUserId, organisationCode = '', organisationMode = 'general_practice', onClose, onSave }) {
   const editing = Boolean(account)
   const activeOrganisationCode = normaliseOrganisationCode(organisationCode) || getInstalledOrganisationCode()
   const organisationSuffix = activeOrganisationCode ? `@${activeOrganisationCode}` : '@XX.XX'
-  const initialRoles = normaliseRoles(account?.roles, account?.role || 'Patient Coordinator')
+  const defaultRole = getDefaultStaffRole(organisationMode)
+  const initialRoles = normaliseRoles(account?.roles, account?.role || defaultRole, organisationMode)
   const [form, setForm] = useState({
     title: account?.title || '',
     first_name: account?.first_name || '',
@@ -42,7 +43,7 @@ export default function StaffAccountModal({ account = null, currentUserId, organ
     username: account?.username || '',
     password: '',
     confirm: '',
-    role: account?.role || initialRoles[0],
+    role: initialRoles.includes(account?.role) ? account.role : initialRoles[0],
     roles: initialRoles,
     is_management: Boolean(account?.is_management),
   })
@@ -88,7 +89,7 @@ export default function StaffAccountModal({ account = null, currentUserId, organ
       await onSave({
         ...form,
         username: editing ? account.username : normaliseStaffUsername(form.username, activeOrganisationCode),
-        roles: normaliseRoles(form.roles, form.role),
+        roles: normaliseRoles(form.roles, form.role, organisationMode),
       })
     } catch (err) {
       setError(err.message || `Could not ${editing ? 'update' : 'create'} account.`)
@@ -129,6 +130,7 @@ export default function StaffAccountModal({ account = null, currentUserId, organ
           <RoleSelector
             roles={form.roles}
             primaryRole={form.role}
+            systemMode={organisationMode}
             onChange={(roles, role) => setForm((current) => ({ ...current, roles, role }))}
           />
 
