@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { ArrowRight, Building2, CalendarDays, CheckCircle2, ClipboardList, FileText, Gamepad2, Hospital, ImagePlus, LockKeyhole, Pill, Search, Send, Stethoscope, Users } from 'lucide-react'
+import { ArrowRight, Building2, CalendarDays, CheckCircle2, ClipboardList, FileText, Gamepad2, Hospital, ImagePlus, LockKeyhole, Mail, Pill, Search, Send, Stethoscope, Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import recordsWebWordmark from '../assets/RW-Logo.png'
 import { submitRecordsWebAccessRequest } from '../lib/accessRequestService'
@@ -84,6 +84,7 @@ export default function PublicHomePage() {
             <div className="public-hero-actions">
               <button type="button" className="public-primary" onClick={() => navigate('/login')}>Open staff area <ArrowRight size={16}/></button>
               <button type="button" className="public-secondary" onClick={() => requestSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}>Request access</button>
+              <button type="button" className="public-secondary" onClick={() => navigate('/contact')}>Contact Us <Mail size={15}/></button>
             </div>
           </div>
           <div className="public-hero-panel">
