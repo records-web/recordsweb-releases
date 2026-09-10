@@ -12,7 +12,7 @@ const PRIMARY_CARE_ROLES = [
 ] as const
 const SECONDARY_CARE_ROLES = [
   'Chief Executive Officer','Deputy Chief Executive Officer','Chief Operations Officer','Medical Director',
-  'Director of Nursing','Consultant','Registrar (ST4-ST9)',
+  'Director of Nursing','Consultant','Registrar (ST4-ST9)','Charge Nurse','Staff Nurse',
 ] as const
 const ALLOWED_TITLES = ['', 'Mr', 'Mrs', 'Miss', 'Ms', 'Mx', 'Dr', 'Prof'] as const
 const COMMON_PASSWORDS = new Set(['password123','password1','qwerty123','letmein123','welcome123','recordsweb1','groveway123','changeme123','admin12345','1234567890'])

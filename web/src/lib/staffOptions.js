@@ -33,6 +33,8 @@ export const SECONDARY_CARE_STAFF_ROLES = [
   'Director of Nursing',
   'Consultant',
   'Registrar (ST4-ST9)',
+  'Charge Nurse',
+  'Staff Nurse',
 ]
 
 export const STAFF_ROLES = PRIMARY_CARE_STAFF_ROLES
