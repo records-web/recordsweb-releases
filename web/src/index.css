@@ -3868,3 +3868,29 @@ html.rw-dark-mode .roblox-notice { background:#172a20; border-color:#35664a; col
 html.rw-dark-mode .community-brand-preview { background:#172731; border-color:#3f6276; }
 html.rw-dark-mode .community-brand-preview-right { color:#d5e6ef; }
 html.rw-dark-mode .community-brand-preview-right span { color:#9eb8c7; }
+
+
+/* RecordsWeb 3.2.4 — public contact form */
+.public-home-footer-actions { display:flex; align-items:center; gap:14px; }
+.public-home-footer-actions button { border:0; background:transparent; padding:0; color:#0f6fbd; font:inherit; font-weight:800; text-decoration:underline; text-underline-offset:2px; cursor:pointer; }
+.public-home-footer-actions button:hover { color:#09528d; }
+.contact-main { width:min(100% - 48px,1100px)!important; min-height:calc(100vh - 126px); display:grid; grid-template-columns:.78fr 1.22fr; gap:42px; align-items:start; padding:64px 0 76px!important; }
+.contact-intro { padding-top:10px; }
+.contact-intro h1 { margin:7px 0 11px; color:#21485f; font-size:40px; letter-spacing:-1px; }
+.contact-intro>p { margin:0; color:#687f8f; font-size:12px; line-height:1.65; max-width:440px; }
+.contact-destination { margin-top:24px; display:flex; align-items:flex-start; gap:10px; padding:13px; border:1px solid #bed6e5; background:#f4fafe; color:#41657b; }
+.contact-destination svg { color:#0f6fbd; flex:0 0 auto; margin-top:1px; }
+.contact-destination>div { display:flex; flex-direction:column; gap:2px; }
+.contact-destination strong { font-size:10px; }
+.contact-destination span { font-size:11px; color:#0f6fbd; }
+.contact-form { margin:0; }
+.contact-form textarea { min-height:190px; }
+.contact-reply-note { margin:13px 0 0; color:#708795; font-size:9.5px; line-height:1.5; }
+.contact-honeypot { position:absolute!important; left:-10000px!important; width:1px!important; height:1px!important; overflow:hidden!important; opacity:0!important; pointer-events:none!important; }
+html.rw-dark-mode .public-home-footer-actions button { color:#69b9e7; }
+html.rw-dark-mode .contact-intro h1 { color:#dcebf3; }
+html.rw-dark-mode .contact-intro>p,.rw-dark-mode .contact-reply-note { color:#98adba; }
+html.rw-dark-mode .contact-destination { background:#14242d; border-color:#35586e; color:#b6cbd7; }
+html.rw-dark-mode .contact-destination span { color:#78c2eb; }
+@media (max-width:800px) { .contact-main { grid-template-columns:1fr; gap:24px; padding-top:38px!important; } .contact-intro h1 { font-size:34px; } }
+@media (max-width:620px) { .public-home-footer-actions { width:100%; justify-content:space-between; } }

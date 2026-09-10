@@ -150,7 +150,7 @@ export default function PublicHomePage() {
         </section>
       </main>
 
-      <footer className="public-home-footer"><span>RecordsWeb · Multi-organisation clinical records platform</span><span>Version {APP_VERSION}</span></footer>
+      <footer className="public-home-footer"><span>RecordsWeb · Multi-organisation clinical records platform</span><div className="public-home-footer-actions"><button type="button" onClick={() => navigate('/contact')}>Contact Us</button><span>Version {APP_VERSION}</span></div></footer>
     </div>
   )
 }
