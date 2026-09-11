@@ -4087,3 +4087,135 @@ html.rw-dark-mode .platform-billing-exempt-check>span small { color:#b1a5d4; }
 
 /* RecordsWeb 3.2.7 billing grace/read-only state */
 .recordsweb-billing-access-banner{display:flex;align-items:center;gap:10px;padding:8px 14px;border-bottom:1px solid;font-size:12px;line-height:1.35;flex:0 0 auto}.recordsweb-billing-access-banner>div{display:flex;align-items:baseline;gap:8px;min-width:0;flex:1}.recordsweb-billing-access-banner strong{font-size:12px}.recordsweb-billing-access-banner span{opacity:.9}.recordsweb-billing-access-banner button{display:inline-flex;align-items:center;gap:6px;border:1px solid currentColor;background:transparent;color:inherit;padding:5px 9px;font:inherit;font-weight:700;cursor:pointer}.recordsweb-billing-access-banner.grace{background:#fff7df;border-color:#d9a521;color:#684b00}.recordsweb-billing-access-banner.readonly{background:#fff0f0;border-color:#c84646;color:#7b1717}.billing-grace-banner,.billing-readonly-banner{display:flex;gap:10px;align-items:flex-start;margin:12px 16px;padding:12px 14px;border:1px solid}.billing-grace-banner{background:#fff7df;border-color:#d9a521;color:#684b00}.billing-readonly-banner{background:#fff0f0;border-color:#c84646;color:#7b1717}.billing-grace-banner>div,.billing-readonly-banner>div{display:flex;flex-direction:column;gap:3px}.billing-grace-banner small,.billing-readonly-banner small{opacity:.85}
+
+/* RecordsWeb 3.2.8 — medication catalogue, context actions and specialist authorisation */
+.med-right-click-hint { display:block; margin-top:2px; color:#728895; font-size:8px; font-weight:500; }
+.med-row-selected { box-shadow: inset 3px 0 0 #0f6fbd; background:#f2f9fd; }
+.med-row-cancelled { opacity:.72; background:#fafafa; }
+.med-row-cancelled b { color:#8a4c4c; }
+.med-context-menu { position:fixed; z-index:12000; width:235px; padding:5px; border:1px solid #8ba7b8; background:#fff; box-shadow:0 12px 30px rgba(23,56,77,.24); }
+.med-context-menu button { width:100%; min-height:40px; display:flex; gap:9px; align-items:center; padding:7px 8px; border:0; background:transparent; color:#294559; text-align:left; }
+.med-context-menu button:hover:not(:disabled) { background:#eaf5fb; }
+.med-context-menu button:disabled { opacity:.45; cursor:not-allowed; }
+.med-context-menu button > span { display:flex; flex-direction:column; gap:1px; }
+.med-context-menu strong { font-size:10px; }
+.med-context-menu small { font-size:8px; color:#728895; }
+.med-catalogue-modal { width:min(880px,96vw); }
+.med-catalogue-search-block { position:relative; margin:12px; }
+.med-catalogue-search-block > label { display:flex; flex-direction:column; gap:5px; color:#426476; font-size:9px; font-weight:700; }
+.med-catalogue-search-input { display:flex; align-items:center; gap:7px; border:1px solid #8facbc; background:#fff; padding:0 9px; }
+.med-catalogue-search-input input { width:100%; min-height:34px; border:0!important; outline:0; background:transparent; }
+.med-catalogue-results { position:absolute; left:0; right:0; top:58px; z-index:20; max-height:285px; overflow:auto; border:1px solid #8facbc; background:#fff; box-shadow:0 10px 28px rgba(21,55,76,.22); }
+.med-catalogue-results > button { width:100%; display:grid; grid-template-columns:minmax(0,1fr) minmax(220px,.8fr); gap:12px; align-items:center; padding:8px 10px; border:0; border-bottom:1px solid #d9e4eb; background:#fff; text-align:left; }
+.med-catalogue-results > button:hover { background:#edf7fc; }
+.med-catalogue-results > button > span { display:flex; flex-direction:column; gap:2px; }
+.med-catalogue-results strong { color:#174f75; font-size:10px; }
+.med-catalogue-results small { color:#728794; font-size:8px; }
+.med-catalogue-results .catalogue-dose { text-align:right; }
+.med-catalogue-results .catalogue-dose b { color:#273f50; font-size:9px; }
+.med-catalogue-empty { padding:12px; color:#728794; font-size:9px; }
+.med-reference-panel { margin:0 12px 11px; border:1px solid #95b5c8; background:#f5fbfe; }
+.med-reference-title { display:flex; gap:8px; align-items:center; padding:9px 10px; border-bottom:1px solid #bfd1dc; color:#205f84; }
+.med-reference-title > div { display:flex; flex-direction:column; gap:1px; }
+.med-reference-title strong { font-size:10px; }
+.med-reference-title span { color:#6f8795; font-size:8px; }
+.med-reference-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+.med-reference-grid > div,
+.med-reference-grid > button { min-height:62px; padding:8px 10px; border:0; border-right:1px solid #d5e2e9; border-bottom:1px solid #d5e2e9; background:transparent; display:flex; flex-direction:column; gap:3px; text-align:left; color:#294559; }
+.med-reference-grid > button { cursor:pointer; }
+.med-reference-grid > button:hover { background:#e6f3fa; }
+.med-reference-grid span { color:#708693; font-size:8px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; }
+.med-reference-grid strong { font-size:9px; line-height:1.35; }
+.med-reference-grid small { color:#0f6fbd; font-size:7.5px; }
+.specialist-drug-warning { display:flex!important; gap:9px!important; align-items:flex-start!important; padding:9px!important; border:1px solid #d89a3d!important; background:#fff8e7!important; color:#744600!important; }
+.specialist-drug-warning > span { display:block!important; }
+.specialist-drug-warning b { display:block; margin-bottom:2px; text-transform:uppercase; font-size:8px; letter-spacing:.05em; }
+.specialist-pin-blocked { margin-top:8px; display:flex; align-items:center; gap:8px; padding:8px; border:1px solid #d7a85f; background:#fff9ea; color:#76511c; font-size:8.5px; }
+.med-history-modal { width:min(660px,95vw); }
+.med-history-summary { margin:12px; display:flex; align-items:center; gap:10px; padding:11px; border:1px solid #a9c3d2; background:#f3f9fc; color:#255b7b; }
+.med-history-summary > div { display:flex; flex-direction:column; }
+.med-history-summary span { font-size:8px; color:#748995; }
+.med-history-summary strong { font-size:20px; }
+.med-history-list { max-height:390px; overflow:auto; margin:0 12px 12px; border:1px solid #c4d4de; }
+.med-history-list article { display:grid; grid-template-columns:32px 1fr; gap:7px; padding:9px; border-bottom:1px solid #dbe5eb; }
+.med-history-list article:last-child { border-bottom:0; }
+.med-history-event-icon { width:27px; height:27px; display:flex; align-items:center; justify-content:center; border-radius:50%; background:#e5f2f9; color:#0f6fbd; }
+.med-history-event-icon.cancelled { background:#fbeaea; color:#a23636; }
+.med-history-event-icon.reauthorised { background:#ecf8ed; color:#2b7a39; }
+.med-history-list article > div:last-child { display:flex; flex-direction:column; gap:2px; }
+.med-history-list article strong { font-size:9px; text-transform:capitalize; color:#274b60; }
+.med-history-list article span { font-size:8px; color:#748995; }
+.med-history-list article p { margin:3px 0 0; font-size:8.5px; color:#526b79; }
+.med-action-modal { width:min(580px,95vw); }
+.med-action-body { padding:12px; display:flex; flex-direction:column; gap:10px; }
+.med-action-body p { margin:0; color:#536d7d; font-size:9px; line-height:1.45; }
+.med-action-body label { display:flex; flex-direction:column; gap:5px; color:#496776; font-size:8.5px; font-weight:700; }
+.med-action-body textarea { min-height:90px; resize:vertical; padding:8px; border:1px solid #9eb5c3; font:inherit; }
+.med-action-warning { display:flex; align-items:flex-start; gap:8px; padding:9px; border:1px solid #d5a1a1; background:#fff4f4; color:#7e3434; font-size:8.5px; line-height:1.4; }
+.danger-button { min-height:30px; padding:0 11px; border:1px solid #a84a4a; background:linear-gradient(#ca6363,#a94343); color:#fff; font-weight:700; font-size:10px; cursor:pointer; }
+.danger-button:disabled { opacity:.55; cursor:not-allowed; }
+
+html.rw-dark-mode .med-context-menu,
+html.rw-dark-mode .med-catalogue-results { background:#11232d; border-color:#426273; color:#d9e7ee; }
+html.rw-dark-mode .med-context-menu button,
+html.rw-dark-mode .med-catalogue-results > button { color:#d9e7ee; background:#11232d; border-color:#29434f; }
+html.rw-dark-mode .med-context-menu button:hover:not(:disabled),
+html.rw-dark-mode .med-catalogue-results > button:hover { background:#183441; }
+html.rw-dark-mode .med-catalogue-search-input { background:#10232c; border-color:#426273; }
+html.rw-dark-mode .med-reference-panel,
+html.rw-dark-mode .med-history-summary { background:#102730; border-color:#416477; }
+html.rw-dark-mode .med-reference-title,
+html.rw-dark-mode .med-reference-grid > div,
+html.rw-dark-mode .med-reference-grid > button,
+html.rw-dark-mode .med-history-list article { border-color:#294852; color:#d9e7ee; }
+html.rw-dark-mode .med-reference-grid > button:hover { background:#173743; }
+html.rw-dark-mode .specialist-drug-warning,
+html.rw-dark-mode .specialist-pin-blocked { background:#3a2c14!important; border-color:#8c6b2f!important; color:#f1d59d!important; }
+html.rw-dark-mode .med-history-list { border-color:#355463; }
+html.rw-dark-mode .med-action-body textarea { background:#10232c; border-color:#486675; color:#dce8ee; }
+
+@media (max-width:800px) {
+  .med-catalogue-results > button,
+  .med-reference-grid { grid-template-columns:1fr; }
+  .med-catalogue-results .catalogue-dose { text-align:left; }
+}
+
+/* RecordsWeb 3.2.9 — GP problem lookup */
+.problem-reference-input { position:relative; display:flex; flex-direction:column; gap:6px; width:100%; }
+.problem-reference-searchbox { display:flex; align-items:center; gap:7px; min-height:32px; padding:0 8px; border:1px solid #9db8c8; background:#fff; color:#527286; }
+.problem-reference-searchbox:focus-within { border-color:#147dbb; box-shadow:0 0 0 1px rgba(20,125,187,.12); }
+.problem-reference-searchbox input { width:100%; min-width:0; border:0 !important; outline:0; box-shadow:none !important; padding:7px 0 !important; background:transparent !important; color:#17384d; font:inherit; }
+.problem-reference-results { position:absolute; z-index:80; top:36px; left:0; right:0; max-height:330px; overflow:auto; border:1px solid #87aabd; background:#fff; box-shadow:0 12px 28px rgba(20,48,68,.22); }
+.problem-reference-result { width:100%; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; align-items:center; padding:9px 10px; border:0; border-bottom:1px solid #d9e4ea; background:#fff; text-align:left; color:#244f65; cursor:pointer; }
+.problem-reference-result:hover,.problem-reference-result:focus-visible { background:#edf7fc; outline:none; }
+.problem-reference-result-main { display:flex; flex-direction:column; gap:2px; min-width:0; }
+.problem-reference-result-main strong { font-size:10px; }
+.problem-reference-result-main small { color:#6b8390; font-size:9px; line-height:1.35; }
+.problem-reference-severity { min-width:48px; padding:3px 6px; border:1px solid #b9d5c3; background:#eef8f1; color:#2d7746; font-size:8px; font-weight:800; text-transform:uppercase; text-align:center; }
+.problem-reference-severity.severe { border-color:#efb6b0; background:#fff0ef; color:#a52820; }
+.problem-reference-selected { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; align-items:start; padding:8px 9px; border:1px solid #bdd3df; background:#f2f8fb; }
+.problem-reference-selected>div { display:flex; flex-direction:column; gap:2px; }
+.problem-reference-selected strong { color:#1f526b; font-size:10px; }
+.problem-reference-selected span { color:#66808e; font-size:9px; line-height:1.4; }
+.problem-reference-selected em { font-style:normal; padding:3px 6px; background:#e5f4ea; color:#2c7444; font-size:8px; font-weight:800; text-transform:uppercase; }
+.problem-reference-selected.severe { border-color:#e2aaa4; background:#fff6f5; }
+.problem-reference-selected.severe em { background:#fce4e1; color:#a52820; }
+.problem-reference-warning { display:flex; gap:7px; align-items:flex-start; padding:8px 9px; border:1px solid #e2aaa4; background:#fff4f2; color:#88372f; font-size:9px; line-height:1.4; }
+.problem-reference-warning svg { flex:0 0 auto; margin-top:1px; }
+.problem-editor-modal { width:min(760px,96vw); }
+.problem-editor-search-field,.problem-editor-notes,.problem-reference-source-note { grid-column:1/-1; }
+.problem-editor-search-field>small { color:#78909c; font-size:8px; font-weight:400; }
+.problem-reference-source-note { padding:8px 9px; border:1px solid #c7d9e2; background:#f3f8fa; color:#617d8b; font-size:9px; line-height:1.4; }
+.problem-entry-section .problem-reference-input { margin:7px 0; }
+.problem-entry-section .problem-reference-results { top:34px; }
+
+html.rw-dark-mode .problem-reference-searchbox,
+html.rw-dark-mode .problem-reference-results,
+html.rw-dark-mode .problem-reference-result { background:#0f1c23; border-color:#3a5b6d; color:#d7e7ee; }
+html.rw-dark-mode .problem-reference-result:hover,html.rw-dark-mode .problem-reference-result:focus-visible { background:#182d38; }
+html.rw-dark-mode .problem-reference-searchbox input { color:#d7e7ee; }
+html.rw-dark-mode .problem-reference-result-main small { color:#9fb6c1; }
+html.rw-dark-mode .problem-reference-selected,html.rw-dark-mode .problem-reference-source-note { background:#142730; border-color:#385a6a; color:#a9c0cb; }
+html.rw-dark-mode .problem-reference-selected strong { color:#d7e7ee; }
+html.rw-dark-mode .problem-reference-selected span { color:#9fb6c1; }
+html.rw-dark-mode .problem-reference-warning { background:#3a211f; border-color:#7b4540; color:#f0c4be; }

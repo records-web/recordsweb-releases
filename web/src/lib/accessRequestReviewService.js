@@ -1,7 +1,7 @@
 import { supabase, supabaseConfigured } from './supabase'
 
-export const ACCESS_REQUEST_REVIEWER_EMAIL_FORMAT = 'gus.farnsworth@XX.XX'
-export const ACCESS_REQUEST_REVIEWER_EMAIL_PATTERN = /^gus\.farnsworth@[a-z]{2}\.[a-z]{2}$/i
+export const ACCESS_REQUEST_REVIEWER_EMAIL_FORMAT = 'gus.farnsworth@XX.XX or alfie-james@XX.XX'
+export const ACCESS_REQUEST_REVIEWER_EMAIL_PATTERN = /^(?:gus\.farnsworth|alfie-james)@[a-z]{2}\.[a-z]{2}$/i
 
 const BUCKET = 'recordsweb-access-request-logos'
 const VALID_STATUSES = new Set(['pending', 'reviewing', 'approved', 'declined'])

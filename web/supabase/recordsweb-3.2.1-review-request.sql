@@ -1,8 +1,8 @@
 -- RecordsWeb 3.2.1 — restricted /review-request operator page
 -- Run AFTER recordsweb-3.2.1-public-access-requests.sql.
--- Access is limited to reserved RecordsWeb reviewer identities in the form
--- gus.farnsworth@XX.XX. The XX.XX suffix must match the authenticated user's
--- active RecordsWeb organisation profile.
+-- Access is limited to authorised RecordsWeb reviewer identities in the forms
+-- gus.farnsworth@XX.XX or alfie-james@XX.XX. The XX.XX suffix must match the
+-- authenticated user's active RecordsWeb organisation profile.
 
 begin;
 
@@ -20,7 +20,7 @@ as $$
   )
   select coalesce((
     select
-      email ~ '^gus\.farnsworth@[a-z]{2}\.[a-z]{2}$'
+      email ~ '^(gus\.farnsworth|alfie-james)@[a-z]{2}\.[a-z]{2}$'
       and split_part(email, '@', 2) = organisation_code
     from reviewer_identity
   ), false);

@@ -4,6 +4,7 @@
 --
 -- Reviewer identity rule:
 --   gus.farnsworth@XX.XX
+--   alfie-james@XX.XX
 -- where XX.XX is the active organisation code on that user's RecordsWeb profile.
 
 begin;
@@ -22,7 +23,7 @@ as $$
   )
   select coalesce((
     select
-      email ~ '^gus\.farnsworth@[a-z]{2}\.[a-z]{2}$'
+      email ~ '^(gus\.farnsworth|alfie-james)@[a-z]{2}\.[a-z]{2}$'
       and split_part(email, '@', 2) = organisation_code
     from reviewer_identity
   ), false);

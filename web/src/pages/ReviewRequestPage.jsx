@@ -231,7 +231,7 @@ export default function ReviewRequestPage() {
       <div className="review-request-loading">
         <div>
           <strong>Sign out of the staff session first</strong>
-          <span>The current RecordsWeb staff account does not use the reserved gus.farnsworth@XX.XX reviewer identity. Sign it out before using an authorised reviewer account.</span>
+          <span>The current RecordsWeb staff account is not an authorised platform reviewer identity. Use gus.farnsworth@XX.XX or alfie-james@XX.XX for the matching active community.</span>
           <button onClick={async () => { await logoutClinicalSession('reviewer_switch'); setReviewerSession(null) }}>Sign out staff account</button>
           <button onClick={() => navigate('/')}>Return home</button>
         </div>

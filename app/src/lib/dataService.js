@@ -29,6 +29,7 @@ const seedDb = () => ({
   patients: structuredClone(demoPatients),
   problems: structuredClone(demoProblems),
   medications: structuredClone(demoMedications),
+  medication_events: [],
   consultations: structuredClone(demoConsultations),
   diary_tasks: structuredClone(demoDiary),
   patient_alerts: [],
@@ -315,8 +316,51 @@ export async function archiveFitNotePdf(patientId, documentId, base64Pdf) {
   return fileRow
 }
 
-export async function createConsultation(patientId, payload) {
-  return createForPatient('consultations', patientId, payload)
+export async function createConsultation(patientId, payload, problemOptions = {}) {
+  assertBillingWriteAllowed('create consultations')
+  const existingProblemId = problemOptions?.existingProblemId || null
+  const newProblemName = String(problemOptions?.newProblemName || '').trim().slice(0, 240)
+  const newProblemDescription = String(problemOptions?.newProblemDescription || '').trim().slice(0, 1000)
+  const newProblemSignificance = String(problemOptions?.newProblemSignificance || '').trim().slice(0, 40)
+
+  if (!supabaseConfigured) {
+    let problem = null
+    if (existingProblemId) {
+      problem = demoRows('problems').find((row) => row.id === existingProblemId && row.patient_id === patientId) || null
+    } else if (newProblemName) {
+      problem = demoRows('problems').find((row) => row.patient_id === patientId && String(row.name || '').trim().toLowerCase() === newProblemName.toLowerCase() && String(row.status || 'Active').toLowerCase() !== 'inactive') || null
+      if (!problem) {
+        problem = demoInsert('problems', {
+          patient_id: patientId,
+          name: newProblemName,
+          onset_date: new Date().toISOString().slice(0, 10),
+          status: 'Active',
+          significance: newProblemSignificance || 'Minor',
+          notes: newProblemDescription || 'Created automatically from a RecordsWeb consultation.',
+        })
+      }
+    }
+    const consultation = demoInsert('consultations', { patient_id: patientId, ...payload, problem_id: problem?.id || existingProblemId || null })
+    await recordAudit({ action: 'consultation.created', entityType: 'consultations', entityId: consultation.id, patientId, description: problem ? `Created consultation linked to problem: ${problem.name}.` : 'Created consultation.' })
+    return consultation
+  }
+
+  const { data, error } = await supabase.rpc('recordsweb_create_consultation_with_problem', {
+    p_patient_id: patientId,
+    p_payload: payload,
+    p_existing_problem_id: existingProblemId,
+    p_new_problem_name: newProblemName || null,
+    p_new_problem_notes: newProblemDescription || null,
+    p_new_problem_significance: newProblemSignificance || null,
+  })
+  if (error) {
+    if (error.code === 'PGRST202' || /recordsweb_create_consultation_with_problem/i.test(error.message || '')) {
+      throw new Error('The consultation/problem workflow is not installed in Supabase. Run supabase/recordsweb-3.2.9-problem-catalogue.sql after the 3.2.8 medication workflow migration.')
+    }
+    throw new Error(error.message || 'Unable to save consultation.')
+  }
+  await recordAudit({ action: 'consultation.created', entityType: 'consultations', entityId: data?.id, patientId, description: newProblemName && !existingProblemId ? `Created consultation and new problem: ${newProblemName}.` : 'Created consultation.' })
+  return data
 }
 
 export async function updateConsultation(id, payload) {
@@ -357,6 +401,129 @@ export async function createMedication(patientId, payload, pin) {
 
 export async function updateMedication(id, patientId, payload, pin) {
   return saveMedicationWithPin(patientId, id, payload, pin)
+}
+
+
+export async function getMedicationHistory(patientId, medication) {
+  const medicationName = String(medication?.name || '').trim()
+  const fallbackCount = Math.max(1, Number(medication?.prescription_count || 1))
+  if (!medicationName) return { prescriptionCount: fallbackCount, events: [] }
+
+  if (!supabaseConfigured) {
+    const events = demoRows('medication_events')
+      .filter((row) => row.patient_id === patientId && String(row.medication_name || '').trim().toLowerCase() === medicationName.toLowerCase())
+      .sort((a, b) => String(b.created_at || '').localeCompare(String(a.created_at || '')))
+    const rows = demoRows('medications').filter((row) => row.patient_id === patientId && String(row.name || '').trim().toLowerCase() === medicationName.toLowerCase())
+    const prescriptionCount = Math.max(fallbackCount, ...rows.map((row) => Number(row.prescription_count || 1)), 1)
+    return { prescriptionCount, events }
+  }
+
+  const { data, error } = await supabase
+    .from('medication_events')
+    .select('*')
+    .eq('patient_id', patientId)
+    .eq('medication_name', medicationName)
+    .order('created_at', { ascending: false })
+  if (error) {
+    if (error.code === '42P01' || error.code === 'PGRST205' || /medication_events/i.test(error.message || '')) {
+      throw new Error('Medication history is not installed in Supabase. Run supabase/recordsweb-3.2.8-medication-consultation-workflow.sql.')
+    }
+    throw error
+  }
+  const events = data || []
+  const issueEvents = events.filter((row) => row.event_type === 'prescribed' || row.event_type === 'reauthorised').length
+  return { prescriptionCount: Math.max(fallbackCount, issueEvents || 0), events }
+}
+
+export async function cancelMedication(medicationId, patientId, reason) {
+  assertBillingWriteAllowed('cancel medication courses')
+  const cleanReason = String(reason || '').trim()
+  if (cleanReason.length < 3) throw new Error('Enter a reason for cancelling this medication course.')
+
+  if (!supabaseConfigured) {
+    const medication = demoRows('medications').find((row) => row.id === medicationId && row.patient_id === patientId)
+    if (!medication) throw new Error('Medication record was not found.')
+    const now = new Date().toISOString()
+    const updated = demoUpdate('medications', medicationId, {
+      active: false,
+      cancelled_at: now,
+      cancellation_reason: cleanReason,
+      cancelled_by: 'Current clinician',
+      updated_at: now,
+    })
+    demoInsert('medication_events', {
+      patient_id: patientId,
+      medication_id: medicationId,
+      medication_name: medication.name,
+      event_type: 'cancelled',
+      reason: cleanReason,
+      clinician_name: 'Current clinician',
+      prescribing_pin_used: false,
+    })
+    await recordAudit({ action: 'medication.cancelled', entityType: 'medications', entityId: medicationId, patientId, description: `Medication course cancelled. Reason: ${cleanReason}` })
+    return updated
+  }
+
+  const { data, error } = await supabase.rpc('recordsweb_cancel_medication', {
+    p_patient_id: patientId,
+    p_medication_id: medicationId,
+    p_reason: cleanReason,
+  })
+  if (error) {
+    if (error.code === 'PGRST202' || /recordsweb_cancel_medication/i.test(error.message || '')) {
+      throw new Error('Medication course actions are not installed in Supabase. Run supabase/recordsweb-3.2.8-medication-consultation-workflow.sql.')
+    }
+    throw new Error(error.message || 'Unable to cancel medication course.')
+  }
+  await recordAudit({ action: 'medication.cancelled', entityType: 'medications', entityId: medicationId, patientId, description: `Medication course cancelled. Reason: ${cleanReason}` })
+  return data
+}
+
+export async function reauthoriseMedication(medicationId, patientId, pin) {
+  assertBillingWriteAllowed('re-authorise medication')
+  const cleanPin = validatePrescribingPin(pin)
+
+  if (!supabaseConfigured) {
+    await verifyDemoPrescribingPin(cleanPin)
+    const medication = demoRows('medications').find((row) => row.id === medicationId && row.patient_id === patientId)
+    if (!medication) throw new Error('Medication record was not found.')
+    const now = new Date().toISOString()
+    const nextCount = Math.max(1, Number(medication.prescription_count || 1)) + 1
+    const updated = demoUpdate('medications', medicationId, {
+      active: true,
+      prescription_count: nextCount,
+      last_issue_date: now.slice(0, 10),
+      last_reauthorised_at: now,
+      cancellation_reason: null,
+      cancelled_at: null,
+      cancelled_by: null,
+      updated_at: now,
+    })
+    demoInsert('medication_events', {
+      patient_id: patientId,
+      medication_id: medicationId,
+      medication_name: medication.name,
+      event_type: 'reauthorised',
+      clinician_name: 'Current clinician',
+      prescribing_pin_used: true,
+    })
+    await recordAudit({ action: 'medication.reauthorised', entityType: 'medications', entityId: medicationId, patientId, description: 'Medication re-authorised after prescribing PIN confirmation.' })
+    return updated
+  }
+
+  const { data, error } = await supabase.rpc('recordsweb_reauthorise_medication', {
+    p_patient_id: patientId,
+    p_medication_id: medicationId,
+    p_pin: cleanPin,
+  })
+  if (error) {
+    if (error.code === 'PGRST202' || /recordsweb_reauthorise_medication/i.test(error.message || '')) {
+      throw new Error('Medication re-authorisation is not installed in Supabase. Run supabase/recordsweb-3.2.8-medication-consultation-workflow.sql.')
+    }
+    throw new Error(error.message || 'Unable to re-authorise medication.')
+  }
+  await recordAudit({ action: 'medication.reauthorised', entityType: 'medications', entityId: medicationId, patientId, description: 'Medication re-authorised after prescribing PIN confirmation.' })
+  return data
 }
 
 export async function listAppointments(date) {

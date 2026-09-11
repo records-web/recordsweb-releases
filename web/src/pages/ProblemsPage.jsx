@@ -3,16 +3,8 @@ import { useParams } from 'react-router-dom'
 import ClinicalToolbar from '../components/ClinicalToolbar'
 import Panel from '../components/Panel'
 import PatientHeader from '../components/PatientHeader'
-import RecordEditModal from '../components/RecordEditModal'
+import ProblemEditorModal from '../components/ProblemEditorModal'
 import { createForPatient, getPatient, listForPatient, updateForPatient } from '../lib/dataService'
-
-const fields = [
-  ['name', 'Problem', 'text'],
-  ['status', 'Status', 'select', ['Active', 'Past', 'Resolved']],
-  ['significance', 'Significance', 'select', ['Significant', 'Minor', 'Low']],
-  ['onset_date', 'Onset date', 'date'],
-  ['notes', 'Notes', 'textarea'],
-]
 
 export default function ProblemsPage() {
   const { patientId } = useParams()
@@ -64,7 +56,7 @@ export default function ProblemsPage() {
           </div>}
         </Panel>
       </div>
-      {editing !== null && <RecordEditModal title={`${editing.id ? 'Edit' : 'Add'} problem`} fields={fields} record={editing} onClose={() => setEditing(null)} onSave={async (payload) => { if (editing.id) await updateForPatient('problems', editing.id, payload); else await createForPatient('problems', patientId, payload); setEditing(null); await load() }} />}
+      {editing !== null && <ProblemEditorModal record={editing} onClose={() => setEditing(null)} onSave={async (payload) => { if (editing.id) await updateForPatient('problems', editing.id, payload); else await createForPatient('problems', patientId, payload); setEditing(null); await load() }} />}
     </div>
   )
 }

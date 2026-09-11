@@ -2,10 +2,12 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Save } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import PatientHeader from '../components/PatientHeader'
+import ProblemReferenceInput from '../components/ProblemReferenceInput'
 import ClinicalToolbar from '../components/ClinicalToolbar'
 import { createConsultation, getPatient, listForPatient } from '../lib/dataService'
 import { useAuth } from '../contexts/AuthContext'
 import { CONSULTATION_TEMPLATE } from '../lib/consultationTemplate'
+import { findProblemReferenceByName } from '../lib/gpProblemCatalogue'
 
 function normalizeDraftEntries(entries = {}) {
   const next = { ...entries }
@@ -22,6 +24,7 @@ export default function NewConsultationPage() {
   const [recent, setRecent] = useState([])
   const [problems, setProblems] = useState([])
   const [selectedProblemId, setSelectedProblemId] = useState('')
+  const [newProblemReference, setNewProblemReference] = useState(null)
   const [entryTexts, setEntryTexts] = useState({})
   const [location, setLocation] = useState('GP Surgery')
   const [activeSection, setActiveSection] = useState('Problem')
@@ -46,6 +49,7 @@ export default function NewConsultationPage() {
         if (draft && typeof draft === 'object') {
           setEntryTexts(normalizeDraftEntries(draft.entryTexts || {}))
           setSelectedProblemId(draft.selectedProblemId || '')
+          setNewProblemReference(draft.newProblemReference || null)
           setLocation(draft.location || 'GP Surgery')
           setActiveSection(CONSULTATION_TEMPLATE.includes(draft.activeSection) ? draft.activeSection : 'Problem')
         }
@@ -56,9 +60,9 @@ export default function NewConsultationPage() {
   useEffect(() => {
     const dirty = Object.values(entryTexts).some((value) => String(value || '').trim())
     if (!dirty && !selectedProblemId) return
-    const draft = { entryTexts, selectedProblemId, location, activeSection, savedAt: new Date().toISOString() }
+    const draft = { entryTexts, selectedProblemId, newProblemReference, location, activeSection, savedAt: new Date().toISOString() }
     localStorage.setItem(draftKey, JSON.stringify(draft))
-  }, [entryTexts, selectedProblemId, location, activeSection, draftKey])
+  }, [entryTexts, selectedProblemId, newProblemReference, location, activeSection, draftKey])
 
   useEffect(() => {
     const warn = (event) => {
@@ -91,6 +95,7 @@ export default function NewConsultationPage() {
 
   function chooseProblem(problemId) {
     setSelectedProblemId(problemId)
+    if (problemId) setNewProblemReference(null)
     const problem = problems.find((row) => row.id === problemId)
     if (problem) {
       setEntryTexts((current) => current.Problem?.trim() ? current : { ...current, Problem: problem.name || '' })
@@ -99,6 +104,25 @@ export default function NewConsultationPage() {
 
   function patchSection(section, value) {
     setEntryTexts((current) => ({ ...current, [section]: value }))
+  }
+
+  function patchNewProblemName(name) {
+    setNewProblemReference(null)
+    setEntryTexts((current) => {
+      const lines = String(current.Problem || '').split(/\r?\n/)
+      const rest = lines.slice(1).join('\n')
+      return { ...current, Problem: rest ? `${name}\n${rest}` : name }
+    })
+  }
+
+  function selectProblemReference(entry) {
+    setSelectedProblemId('')
+    setNewProblemReference(entry)
+    setEntryTexts((current) => {
+      const lines = String(current.Problem || '').split(/\r?\n/)
+      const rest = lines.slice(1).join('\n')
+      return { ...current, Problem: rest ? `${entry.name}\n${rest}` : entry.name }
+    })
   }
 
   function jumpTo(section) {
@@ -116,6 +140,14 @@ export default function NewConsultationPage() {
     setSaving(true)
     setError('')
     try {
+      const problemText = String(entryTexts.Problem || '').trim()
+      const newProblemName = !selectedProblemId && problemText
+        ? problemText.split(/\r?\n/)[0].trim().slice(0, 240)
+        : ''
+      const problemReference = !selectedProblemId && newProblemName
+        ? (newProblemReference || findProblemReferenceByName(newProblemName))
+        : null
+
       await createConsultation(patientId, {
         date: new Date().toISOString(),
         clinician,
@@ -123,6 +155,11 @@ export default function NewConsultationPage() {
         type: entries[0]?.type || 'Consultation',
         status: 'Complete',
         entries,
+      }, {
+        existingProblemId: selectedProblemId || null,
+        newProblemName: newProblemName || null,
+        newProblemDescription: problemReference?.description || null,
+        newProblemSignificance: problemReference?.severity || null,
       })
       localStorage.removeItem(draftKey)
       navigate(`/patients/${patientId}/consultations`)
@@ -182,10 +219,18 @@ export default function NewConsultationPage() {
                   </select>
                 </div>
                 <div className="problem-record-strip">
-                  <strong>{selectedProblem?.name || 'No problem selected'}</strong>
-                  <span>{selectedProblem ? `${selectedProblem.status || 'Active'} problem · ${selectedProblem.significance || 'Significance not set'}${selectedProblem.onset_date ? ` · Onset ${new Date(selectedProblem.onset_date).toLocaleDateString('en-GB')}` : ''}` : 'This consultation is not currently linked to an existing problem.'}</span>
+                  <strong>{selectedProblem?.name || newProblemReference?.name || 'New problem'}</strong>
+                  <span>{selectedProblem ? `${selectedProblem.status || 'Active'} problem · ${selectedProblem.significance || 'Significance not set'}${selectedProblem.onset_date ? ` · Onset ${new Date(selectedProblem.onset_date).toLocaleDateString('en-GB')}` : ''}` : 'Search the GP problems reference below. If no existing problem is selected, the first line is automatically added to the patient Problems record when the consultation is saved.'}</span>
                 </div>
-                <textarea value={entryTexts.Problem || ''} onChange={(e) => patchSection('Problem', e.target.value)} placeholder="Enter the problem or presenting complaint…" />
+                {!selectedProblemId && (
+                  <ProblemReferenceInput
+                    value={String(entryTexts.Problem || '').split(/\r?\n/)[0] || ''}
+                    onChange={patchNewProblemName}
+                    onSelect={selectProblemReference}
+                    placeholder="Search problem, e.g. chest pain, diabetes, migraine…"
+                  />
+                )}
+                <textarea value={entryTexts.Problem || ''} onChange={(e) => { patchSection('Problem', e.target.value); const first = e.target.value.split(/\r?\n/)[0].trim(); if (newProblemReference && first.toLowerCase() !== newProblemReference.name.toLowerCase()) setNewProblemReference(null) }} placeholder={selectedProblemId ? 'Enter consultation details for this problem…' : 'First line = problem name. Add consultation-specific details on following lines…'} />
               </div>
             </section>
 

@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const OPERATOR_EMAIL_PATTERN = /^gus\.farnsworth@[a-z]{2}\.[a-z]{2}$/i
+const OPERATOR_EMAIL_PATTERN = /^(?:gus\.farnsworth|alfie-james)@[a-z]{2}\.[a-z]{2}$/i
 const COMMON_PASSWORDS = new Set([
   'password123','password1','qwerty123','letmein123','welcome123',
   'recordsweb1','groveway123','changeme123','admin12345','1234567890',
@@ -29,6 +29,14 @@ function normaliseOrganisationCode(value: unknown) {
 
 function cleanText(value: unknown, fallback = '') {
   return String(value ?? fallback).trim()
+}
+
+function stripeEnvironment(secretKey: string) {
+  return secretKey.startsWith('sk_test_') ? 'sandbox' : 'live'
+}
+
+function stripeResourceMissing(error: any) {
+  return error?.code === 'resource_missing' || error?.raw?.code === 'resource_missing' || /no such (customer|subscription|checkout session)/i.test(String(error?.message || ''))
 }
 
 function validatePassword(password: string, username = '') {
@@ -498,39 +506,65 @@ Deno.serve(async (req) => {
 
       // Payment exemption means no payment at all. Before writing the exemption,
       // invalidate any open checkout and stop any subscription that could still
-      // charge this community. This also closes the race where Platform
-      // Management exempts a community while a manager has Checkout open.
-      if (paymentExempt && (stripeSubscriptionId || stripeCheckoutSessionId)) {
+      // charge this community. Stale sandbox identifiers are automatically
+      // discarded after a move to live Stripe when the stored subscription is
+      // already cancelled, rather than blocking the exemption.
+      if (paymentExempt && (stripeSubscriptionId || stripeCheckoutSessionId || cleanText((organisation as any).stripe_customer_id))) {
         const stripeSecretKey = Deno.env.get('STRIPE_SECRET_KEY')
+        const storedStripeEnvironment = cleanText((organisation as any).stripe_environment).toLowerCase()
+        const storedSubscriptionStatus = cleanText((organisation as any).stripe_subscription_status).toLowerCase()
+        const terminalStoredStatus = ['canceled', 'incomplete_expired'].includes(storedSubscriptionStatus)
+
         if (!stripeSecretKey) {
-          return json({ error: 'This community already has Stripe billing activity. Configure STRIPE_SECRET_KEY before excluding it from payment so RecordsWeb can stop future charges safely.' }, 503)
-        }
-        try {
-          const stripe = new Stripe(stripeSecretKey)
+          if (!terminalStoredStatus && stripeSubscriptionId) {
+            return json({ error: 'This community has an existing Stripe subscription. Configure STRIPE_SECRET_KEY before excluding it from payment so RecordsWeb can stop future charges safely.' }, 503)
+          }
+        } else {
+          const currentStripeEnvironment = stripeEnvironment(stripeSecretKey)
+          const environmentMismatch = Boolean(storedStripeEnvironment) && storedStripeEnvironment !== currentStripeEnvironment
 
-          if (stripeCheckoutSessionId) {
-            const checkout: any = await stripe.checkout.sessions.retrieve(stripeCheckoutSessionId)
-            if (checkout.status === 'open') {
-              await stripe.checkout.sessions.expire(checkout.id)
-            }
-            const sessionSubscriptionId = typeof checkout.subscription === 'string'
-              ? checkout.subscription
-              : cleanText(checkout.subscription?.id)
-            if (!stripeSubscriptionId && sessionSubscriptionId) stripeSubscriptionId = sessionSubscriptionId
+          if (environmentMismatch && stripeSubscriptionId && !terminalStoredStatus) {
+            return json({
+              error: `This community is linked to an active ${storedStripeEnvironment} Stripe subscription, but RecordsWeb is currently using ${currentStripeEnvironment} Stripe credentials. Cancel the subscription in the ${storedStripeEnvironment} Stripe environment first, then retry the exemption.`,
+            }, 409)
           }
 
-          if (stripeSubscriptionId) {
-            const subscription: any = await stripe.subscriptions.retrieve(stripeSubscriptionId)
-            if (subscription.status !== 'canceled') {
-              const cancelled: any = await stripe.subscriptions.cancel(subscription.id)
-              cancelledStripeStatus = cancelled.status || 'canceled'
-            } else {
-              cancelledStripeStatus = 'canceled'
+          if (!environmentMismatch) {
+            try {
+              const stripe = new Stripe(stripeSecretKey)
+
+              if (stripeCheckoutSessionId) {
+                try {
+                  const checkout: any = await stripe.checkout.sessions.retrieve(stripeCheckoutSessionId)
+                  if (checkout.status === 'open') await stripe.checkout.sessions.expire(checkout.id)
+                  const sessionSubscriptionId = typeof checkout.subscription === 'string'
+                    ? checkout.subscription
+                    : cleanText(checkout.subscription?.id)
+                  if (!stripeSubscriptionId && sessionSubscriptionId) stripeSubscriptionId = sessionSubscriptionId
+                } catch (checkoutError) {
+                  if (!stripeResourceMissing(checkoutError)) throw checkoutError
+                }
+              }
+
+              if (stripeSubscriptionId) {
+                try {
+                  const subscription: any = await stripe.subscriptions.retrieve(stripeSubscriptionId)
+                  if (subscription.status !== 'canceled') {
+                    const cancelled: any = await stripe.subscriptions.cancel(subscription.id)
+                    cancelledStripeStatus = cancelled.status || 'canceled'
+                  } else {
+                    cancelledStripeStatus = 'canceled'
+                  }
+                } catch (subscriptionError) {
+                  if (!(terminalStoredStatus && stripeResourceMissing(subscriptionError))) throw subscriptionError
+                  cancelledStripeStatus = 'canceled'
+                }
+              }
+            } catch (stripeError) {
+              console.error('Unable to stop Stripe billing before enabling RecordsWeb payment exemption', stripeError)
+              return json({ error: 'RecordsWeb could not stop the existing Stripe checkout/subscription, so the payment exemption was not applied. Check the Stripe configuration and try again.' }, 502)
             }
           }
-        } catch (stripeError) {
-          console.error('Unable to stop Stripe billing before enabling RecordsWeb payment exemption', stripeError)
-          return json({ error: 'RecordsWeb could not stop the existing Stripe checkout/subscription, so the payment exemption was not applied. Check the Stripe configuration and try again.' }, 502)
         }
       }
 
@@ -563,11 +597,18 @@ Deno.serve(async (req) => {
         patch.billing_read_only_since = cleanText((organisation as any).billing_read_only_since) || now
       }
       if (paymentExempt) {
+        // Once future charges are safely stopped (or a stale cancelled sandbox
+        // link is detected), detach Stripe completely. Complimentary communities
+        // should not keep environment-specific customer/subscription/session IDs.
+        patch.stripe_customer_id = null
+        patch.stripe_subscription_id = null
+        patch.stripe_subscription_status = null
+        patch.stripe_last_invoice_status = null
         patch.stripe_checkout_session_id = null
         patch.stripe_current_period_end = null
+        patch.stripe_last_payment_at = null
+        patch.stripe_environment = null
         patch.stripe_updated_at = now
-        if (stripeSubscriptionId) patch.stripe_subscription_id = stripeSubscriptionId
-        if (cancelledStripeStatus) patch.stripe_subscription_status = cancelledStripeStatus
       }
 
       const { data: updated, error: updateError } = await admin

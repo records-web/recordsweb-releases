@@ -96,7 +96,7 @@ function OperatorSignIn({ onSignedIn, currentSession }) {
           <div><strong>RecordsWeb</strong><span>Platform management</span></div>
         </div>
         <div className="review-request-auth-rule" />
-        <div className="review-request-auth-heading"><ShieldCheck size={20}/><div><strong>Restricted operator area</strong><span>Platform-wide controls are available only to the reserved RecordsWeb operator identity.</span></div></div>
+        <div className="review-request-auth-heading"><ShieldCheck size={20}/><div><strong>Restricted operator area</strong><span>Platform-wide controls are available only to authorised RecordsWeb operator identities.</span></div></div>
         {wrongAccount && <div className="review-request-auth-warning">The currently signed-in account <strong>{currentSession.user.email}</strong> is not authorised for platform management.</div>}
         <form onSubmit={submit}>
           <label><span>Account email</span><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder={PLATFORM_OPERATOR_EMAIL_FORMAT} autoComplete="username" required /></label>
@@ -676,7 +676,7 @@ export default function PlatformManagementPage() {
   if (!authReady) return <div className="review-request-loading">Checking platform management access…</div>
   if (!supabaseConfigured) return <div className="review-request-loading"><div><strong>Platform management unavailable</strong><span>Supabase must be configured.</span><button onClick={() => navigate('/')}>Return home</button></div></div>
   if (clinicalSession && !isPlatformOperator(clinicalSession)) {
-    return <div className="review-request-loading"><div><strong>Sign out of the staff session first</strong><span>Platform management requires the reserved {PLATFORM_OPERATOR_EMAIL_FORMAT} operator identity.</span><button onClick={async () => { await logoutClinicalSession('platform_operator_switch'); setOperatorSession(null); setServerAuthorised(false) }}>Sign out staff account</button><button onClick={() => navigate('/')}>Return home</button></div></div>
+    return <div className="review-request-loading"><div><strong>Sign out of the staff session first</strong><span>Platform management requires an authorised {PLATFORM_OPERATOR_EMAIL_FORMAT} operator identity.</span><button onClick={async () => { await logoutClinicalSession('platform_operator_switch'); setOperatorSession(null); setServerAuthorised(false) }}>Sign out staff account</button><button onClick={() => navigate('/')}>Return home</button></div></div>
   }
   if (!authorised) return <><OperatorSignIn currentSession={operatorSession} onSignedIn={signedIn}/>{authError ? <div className="platform-auth-floating-error">{authError}</div> : null}</>
 
