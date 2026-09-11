@@ -1,6 +1,6 @@
 -- RecordsWeb 3.2.1 — platform operator management
 -- Platform-wide controls are no longer available to community Management.
--- Authorised operator identities: gus.farnsworth@XX.XX or alfie-james@XX.XX, where XX.XX matches the
+-- Authorised operator identities: gus.farnsworth@XX.XX or alfie.james@XX.XX, where XX.XX matches the
 -- authenticated user's active RecordsWeb organisation profile.
 
 begin;
@@ -19,7 +19,7 @@ as $$
   )
   select coalesce((
     select
-      email ~ '^(gus\.farnsworth|alfie-james)@[a-z]{2}\.[a-z]{2}$'
+      email ~ '^(gus\.farnsworth|alfie\.james)@[a-z]{2}\.[a-z]{2}$'
       and split_part(email, '@', 2) = organisation_code
     from operator_identity
   ), false);

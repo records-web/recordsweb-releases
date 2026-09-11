@@ -1,7 +1,7 @@
 import { supabase, supabaseConfigured } from './supabase'
 
-export const PLATFORM_OPERATOR_EMAIL_FORMAT = 'gus.farnsworth@XX.XX or alfie-james@XX.XX'
-export const PLATFORM_OPERATOR_EMAIL_PATTERN = /^(?:gus\.farnsworth|alfie-james)@[a-z]{2}\.[a-z]{2}$/i
+export const PLATFORM_OPERATOR_EMAIL_FORMAT = 'gus.farnsworth@XX.XX or alfie.james@XX.XX'
+export const PLATFORM_OPERATOR_EMAIL_PATTERN = /^(?:gus\.farnsworth|alfie\.james)@[a-z]{2}\.[a-z]{2}$/i
 
 function normaliseEmail(value) {
   return String(value || '').trim().toLowerCase()

@@ -7,7 +7,7 @@ RecordsWeb is an Electron + React desktop clinical-record platform. The same app
 - Search-as-you-type GP problem catalogue in Problems and New Consultation.
 - Consultation-created problems are linked into the Problems record with reference description/significance.
 - Prior v3.2.8 medication search, specialist-drug warning/authorisation, history, cancellation and re-authorisation remain included.
-- Shared Supabase migrations/Edge Functions include the live Stripe billing, payment exemption, 7-day failed-payment grace/read-only controls and `alfie-james@XX.XX` Platform Management authorisation used by the website operator panel.
+- Shared Supabase migrations/Edge Functions include the live Stripe billing, payment exemption, 7-day failed-payment grace/read-only controls and `alfie.james@XX.XX` Platform Management authorisation used by the website operator panel.
 
 
 ## Organisation installation

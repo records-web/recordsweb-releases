@@ -1,6 +1,6 @@
 -- RecordsWeb 3.2.9 — additional platform operator identity
 -- Run after the existing platform-management/review-request migrations.
--- Authorises both gus.farnsworth@XX.XX and alfie-james@XX.XX, provided the
+-- Authorises both gus.farnsworth@XX.XX and alfie.james@XX.XX, provided the
 -- XX.XX suffix matches the user's active RecordsWeb organisation profile.
 
 begin;
@@ -19,7 +19,7 @@ as $$
   )
   select coalesce((
     select
-      email ~ '^(gus[.]farnsworth|alfie-james)@[a-z]{2}[.][a-z]{2}$'
+      email ~ '^(gus[.]farnsworth|alfie\.james)@[a-z]{2}[.][a-z]{2}$'
       and split_part(email, '@', 2) = organisation_code
     from operator_identity
   ), false);

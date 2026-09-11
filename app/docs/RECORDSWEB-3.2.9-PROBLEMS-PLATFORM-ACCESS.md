@@ -9,7 +9,7 @@
 - The supplied problem data contains 180 actual problem rows; RecordsWeb preserves those rows rather than inventing missing entries to reach the heading's stated 200.
 - Specialist-medication warnings, medication search/history/cancel/re-authorise, consultation-to-problem linking, Stripe billing, payment exemptions and the 7-day failed-payment grace/read-only controls from prior releases are preserved.
 - Payment exemption now handles stale cancelled sandbox Stripe links after switching RecordsWeb to live Stripe, and detaches the old Stripe identifiers once exemption is safely applied.
-- Platform Management now authorises both `gus.farnsworth@XX.XX` and `alfie-james@XX.XX`, where `XX.XX` must match the active organisation attached to the authenticated profile.
+- Platform Management now authorises both `gus.farnsworth@XX.XX` and `alfie.james@XX.XX`, where `XX.XX` must match the active organisation attached to the authenticated profile.
 - Access-request review follows the same operator rule.
 
 ## Database updates
@@ -31,4 +31,4 @@ supabase functions deploy recordsweb-platform-admin --project-ref cdakocrmfstskn
 
 ## Alfie platform access
 
-The authorisation rule does not create an authentication/profile account automatically. `alfie-james@XX.XX` must exist as an active Supabase Auth user and active RecordsWeb profile in the matching organisation. Once it exists, it can sign into `/platform-management`.
+The authorisation rule does not create an authentication/profile account automatically. `alfie.james@XX.XX` must exist as an active Supabase Auth user and active RecordsWeb profile in the matching organisation. Once it exists, it can sign into `/platform-management`.

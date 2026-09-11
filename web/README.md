@@ -11,7 +11,7 @@ RecordsWeb Web is the browser-hosted version of the RecordsWeb clinical records 
 - Search-as-you-type GP problem reference lookup in Problems and New Consultation.
 - Supplied problem descriptions and Minor/Severe reference classification are shown when a catalogue result is selected.
 - New consultation problems are linked into the patient Problems record with catalogue description/significance.
-- Platform Management now accepts both `gus.farnsworth@XX.XX` and `alfie-james@XX.XX` when the suffix matches the user's active organisation.
+- Platform Management now accepts both `gus.farnsworth@XX.XX` and `alfie.james@XX.XX` when the suffix matches the user's active organisation.
 - Payment-exemption handling safely clears stale cancelled sandbox Stripe identifiers after a switch to live Stripe.
 - Prior v3.2.8 medication search, specialist-drug warning/authorisation, medication history, cancellation and re-authorisation remain included.
 
@@ -51,7 +51,7 @@ The web root is now a public RecordsWeb overview. Staff enter through **Staff si
 
 ### Access request review
 
-`/#/review-request` provides the restricted operator interface for access requests. Server-side Supabase checks limit the review APIs and private logo access to authorised `gus.farnsworth@XX.XX` or `alfie-james@XX.XX` accounts whose suffix matches their active RecordsWeb organisation. Run `supabase/recordsweb-3.2.1-review-request.sql` after the public request migration.
+`/#/review-request` provides the restricted operator interface for access requests. Server-side Supabase checks limit the review APIs and private logo access to authorised `gus.farnsworth@XX.XX` or `alfie.james@XX.XX` accounts whose suffix matches their active RecordsWeb organisation. Run `supabase/recordsweb-3.2.1-review-request.sql` after the public request migration.
 
 
 ## Fixed RecordsWeb branding

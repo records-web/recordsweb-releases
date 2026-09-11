@@ -2277,7 +2277,7 @@ create policy "recordsweb_access_request_logo_insert" on storage.objects for ins
 -- RecordsWeb 3.2.1 — restricted /review-request operator page
 -- Run AFTER recordsweb-3.2.1-public-access-requests.sql.
 -- Access is limited to authorised RecordsWeb reviewer identities in the forms
--- gus.farnsworth@XX.XX or alfie-james@XX.XX. The suffix must match the user's active organisation.
+-- gus.farnsworth@XX.XX or alfie.james@XX.XX. The suffix must match the user's active organisation.
 
 create or replace function public.recordsweb_is_access_request_reviewer()
 returns boolean
@@ -2293,7 +2293,7 @@ as $$
   )
   select coalesce((
     select
-      email ~ '^(gus\.farnsworth|alfie-james)@[a-z]{2}\.[a-z]{2}$'
+      email ~ '^(gus\.farnsworth|alfie\.james)@[a-z]{2}\.[a-z]{2}$'
       and split_part(email, '@', 2) = organisation_code
     from reviewer_identity
   ), false);
@@ -2540,7 +2540,7 @@ grant execute on function public.recordsweb_public_organisation_config(text) to 
 
 -- RecordsWeb 3.2.1 — platform operator management
 -- Platform-wide controls are no longer available to community Management.
--- Authorised operator identities: gus.farnsworth@XX.XX or alfie-james@XX.XX, where XX.XX matches the
+-- Authorised operator identities: gus.farnsworth@XX.XX or alfie.james@XX.XX, where XX.XX matches the
 -- authenticated user's active RecordsWeb organisation profile.
 
 begin;
@@ -2559,7 +2559,7 @@ as $$
   )
   select coalesce((
     select
-      email ~ '^(gus\.farnsworth|alfie-james)@[a-z]{2}\.[a-z]{2}$'
+      email ~ '^(gus\.farnsworth|alfie\.james)@[a-z]{2}\.[a-z]{2}$'
       and split_part(email, '@', 2) = organisation_code
     from operator_identity
   ), false);

@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const OPERATOR_EMAIL_PATTERN = /^(?:gus\.farnsworth|alfie-james)@[a-z]{2}\.[a-z]{2}$/i
+const OPERATOR_EMAIL_PATTERN = /^(?:gus\.farnsworth|alfie\.james)@[a-z]{2}\.[a-z]{2}$/i
 const COMMON_PASSWORDS = new Set([
   'password123','password1','qwerty123','letmein123','welcome123',
   'recordsweb1','groveway123','changeme123','admin12345','1234567890',
