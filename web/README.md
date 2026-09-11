@@ -1,12 +1,12 @@
 # RecordsWeb Web
 
-**Version:** 3.2.9  
+**Version:** 3.3.1  
 **Runtime:** Browser / Vite / React  
 **Deployment:** Multi-organisation
 
 RecordsWeb Web is the browser-hosted version of the RecordsWeb clinical records platform. It keeps the existing RecordsWeb desktop visual language and clinical workflow while supporting multiple approved organisations through an `@XX.XX` organisation extension.
 
-## RecordsWeb 3.2.9 — problems & platform access
+## RecordsWeb 3.3.1 — problems & platform access
 
 - Search-as-you-type GP problem reference lookup in Problems and New Consultation.
 - Supplied problem descriptions and Minor/Severe reference classification are shown when a catalogue result is selected.
@@ -72,3 +72,12 @@ Website Platform Management can create, edit, enable/disable communities and man
 ## RecordsWeb 3.2.3 — Roblox integration
 
 Community Management now includes a per-organisation Roblox integration for waiting-room patient-call displays. See `docs/RECORDSWEB-3.2.3-ROBLOX-INTEGRATION.md` and run `supabase/recordsweb-3.2.3-roblox-integration.sql` before deploying the two Roblox Edge Functions.
+
+## RecordsWeb 3.3.1 — dosage & quantity calculator
+
+- Typical prescribed dosage options are generated from the supplied GP MEDS reference.
+- Numeric dose ranges such as Prednisolone 30–40 mg once daily become selectable 30 mg and 40 mg typical options.
+- Tablet/capsule quantity can be calculated from dose ÷ strength × frequency/day × course duration.
+- Prescribers can switch to Custom dosage and Custom quantity at any time.
+- Pack/tablet strength is deliberately entered by the clinician because GP MEDS.pdf supplies reference doses, not medicine pack strengths.
+- No new database migration is required for 3.3.1; the final prescribed dosage and quantity continue to use the existing medication fields and PIN-authorised workflow.

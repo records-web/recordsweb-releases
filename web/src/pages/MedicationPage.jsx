@@ -56,6 +56,153 @@ function profileHasRole(profile = {}, role) {
   return profile.role === role || roles.includes(role)
 }
 
+
+const DAILY_FREQUENCY_LABELS = {
+  1: 'once daily',
+  2: 'twice daily',
+  3: 'three times daily',
+  4: 'four times daily',
+}
+
+function normaliseDoseUnit(unit = '') {
+  const value = String(unit || '').trim().toLowerCase()
+  if (value === 'mcg' || value === 'microgram' || value === 'micrograms') return 'micrograms'
+  if (value === 'mg') return 'mg'
+  if (value === 'g') return 'g'
+  return value
+}
+
+function doseUnitToMgFactor(unit) {
+  const normalised = normaliseDoseUnit(unit)
+  if (normalised === 'micrograms') return 0.001
+  if (normalised === 'mg') return 1
+  if (normalised === 'g') return 1000
+  return null
+}
+
+function frequencyCandidatesFromText(value = '') {
+  const text = String(value || '').toLowerCase().replaceAll('–', '-')
+  if (/once\s*\/\s*twice\s+daily/.test(text) || /once\s+or\s+twice\s+daily/.test(text)) return [1, 2]
+  const numericRange = text.match(/\b([1-4])\s*-\s*([1-4])\s+times\s+daily\b/)
+  if (numericRange) {
+    const start = Number(numericRange[1])
+    const end = Number(numericRange[2])
+    return Array.from({ length: Math.max(0, end - start + 1) }, (_, index) => start + index)
+  }
+  if (/\bfour\s+times\s+daily\b|\bup\s+to\s+four\s+times\s+daily\b/.test(text)) return [4]
+  if (/\bthree\s+times\s+daily\b|\bup\s+to\s+three\s+times\s+daily\b/.test(text)) return [3]
+  if (/\btwice\s+daily\b/.test(text)) return [2]
+  if (/\bonce\s+daily\b|\bonce\s+a\s+day\b|\bnightly\b|\bat\s+night\b|\bmg\/day\b|\bmicrograms?\/day\b|\bg\/day\b/.test(text)) return [1]
+  return []
+}
+
+function doseAmountsFromText(value = '') {
+  const text = String(value || '').replaceAll('–', '-')
+  // Combination strengths such as 500/125 mg are not a single dose amount and
+  // therefore cannot safely drive the automatic tablet calculator.
+  if (/\d+(?:\.\d+)?\s*\/\s*\d+(?:\.\d+)?\s*(?:micrograms?|mcg|mg|g)\b/i.test(text)) return null
+
+  const range = text.match(/\b(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)\s*(micrograms?|mcg|mg|g)\b/i)
+  if (range) {
+    return {
+      amounts: [Number(range[1]), Number(range[2])],
+      unit: normaliseDoseUnit(range[3]),
+    }
+  }
+
+  const single = text.match(/\b(\d+(?:\.\d+)?)\s*(micrograms?|mcg|mg|g)\b/i)
+  if (!single) return null
+  return {
+    amounts: [Number(single[1])],
+    unit: normaliseDoseUnit(single[2]),
+  }
+}
+
+function buildTypicalDoseOptions(reference) {
+  if (!reference) return []
+  const sources = [
+    { key: 'usual', label: 'Usual / starting dose', text: reference.usualDose || '' },
+    { key: 'higher', label: 'Higher / maintenance', text: reference.higherDose || '' },
+  ]
+  const options = []
+  const fallback = []
+
+  for (const source of sources) {
+    const text = String(source.text || '').trim()
+    if (!text) continue
+    const dose = doseAmountsFromText(text)
+    const frequencies = frequencyCandidatesFromText(text)
+
+    if (dose && frequencies.length) {
+      for (const amount of dose.amounts) {
+        for (const frequencyPerDay of frequencies) {
+          const frequencyLabel = DAILY_FREQUENCY_LABELS[frequencyPerDay] || `${frequencyPerDay} times daily`
+          options.push({
+            id: `${source.key}-${amount}-${dose.unit}-${frequencyPerDay}`,
+            sourceKey: source.key,
+            sourceLabel: source.label,
+            sourceText: text,
+            label: `${amount} ${dose.unit} ${frequencyLabel}`,
+            doseAmount: amount,
+            doseUnit: dose.unit,
+            frequencyPerDay,
+            calculable: true,
+          })
+        }
+      }
+    } else {
+      fallback.push({
+        id: `${source.key}-reference`,
+        sourceKey: source.key,
+        sourceLabel: source.label,
+        sourceText: text,
+        label: text,
+        doseAmount: null,
+        doseUnit: '',
+        frequencyPerDay: null,
+        calculable: false,
+      })
+    }
+  }
+
+  const chosen = options.length ? options : fallback.slice(0, 1)
+  const seen = new Set()
+  return chosen.filter((option) => {
+    const key = option.label.toLowerCase()
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+}
+
+function supportsAutomaticQuantity(form = '') {
+  return /tablet|capsule/i.test(String(form || ''))
+}
+
+function quantityUnitForForm(form = '') {
+  const value = String(form || '').toLowerCase()
+  const hasTablet = value.includes('tablet')
+  const hasCapsule = value.includes('capsule')
+  if (hasTablet && hasCapsule) return 'tablets/capsules'
+  if (hasTablet) return 'tablets'
+  if (hasCapsule) return 'capsules'
+  return 'units'
+}
+
+function strengthLabelForForm(form = '') {
+  const value = String(form || '').toLowerCase()
+  if (value.includes('tablet') && !value.includes('capsule')) return 'Strength per tablet'
+  if (value.includes('capsule') && !value.includes('tablet')) return 'Strength per capsule'
+  return 'Strength per tablet / unit'
+}
+
+function formatCalculatedQuantity(value) {
+  const number = Number(value)
+  if (!Number.isFinite(number)) return ''
+  if (Math.abs(number - Math.round(number)) < 0.000001) return String(Math.round(number))
+  return number.toFixed(2).replace(/\.00$/, '').replace(/0$/, '')
+}
+
 function referenceFromMedication(medication) {
   if (medication?.catalogue_id) return medicationCatalogueEntryById(medication.catalogue_id)
   if (!medication?.name) return null
@@ -261,10 +408,12 @@ export default function MedicationPage() {
 
 function MedicationModal({ medication, authoriser, isGpPartner, onClose, onSave }) {
   const initialReference = referenceFromMedication(medication)
+  const initialTypicalOptions = buildTypicalDoseOptions(initialReference)
+  const initialTypicalMatch = initialTypicalOptions.find((option) => option.label.toLowerCase() === String(medication.dose || '').trim().toLowerCase())
   const [form, setForm] = useState({
     name: medication.name || '',
-    dose: medication.dose || '',
-    quantity: medication.quantity || '28 tablets',
+    dose: medication.dose || initialTypicalOptions[0]?.label || '',
+    quantity: medication.quantity || '',
     type: normaliseMedicationType(medication.type),
     authoriser,
     method: medication.method || 'Electronic R2',
@@ -284,11 +433,44 @@ function MedicationModal({ medication, authoriser, isGpPartner, onClose, onSave 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
+  const [dosageMode, setDosageMode] = useState(initialReference && (!medication.dose || initialTypicalMatch) ? 'typical' : 'custom')
+  const [selectedTypicalId, setSelectedTypicalId] = useState(initialTypicalMatch?.id || initialTypicalOptions[0]?.id || '')
+  const [strengthAmount, setStrengthAmount] = useState('')
+  const [strengthUnit, setStrengthUnit] = useState(initialTypicalMatch?.doseUnit || initialTypicalOptions[0]?.doseUnit || 'mg')
+  const [courseDurationDays, setCourseDurationDays] = useState('')
+  const [quantityMode, setQuantityMode] = useState(medication.quantity ? 'custom' : 'auto')
+  const [customQuantity, setCustomQuantity] = useState(medication.quantity || '')
+
   const isNew = !medication.id
   const set = (key, value) => setForm((current) => ({ ...current, [key]: value }))
   const reference = useMemo(() => form.catalogue_id ? medicationCatalogueEntryById(form.catalogue_id) : null, [form.catalogue_id])
   const results = useMemo(() => searchGpMedicationCatalogue(form.name, 14), [form.name])
   const specialist = Boolean(form.specialist_only || (reference && isSpecialistMedication(reference)))
+  const typicalOptions = useMemo(() => buildTypicalDoseOptions(reference), [reference])
+  const selectedTypical = useMemo(
+    () => typicalOptions.find((option) => option.id === selectedTypicalId) || typicalOptions[0] || null,
+    [typicalOptions, selectedTypicalId],
+  )
+  const automaticQuantitySupported = supportsAutomaticQuantity(reference?.form || form.form)
+  const quantityUnit = quantityUnitForForm(reference?.form || form.form)
+
+  const autoQuantity = useMemo(() => {
+    if (dosageMode !== 'typical' || quantityMode !== 'auto' || !automaticQuantitySupported || !selectedTypical?.calculable) return null
+    const doseFactor = doseUnitToMgFactor(selectedTypical.doseUnit)
+    const strengthFactor = doseUnitToMgFactor(strengthUnit)
+    const strength = Number(strengthAmount)
+    const duration = Number(courseDurationDays)
+    const frequency = Number(selectedTypical.frequencyPerDay)
+    if (!doseFactor || !strengthFactor || !Number.isFinite(strength) || strength <= 0 || !Number.isFinite(duration) || duration <= 0 || !Number.isFinite(frequency) || frequency <= 0) return null
+    const doseMg = Number(selectedTypical.doseAmount) * doseFactor
+    const strengthMg = strength * strengthFactor
+    if (!Number.isFinite(doseMg) || doseMg <= 0 || !Number.isFinite(strengthMg) || strengthMg <= 0) return null
+    const value = (doseMg / strengthMg) * frequency * duration
+    return Number.isFinite(value) && value > 0 ? value : null
+  }, [automaticQuantitySupported, courseDurationDays, dosageMode, quantityMode, selectedTypical, strengthAmount, strengthUnit])
+
+  const calculatedQuantityText = autoQuantity === null ? '' : `${formatCalculatedQuantity(autoQuantity)} ${quantityUnit}`
+  const effectiveQuantity = quantityMode === 'auto' ? calculatedQuantityText : customQuantity.trim()
 
   useEffect(() => {
     let active = true
@@ -298,15 +480,24 @@ function MedicationModal({ medication, authoriser, isGpPartner, onClose, onSave 
     return () => { active = false }
   }, [])
 
+  useEffect(() => {
+    if (dosageMode !== 'typical' || !selectedTypical) return
+    setForm((current) => current.dose === selectedTypical.label ? current : { ...current, dose: selectedTypical.label })
+  }, [dosageMode, selectedTypical])
+
   function pinDigits(setter) {
     return (event) => setter(event.target.value.replace(/\D/g, '').slice(0, 4))
   }
 
-  function selectReference(entry) {
+  function applyReference(entry) {
+    const options = buildTypicalDoseOptions(entry)
+    const first = options[0] || null
+    const autoSupported = supportsAutomaticQuantity(entry.form) && Boolean(first?.calculable)
     setForm((current) => ({
       ...current,
       name: entry.medicine,
-      dose: entry.usualDose || current.dose,
+      dose: first?.label || entry.usualDose || current.dose,
+      quantity: '',
       catalogue_id: entry.id,
       form: entry.form || '',
       indication: entry.indication || '',
@@ -314,13 +505,26 @@ function MedicationModal({ medication, authoriser, isGpPartner, onClose, onSave 
       reference_higher_dose: entry.higherDose || '',
       specialist_only: isSpecialistMedication(entry),
     }))
+    setDosageMode('typical')
+    setSelectedTypicalId(first?.id || '')
+    setStrengthAmount('')
+    setStrengthUnit(first?.doseUnit || 'mg')
+    setCourseDurationDays('')
+    setQuantityMode(autoSupported ? 'auto' : 'custom')
+    setCustomQuantity('')
     setSearchOpen(false)
+  }
+
+  function selectReference(entry) {
+    applyReference(entry)
   }
 
   function changeName(value) {
     setForm((current) => ({
       ...current,
       name: value,
+      dose: '',
+      quantity: '',
       catalogue_id: '',
       form: '',
       indication: '',
@@ -328,13 +532,65 @@ function MedicationModal({ medication, authoriser, isGpPartner, onClose, onSave 
       reference_higher_dose: '',
       specialist_only: false,
     }))
+    setDosageMode('typical')
+    setSelectedTypicalId('')
+    setStrengthAmount('')
+    setStrengthUnit('mg')
+    setCourseDurationDays('')
+    setQuantityMode('custom')
+    setCustomQuantity('')
     setSearchOpen(Boolean(value.trim()))
+  }
+
+  function chooseTypicalOption(id) {
+    const option = typicalOptions.find((entry) => entry.id === id) || typicalOptions[0] || null
+    setSelectedTypicalId(option?.id || '')
+    if (option) {
+      set('dose', option.label)
+      if (option.doseUnit) setStrengthUnit(option.doseUnit)
+    }
+    if (!option?.calculable || !automaticQuantitySupported) setQuantityMode('custom')
+  }
+
+  function useReferenceSource(sourceKey) {
+    const option = typicalOptions.find((entry) => entry.sourceKey === sourceKey)
+    if (!option) return
+    setDosageMode('typical')
+    chooseTypicalOption(option.id)
+  }
+
+  function switchDosageMode(mode) {
+    setDosageMode(mode)
+    setError('')
+    if (mode === 'typical') {
+      const option = selectedTypical || typicalOptions[0] || null
+      if (option) {
+        setSelectedTypicalId(option.id)
+        set('dose', option.label)
+        if (option.doseUnit) setStrengthUnit(option.doseUnit)
+        if (!option.calculable || !automaticQuantitySupported) setQuantityMode('custom')
+      }
+    } else {
+      setQuantityMode('custom')
+    }
   }
 
   async function authoriseAndSave() {
     setError('')
     if (!form.name.trim()) return setError('Search for and select a medication.')
     if (!form.catalogue_id) return setError('Select the medication from the GP medicines search results so RecordsWeb can use the supplied prescribing reference.')
+    if (!String(form.dose || '').trim()) return setError('Enter or select the prescribed dosage.')
+
+    if (quantityMode === 'auto') {
+      if (dosageMode !== 'typical' || !selectedTypical?.calculable) return setError('Automatic quantity needs a calculable typical dosage. Choose Custom quantity for this regimen.')
+      if (!automaticQuantitySupported) return setError('Automatic quantity is only available for tablet/capsule prescriptions. Choose Custom quantity for this formulation.')
+      if (!Number.isFinite(Number(strengthAmount)) || Number(strengthAmount) <= 0) return setError(`Enter the ${strengthLabelForForm(reference?.form || form.form).toLowerCase()}.`)
+      if (!Number.isFinite(Number(courseDurationDays)) || Number(courseDurationDays) <= 0) return setError('Enter the course duration in days.')
+      if (!calculatedQuantityText) return setError('RecordsWeb could not calculate the quantity from the selected dose, strength, frequency and duration.')
+    } else if (!customQuantity.trim()) {
+      return setError('Enter the custom quantity to supply.')
+    }
+
     if (specialist && !isGpPartner) return setError(SPECIALIST_WARNING)
     if (!/^\d{4}$/.test(pin)) return setError('Enter your 4-digit prescribing PIN.')
     if (pinConfigured === false && pin !== pinConfirm) return setError('The new prescribing PINs do not match.')
@@ -345,7 +601,7 @@ function MedicationModal({ medication, authoriser, isGpPartner, onClose, onSave 
         await setPrescribingPin({ newPin: pin })
         setPinConfigured(true)
       }
-      await onSave({ ...form, specialist_only: specialist }, pin)
+      await onSave({ ...form, quantity: effectiveQuantity, specialist_only: specialist }, pin)
     } catch (err) {
       setError(err.message || 'Unable to authorise this medication.')
       setSaving(false)
@@ -386,15 +642,81 @@ function MedicationModal({ medication, authoriser, isGpPartner, onClose, onSave 
             <div className="med-reference-grid">
               <div><span>Form</span><strong>{reference.form || '—'}</strong></div>
               <div><span>Common GP indication</span><strong>{reference.indication || '—'}</strong></div>
-              <button type="button" onClick={() => set('dose', reference.usualDose || '')}><span>Usual starting / usual dose</span><strong>{reference.usualDose || '—'}</strong><small>Use this dose</small></button>
-              <button type="button" onClick={() => set('dose', reference.higherDose || '')}><span>Higher / maintenance reference</span><strong>{reference.higherDose || '—'}</strong><small>Use this reference text</small></button>
+              <button type="button" onClick={() => useReferenceSource('usual')}><span>Usual starting / usual dose</span><strong>{reference.usualDose || '—'}</strong><small>Choose typical dosage</small></button>
+              <button type="button" onClick={() => useReferenceSource('higher')}><span>Higher / maintenance reference</span><strong>{reference.higherDose || '—'}</strong><small>{typicalOptions.some((entry) => entry.sourceKey === 'higher') ? 'Choose typical dosage' : 'Reference only'}</small></button>
             </div>
           </div>
         )}
 
+        <div className="med-dose-builder">
+          <div className="med-dose-builder-title">
+            <div><strong>Prescribed dosage & quantity</strong><span>Use a typical dose from the supplied reference, or enter a custom regimen and quantity.</span></div>
+            <div className="med-mode-toggle" role="group" aria-label="Dosage mode">
+              <button type="button" className={dosageMode === 'typical' ? 'active' : ''} onClick={() => switchDosageMode('typical')} disabled={!typicalOptions.length}>Typical dosage</button>
+              <button type="button" className={dosageMode === 'custom' ? 'active' : ''} onClick={() => switchDosageMode('custom')}>Custom dosage</button>
+            </div>
+          </div>
+
+          {dosageMode === 'typical' ? (
+            <div className="med-dose-builder-grid">
+              <label className="span-two">Typical prescribed dosage
+                <select value={selectedTypical?.id || ''} onChange={(event) => chooseTypicalOption(event.target.value)}>
+                  {typicalOptions.map((option) => <option key={option.id} value={option.id}>{option.label} · {option.sourceLabel}</option>)}
+                </select>
+                {selectedTypical?.sourceText && <small>Reference wording: {selectedTypical.sourceText}</small>}
+              </label>
+
+              <label>{strengthLabelForForm(reference?.form || form.form)}
+                <div className="med-strength-row">
+                  <input type="number" min="0" step="0.001" inputMode="decimal" value={strengthAmount} onChange={(event) => setStrengthAmount(event.target.value)} placeholder="e.g. 5"/>
+                  <select value={strengthUnit} onChange={(event) => setStrengthUnit(event.target.value)}><option value="micrograms">micrograms</option><option value="mg">mg</option><option value="g">g</option></select>
+                </div>
+                <small>Enter the strength of the actual tablet/capsule being issued; the GP MEDS reference does not define pack strength.</small>
+              </label>
+
+              <label>Frequency per day
+                <input value={selectedTypical?.frequencyPerDay ? `${selectedTypical.frequencyPerDay} (${DAILY_FREQUENCY_LABELS[selectedTypical.frequencyPerDay] || 'times daily'})` : 'Not available from reference'} readOnly aria-readonly="true"/>
+              </label>
+
+              <label>Course duration (days)
+                <input type="number" min="0.5" step="0.5" inputMode="decimal" value={courseDurationDays} onChange={(event) => setCourseDurationDays(event.target.value)} placeholder="e.g. 5"/>
+              </label>
+
+              <div className="med-quantity-mode-field">
+                <span>Quantity mode</span>
+                <div className="med-mode-toggle compact">
+                  <button type="button" className={quantityMode === 'auto' ? 'active' : ''} disabled={!automaticQuantitySupported || !selectedTypical?.calculable} onClick={() => setQuantityMode('auto')}>Auto-calculate</button>
+                  <button type="button" className={quantityMode === 'custom' ? 'active' : ''} onClick={() => setQuantityMode('custom')}>Custom quantity</button>
+                </div>
+              </div>
+
+              {quantityMode === 'auto' ? (
+                <div className="med-calculated-quantity span-two">
+                  <div><span>Calculated quantity</span><strong>{calculatedQuantityText || 'Enter strength and duration'}</strong></div>
+                  <small>Dose ÷ strength per tablet × frequency per day × course duration = quantity.</small>
+                  {!automaticQuantitySupported && <small>Automatic calculation is only enabled for tablet/capsule prescriptions.</small>}
+                  {selectedTypical && !selectedTypical.calculable && <small>This reference wording is not an exact calculable regimen; choose Custom quantity.</small>}
+                </div>
+              ) : (
+                <label className="span-two">Custom quantity
+                  <input value={customQuantity} onChange={(event) => setCustomQuantity(event.target.value)} placeholder={`e.g. 40 ${quantityUnit}`}/>
+                </label>
+              )}
+            </div>
+          ) : (
+            <div className="med-dose-builder-grid">
+              <label className="span-two">Custom prescribed dosage
+                <input value={form.dose} onChange={(event) => set('dose', event.target.value)} placeholder="Enter the authorised regimen exactly as prescribed"/>
+              </label>
+              <label className="span-two">Custom quantity
+                <input value={customQuantity} onChange={(event) => setCustomQuantity(event.target.value)} placeholder="Enter the quantity to supply, e.g. 40 tablets"/>
+              </label>
+              <div className="med-custom-dose-note span-two"><AlertTriangle size={15}/><span>Custom dosage and quantity bypass the automatic quantity calculation. The prescribing clinician is responsible for verifying the regimen and quantity.</span></div>
+            </div>
+          )}
+        </div>
+
         <div className="med-form-grid">
-          <label>Prescribed dosage<input value={form.dose} onChange={(event) => set('dose', event.target.value)} placeholder="Select a reference dose above or enter the authorised regimen"/></label>
-          <label>Quantity<input value={form.quantity} onChange={(event) => set('quantity', event.target.value)}/></label>
           <label>
             Medication group
             <select value={form.type} onChange={(event) => set('type', event.target.value)}>

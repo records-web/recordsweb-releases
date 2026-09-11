@@ -1,4 +1,4 @@
-# RecordsWeb 3.2.9
+# RecordsWeb 3.3.1
 
 RecordsWeb is an Electron + React desktop clinical-record platform. The same application can be bound to an approved organisation through its four-letter `@XX.XX` extension while preserving organisation-level data isolation.
 
@@ -386,3 +386,12 @@ RecordsWeb uses one product-owned visual identity across every organisation. Org
 ## RecordsWeb 3.2.3 — Roblox integration
 
 Community Management now includes a per-organisation Roblox integration for waiting-room patient-call displays. See `docs/RECORDSWEB-3.2.3-ROBLOX-INTEGRATION.md` and run `supabase/recordsweb-3.2.3-roblox-integration.sql` before deploying the two Roblox Edge Functions.
+
+## RecordsWeb 3.3.1 — dosage & quantity calculator
+
+- Typical prescribed dosage options are generated from the supplied GP MEDS reference.
+- Numeric dose ranges such as Prednisolone 30–40 mg once daily become selectable 30 mg and 40 mg typical options.
+- Tablet/capsule quantity can be calculated from dose ÷ strength × frequency/day × course duration.
+- Prescribers can switch to Custom dosage and Custom quantity at any time.
+- Pack/tablet strength is deliberately entered by the clinician because GP MEDS.pdf supplies reference doses, not medicine pack strengths.
+- No new database migration is required for 3.3.1; the final prescribed dosage and quantity continue to use the existing medication fields and PIN-authorised workflow.

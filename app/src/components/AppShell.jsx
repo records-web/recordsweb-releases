@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { CircleHelp, LogOut, Moon, Search, Settings, ShieldCheck, Sun, UserCog, UserRound } from 'lucide-react'
+import { CircleHelp, CreditCard, LogOut, Moon, Search, Settings, ShieldCheck, Sun, TriangleAlert, UserCog, UserRound } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { ORGANISATION } from '../lib/demoData'
@@ -38,6 +38,7 @@ export default function AppShell({ children }) {
   const [contentRevision, setContentRevision] = useState(0)
   const [patientPeers, setPatientPeers] = useState([])
   const [locked, setLocked] = useState(false)
+  const [billingAccess, setBillingAccessState] = useState(() => deriveBillingAccess({}))
   const lastActivityRef = useRef(Date.now())
   const lastPatientAuditRef = useRef('')
 

@@ -4219,3 +4219,68 @@ html.rw-dark-mode .problem-reference-selected,html.rw-dark-mode .problem-referen
 html.rw-dark-mode .problem-reference-selected strong { color:#d7e7ee; }
 html.rw-dark-mode .problem-reference-selected span { color:#9fb6c1; }
 html.rw-dark-mode .problem-reference-warning { background:#3a211f; border-color:#7b4540; color:#f0c4be; }
+
+/* RecordsWeb 3.3.1 — dosage builder and quantity calculator */
+.med-dose-builder { margin:12px; border:1px solid #b7ccd8; background:#f8fbfd; }
+.med-dose-builder-title { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 10px; border-bottom:1px solid #d4e1e8; background:#eef6fa; }
+.med-dose-builder-title > div:first-child { display:flex; flex-direction:column; gap:2px; }
+.med-dose-builder-title strong { color:#173f58; font-size:10px; }
+.med-dose-builder-title span { color:#718793; font-size:8px; }
+.med-mode-toggle { display:inline-flex; border:1px solid #8eb1c5; background:#fff; }
+.med-mode-toggle button { min-height:29px; border:0; border-right:1px solid #b9ced9; padding:0 10px; background:#fff; color:#345d75; font-size:8px; font-weight:700; cursor:pointer; }
+.med-mode-toggle button:last-child { border-right:0; }
+.med-mode-toggle button.active { background:#0f6fbd; color:#fff; }
+.med-mode-toggle button:disabled { cursor:not-allowed; opacity:.45; }
+.med-mode-toggle.compact { width:100%; }
+.med-mode-toggle.compact button { flex:1; }
+.med-dose-builder-grid { display:grid; grid-template-columns:1fr 1fr; gap:9px 10px; padding:10px; }
+.med-dose-builder-grid > label { display:flex; flex-direction:column; gap:4px; color:#3d5d70; font-size:9px; font-weight:600; }
+.med-dose-builder-grid > label > input,
+.med-dose-builder-grid > label > select,
+.med-strength-row input,
+.med-strength-row select { min-height:32px; border:1px solid #adc4d3; border-radius:0; padding:5px 7px; outline:none; background:#fff; color:#213f52; font-size:10px; }
+.med-dose-builder-grid > label > input:focus,
+.med-dose-builder-grid > label > select:focus,
+.med-strength-row input:focus,
+.med-strength-row select:focus { border-color:#4b9bce; box-shadow:inset 0 0 0 1px #b8e0f6; }
+.med-dose-builder-grid label small { color:#778b96; font-size:7.5px; font-weight:400; line-height:1.35; }
+.med-dose-builder-grid .span-two { grid-column:1 / -1; }
+.med-strength-row { display:grid; grid-template-columns:minmax(0,1fr) 130px; }
+.med-strength-row input { border-right:0; }
+.med-quantity-mode-field { display:flex; flex-direction:column; gap:4px; color:#3d5d70; font-size:9px; font-weight:600; }
+.med-calculated-quantity { border:1px solid #9fc9b3; background:#eff9f3; padding:9px 10px; display:flex; flex-direction:column; gap:4px; }
+.med-calculated-quantity > div { display:flex; justify-content:space-between; gap:16px; align-items:center; }
+.med-calculated-quantity span { color:#557367; font-size:8px; font-weight:700; text-transform:uppercase; letter-spacing:.03em; }
+.med-calculated-quantity strong { color:#155f3e; font-size:14px; }
+.med-calculated-quantity small { color:#557367; font-size:7.5px; line-height:1.35; }
+.med-custom-dose-note { display:flex; gap:7px; align-items:flex-start; border:1px solid #d8be7b; background:#fff8e7; padding:8px 9px; color:#725719; font-size:8px; line-height:1.4; }
+.med-custom-dose-note svg { flex:0 0 auto; margin-top:1px; }
+
+html.rw-dark-mode .med-dose-builder { background:#10232c; border-color:#3d5a68; }
+html.rw-dark-mode .med-dose-builder-title { background:#17323e; border-color:#314d5a; }
+html.rw-dark-mode .med-dose-builder-title strong { color:#e2edf2; }
+html.rw-dark-mode .med-dose-builder-title span { color:#9db2bd; }
+html.rw-dark-mode .med-mode-toggle { background:#10232c; border-color:#426273; }
+html.rw-dark-mode .med-mode-toggle button { background:#10232c; color:#c9dce5; border-color:#365462; }
+html.rw-dark-mode .med-mode-toggle button.active { background:#0f6fbd; color:#fff; }
+html.rw-dark-mode .med-dose-builder-grid > label { color:#aac0cb; }
+html.rw-dark-mode .med-dose-builder-grid > label > input,
+html.rw-dark-mode .med-dose-builder-grid > label > select,
+html.rw-dark-mode .med-strength-row input,
+html.rw-dark-mode .med-strength-row select { background:#0d1c23; color:#e2edf2; border-color:#3c5a68; }
+html.rw-dark-mode .med-dose-builder-grid label small { color:#8da6b2; }
+html.rw-dark-mode .med-quantity-mode-field { color:#aac0cb; }
+html.rw-dark-mode .med-calculated-quantity { background:#102b20; border-color:#2f704d; }
+html.rw-dark-mode .med-calculated-quantity span,
+html.rw-dark-mode .med-calculated-quantity small { color:#9bc7aa; }
+html.rw-dark-mode .med-calculated-quantity strong { color:#8ee0ac; }
+html.rw-dark-mode .med-custom-dose-note { background:#302815; border-color:#78662e; color:#e4d28f; }
+
+@media (max-width:760px) {
+  .med-dose-builder-title { align-items:stretch; flex-direction:column; }
+  .med-mode-toggle { width:100%; }
+  .med-mode-toggle button { flex:1; }
+  .med-dose-builder-grid { grid-template-columns:1fr; }
+  .med-dose-builder-grid .span-two { grid-column:1; }
+}
+
