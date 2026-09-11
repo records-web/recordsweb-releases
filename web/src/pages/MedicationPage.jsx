@@ -64,6 +64,21 @@ const DAILY_FREQUENCY_LABELS = {
   4: 'four times daily',
 }
 
+function frequencyLabelFromNumber(value) {
+  const frequency = Number(value)
+  if (!Number.isInteger(frequency) || frequency <= 0) return ''
+  return DAILY_FREQUENCY_LABELS[frequency] || `${frequency} times daily`
+}
+
+function prescribedTypicalLabel(option, frequencyPerDay) {
+  if (!option) return ''
+  if (!option.calculable || !option.doseAmount || !option.doseUnit) return option.label || ''
+  const frequencyLabel = frequencyLabelFromNumber(frequencyPerDay || option.frequencyPerDay)
+  return frequencyLabel
+    ? `${option.doseAmount} ${option.doseUnit} ${frequencyLabel}`
+    : option.label || ''
+}
+
 function normaliseDoseUnit(unit = '') {
   const value = String(unit || '').trim().toLowerCase()
   if (value === 'mcg' || value === 'microgram' || value === 'micrograms') return 'micrograms'
@@ -437,6 +452,7 @@ function MedicationModal({ medication, authoriser, isGpPartner, onClose, onSave 
   const [selectedTypicalId, setSelectedTypicalId] = useState(initialTypicalMatch?.id || initialTypicalOptions[0]?.id || '')
   const [strengthAmount, setStrengthAmount] = useState('')
   const [strengthUnit, setStrengthUnit] = useState(initialTypicalMatch?.doseUnit || initialTypicalOptions[0]?.doseUnit || 'mg')
+  const [frequencyPerDay, setFrequencyPerDay] = useState(String(initialTypicalMatch?.frequencyPerDay || initialTypicalOptions[0]?.frequencyPerDay || ''))
   const [courseDurationDays, setCourseDurationDays] = useState('')
   const [quantityMode, setQuantityMode] = useState(medication.quantity ? 'custom' : 'auto')
   const [customQuantity, setCustomQuantity] = useState(medication.quantity || '')
@@ -460,14 +476,14 @@ function MedicationModal({ medication, authoriser, isGpPartner, onClose, onSave 
     const strengthFactor = doseUnitToMgFactor(strengthUnit)
     const strength = Number(strengthAmount)
     const duration = Number(courseDurationDays)
-    const frequency = Number(selectedTypical.frequencyPerDay)
+    const frequency = Number(frequencyPerDay)
     if (!doseFactor || !strengthFactor || !Number.isFinite(strength) || strength <= 0 || !Number.isFinite(duration) || duration <= 0 || !Number.isFinite(frequency) || frequency <= 0) return null
     const doseMg = Number(selectedTypical.doseAmount) * doseFactor
     const strengthMg = strength * strengthFactor
     if (!Number.isFinite(doseMg) || doseMg <= 0 || !Number.isFinite(strengthMg) || strengthMg <= 0) return null
     const value = (doseMg / strengthMg) * frequency * duration
     return Number.isFinite(value) && value > 0 ? value : null
-  }, [automaticQuantitySupported, courseDurationDays, dosageMode, quantityMode, selectedTypical, strengthAmount, strengthUnit])
+  }, [automaticQuantitySupported, courseDurationDays, dosageMode, frequencyPerDay, quantityMode, selectedTypical, strengthAmount, strengthUnit])
 
   const calculatedQuantityText = autoQuantity === null ? '' : `${formatCalculatedQuantity(autoQuantity)} ${quantityUnit}`
   const effectiveQuantity = quantityMode === 'auto' ? calculatedQuantityText : customQuantity.trim()
@@ -482,8 +498,10 @@ function MedicationModal({ medication, authoriser, isGpPartner, onClose, onSave 
 
   useEffect(() => {
     if (dosageMode !== 'typical' || !selectedTypical) return
-    setForm((current) => current.dose === selectedTypical.label ? current : { ...current, dose: selectedTypical.label })
-  }, [dosageMode, selectedTypical])
+    const prescribedDose = prescribedTypicalLabel(selectedTypical, frequencyPerDay)
+    if (!prescribedDose) return
+    setForm((current) => current.dose === prescribedDose ? current : { ...current, dose: prescribedDose })
+  }, [dosageMode, frequencyPerDay, selectedTypical])
 
   function pinDigits(setter) {
     return (event) => setter(event.target.value.replace(/\D/g, '').slice(0, 4))
@@ -509,6 +527,7 @@ function MedicationModal({ medication, authoriser, isGpPartner, onClose, onSave 
     setSelectedTypicalId(first?.id || '')
     setStrengthAmount('')
     setStrengthUnit(first?.doseUnit || 'mg')
+    setFrequencyPerDay(first?.frequencyPerDay ? String(first.frequencyPerDay) : '')
     setCourseDurationDays('')
     setQuantityMode(autoSupported ? 'auto' : 'custom')
     setCustomQuantity('')
@@ -536,6 +555,7 @@ function MedicationModal({ medication, authoriser, isGpPartner, onClose, onSave 
     setSelectedTypicalId('')
     setStrengthAmount('')
     setStrengthUnit('mg')
+    setFrequencyPerDay('')
     setCourseDurationDays('')
     setQuantityMode('custom')
     setCustomQuantity('')
@@ -546,7 +566,9 @@ function MedicationModal({ medication, authoriser, isGpPartner, onClose, onSave 
     const option = typicalOptions.find((entry) => entry.id === id) || typicalOptions[0] || null
     setSelectedTypicalId(option?.id || '')
     if (option) {
-      set('dose', option.label)
+      const nextFrequency = option.frequencyPerDay ? String(option.frequencyPerDay) : ''
+      setFrequencyPerDay(nextFrequency)
+      set('dose', prescribedTypicalLabel(option, nextFrequency))
       if (option.doseUnit) setStrengthUnit(option.doseUnit)
     }
     if (!option?.calculable || !automaticQuantitySupported) setQuantityMode('custom')
@@ -566,7 +588,9 @@ function MedicationModal({ medication, authoriser, isGpPartner, onClose, onSave 
       const option = selectedTypical || typicalOptions[0] || null
       if (option) {
         setSelectedTypicalId(option.id)
-        set('dose', option.label)
+        const nextFrequency = option.frequencyPerDay ? String(option.frequencyPerDay) : ''
+        setFrequencyPerDay(nextFrequency)
+        set('dose', prescribedTypicalLabel(option, nextFrequency))
         if (option.doseUnit) setStrengthUnit(option.doseUnit)
         if (!option.calculable || !automaticQuantitySupported) setQuantityMode('custom')
       }
@@ -585,6 +609,7 @@ function MedicationModal({ medication, authoriser, isGpPartner, onClose, onSave 
       if (dosageMode !== 'typical' || !selectedTypical?.calculable) return setError('Automatic quantity needs a calculable typical dosage. Choose Custom quantity for this regimen.')
       if (!automaticQuantitySupported) return setError('Automatic quantity is only available for tablet/capsule prescriptions. Choose Custom quantity for this formulation.')
       if (!Number.isFinite(Number(strengthAmount)) || Number(strengthAmount) <= 0) return setError(`Enter the ${strengthLabelForForm(reference?.form || form.form).toLowerCase()}.`)
+      if (!Number.isInteger(Number(frequencyPerDay)) || Number(frequencyPerDay) < 1 || Number(frequencyPerDay) > 24) return setError('Enter a whole-number frequency per day between 1 and 24.')
       if (!Number.isFinite(Number(courseDurationDays)) || Number(courseDurationDays) <= 0) return setError('Enter the course duration in days.')
       if (!calculatedQuantityText) return setError('RecordsWeb could not calculate the quantity from the selected dose, strength, frequency and duration.')
     } else if (!customQuantity.trim()) {
@@ -674,8 +699,18 @@ function MedicationModal({ medication, authoriser, isGpPartner, onClose, onSave 
                 <small>Enter the strength of the actual tablet/capsule being issued; the GP MEDS reference does not define pack strength.</small>
               </label>
 
-              <label>Frequency per day
-                <input value={selectedTypical?.frequencyPerDay ? `${selectedTypical.frequencyPerDay} (${DAILY_FREQUENCY_LABELS[selectedTypical.frequencyPerDay] || 'times daily'})` : 'Not available from reference'} readOnly aria-readonly="true"/>
+              <label>Frequency per day (ONLY CHANGE THE NUMBER)
+                <input
+                  type="number"
+                  min="1"
+                  max="24"
+                  step="1"
+                  inputMode="numeric"
+                  value={frequencyPerDay}
+                  onChange={(event) => setFrequencyPerDay(event.target.value.replace(/\D/g, '').slice(0, 2))}
+                  placeholder="e.g. 4"
+                />
+                <small>{frequencyLabelFromNumber(frequencyPerDay) || 'Enter the number of doses per day.'} · Only change the number.</small>
               </label>
 
               <label>Course duration (days)

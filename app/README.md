@@ -1,6 +1,14 @@
-# RecordsWeb 3.3.1
+# RecordsWeb 3.3.2
 
 RecordsWeb is an Electron + React desktop clinical-record platform. The same application can be bound to an approved organisation through its four-letter `@XX.XX` extension while preserving organisation-level data isolation.
+
+
+## RecordsWeb 3.3.2 — dosage frequency & quantity
+
+- Typical dosage frequency is now an editable numeric field labelled **Frequency per day (ONLY CHANGE THE NUMBER)**.
+- Changing frequency updates the prescribed regimen and the automatic tablet/capsule quantity calculation.
+- Course duration remains editable, so 5-day, 7-day and other authorised courses calculate correctly.
+- Example: 500 mg dose ÷ 500 mg capsule × 4 times/day × 7 days = **28 capsules**.
 
 ## RecordsWeb 3.2.9 — current update
 
@@ -387,11 +395,11 @@ RecordsWeb uses one product-owned visual identity across every organisation. Org
 
 Community Management now includes a per-organisation Roblox integration for waiting-room patient-call displays. See `docs/RECORDSWEB-3.2.3-ROBLOX-INTEGRATION.md` and run `supabase/recordsweb-3.2.3-roblox-integration.sql` before deploying the two Roblox Edge Functions.
 
-## RecordsWeb 3.3.1 — dosage & quantity calculator
+## RecordsWeb 3.3.2 — dosage & quantity calculator
 
 - Typical prescribed dosage options are generated from the supplied GP MEDS reference.
 - Numeric dose ranges such as Prednisolone 30–40 mg once daily become selectable 30 mg and 40 mg typical options.
 - Tablet/capsule quantity can be calculated from dose ÷ strength × frequency/day × course duration.
 - Prescribers can switch to Custom dosage and Custom quantity at any time.
 - Pack/tablet strength is deliberately entered by the clinician because GP MEDS.pdf supplies reference doses, not medicine pack strengths.
-- No new database migration is required for 3.3.1; the final prescribed dosage and quantity continue to use the existing medication fields and PIN-authorised workflow.
+- No new database migration is required for 3.3.2; the final prescribed dosage and quantity continue to use the existing medication fields and PIN-authorised workflow.

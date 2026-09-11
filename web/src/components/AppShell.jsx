@@ -81,11 +81,9 @@ export default function AppShell({ children }) {
 
     refreshBillingAccess()
     const timer = window.setInterval(refreshBillingAccess, 60000)
-    window.addEventListener('focus', refreshBillingAccess)
     return () => {
       live = false
       window.clearInterval(timer)
-      window.removeEventListener('focus', refreshBillingAccess)
     }
   }, [session?.profile?.organisation_id, session?.profile?.organisations?.id])
 

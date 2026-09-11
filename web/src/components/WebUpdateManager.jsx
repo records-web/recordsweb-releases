@@ -2,14 +2,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { RefreshCcw, ShieldAlert } from 'lucide-react'
 import { useLocation } from 'react-router-dom'
 import { APP_VERSION } from '../lib/webRuntime'
-import { checkForWebUpdate, RELEASE_CHANNEL, UPDATE_CHECK_SECONDS, UPDATE_GRACE_SECONDS } from '../lib/releaseService'
+import { checkForWebUpdate, RELEASE_CHANNEL, UPDATE_CHECK_SECONDS } from '../lib/releaseService'
 import { supabaseConfigured } from '../lib/supabase'
-
-function formatCountdown(totalSeconds) {
-  const seconds = Math.max(0, Number(totalSeconds || 0))
-  const minutes = Math.floor(seconds / 60)
-  return `${String(minutes).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`
-}
 
 function buildRefreshUrl(version) {
   const url = new URL(window.location.href)
@@ -20,9 +14,7 @@ function buildRefreshUrl(version) {
 export default function WebUpdateManager() {
   const location = useLocation()
   const [release, setRelease] = useState(null)
-  const [secondsLeft, setSecondsLeft] = useState(UPDATE_GRACE_SECONDS)
   const [safetyRevision, setSafetyRevision] = useState(0)
-  const [pageVisible, setPageVisible] = useState(() => typeof document === 'undefined' || !document.hidden)
   const dirtyRootsRef = useRef(new Set())
   const refreshStartedRef = useRef(false)
 
@@ -71,7 +63,6 @@ export default function WebUpdateManager() {
         if (!active) return
         if (found) {
           setRelease((current) => {
-            if (!current || current.version !== found.version) setSecondsLeft(UPDATE_GRACE_SECONDS)
             return found
           })
         }
@@ -91,12 +82,6 @@ export default function WebUpdateManager() {
       window.clearInterval(timer)
       window.removeEventListener('online', onOnline)
     }
-  }, [])
-
-  useEffect(() => {
-    const syncVisibility = () => setPageVisible(!document.hidden)
-    document.addEventListener('visibilitychange', syncVisibility)
-    return () => document.removeEventListener('visibilitychange', syncVisibility)
   }, [])
 
   useEffect(() => {
@@ -125,24 +110,6 @@ export default function WebUpdateManager() {
     }
   }, [location.pathname])
 
-  useEffect(() => {
-    if (!release || updateBlocked || !pageVisible || refreshStartedRef.current) return undefined
-    const timer = window.setInterval(() => {
-      // Browsers can briefly deliver a timer tick while processing the
-      // visibilitychange event. Never consume countdown time in that case.
-      if (typeof document !== 'undefined' && document.hidden) return
-      setSecondsLeft((current) => {
-        if (current <= 1) {
-          window.clearInterval(timer)
-          window.setTimeout(() => refreshIntoUpdate(false), 0)
-          return 0
-        }
-        return current - 1
-      })
-    }, 1000)
-    return () => window.clearInterval(timer)
-  }, [release, updateBlocked, pageVisible, refreshIntoUpdate])
-
   if (!release) return null
 
   return (
@@ -153,9 +120,9 @@ export default function WebUpdateManager() {
         <span>Version {release.version} is available. You are using {APP_VERSION}.</span>
         {release.release_notes && <small>{release.release_notes}</small>}
         {updateBlocked ? (
-          <em>Automatic refresh is paused while you have unsaved work open.</em>
+          <em>You have unsaved work open. RecordsWeb will not refresh automatically.</em>
         ) : (
-          <em>RecordsWeb will refresh automatically in {formatCountdown(secondsLeft)}.</em>
+          <em>RecordsWeb will not refresh automatically while you are working. Refresh manually when you are ready.</em>
         )}
       </div>
       <button type="button" className="web-update-refresh" onClick={() => refreshIntoUpdate(true)}>
