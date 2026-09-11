@@ -1,13 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import { Save } from 'lucide-react'
+import { Pill, Plus, Save } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import PatientHeader from '../components/PatientHeader'
 import ProblemReferenceInput from '../components/ProblemReferenceInput'
 import ClinicalToolbar from '../components/ClinicalToolbar'
-import { createConsultation, getPatient, listForPatient } from '../lib/dataService'
+import { createConsultation, createMedication, getPatient, listForPatient } from '../lib/dataService'
 import { useAuth } from '../contexts/AuthContext'
 import { CONSULTATION_TEMPLATE } from '../lib/consultationTemplate'
 import { findProblemReferenceByName } from '../lib/gpProblemCatalogue'
+import { MedicationModal } from './MedicationPage'
 
 function normalizeDraftEntries(entries = {}) {
   const next = { ...entries }
@@ -26,10 +27,14 @@ export default function NewConsultationPage() {
   const [selectedProblemId, setSelectedProblemId] = useState('')
   const [newProblemReference, setNewProblemReference] = useState(null)
   const [entryTexts, setEntryTexts] = useState({})
+  const [consultationMedications, setConsultationMedications] = useState([])
+  const [addingMedication, setAddingMedication] = useState(false)
   const [location, setLocation] = useState('GP Surgery')
   const [activeSection, setActiveSection] = useState('Problem')
   const sectionRefs = useRef({})
   const profile = session?.profile || {}
+  const profileRoles = Array.isArray(profile.roles) ? profile.roles : []
+  const isGpPartner = profile.role === 'GP Partner' || profileRoles.includes('GP Partner')
   const clinician = [profile.title, profile.first_name, profile.last_name].filter(Boolean).join(' ').trim() || profile.display_name || profile.username || 'Current clinician'
   const draftKey = `recordsweb-consultation-draft:${session?.user?.id || 'user'}:${patientId}`
   const [saving, setSaving] = useState(false)
@@ -50,6 +55,7 @@ export default function NewConsultationPage() {
           setEntryTexts(normalizeDraftEntries(draft.entryTexts || {}))
           setSelectedProblemId(draft.selectedProblemId || '')
           setNewProblemReference(draft.newProblemReference || null)
+          setConsultationMedications(Array.isArray(draft.consultationMedications) ? draft.consultationMedications : [])
           setLocation(draft.location || 'GP Surgery')
           setActiveSection(CONSULTATION_TEMPLATE.includes(draft.activeSection) ? draft.activeSection : 'Problem')
         }
@@ -58,26 +64,26 @@ export default function NewConsultationPage() {
   }, [patientId, draftKey])
 
   useEffect(() => {
-    const dirty = Object.values(entryTexts).some((value) => String(value || '').trim())
+    const dirty = Object.values(entryTexts).some((value) => String(value || '').trim()) || consultationMedications.length > 0
     if (!dirty && !selectedProblemId) return
-    const draft = { entryTexts, selectedProblemId, newProblemReference, location, activeSection, savedAt: new Date().toISOString() }
+    const draft = { entryTexts, selectedProblemId, newProblemReference, consultationMedications, location, activeSection, savedAt: new Date().toISOString() }
     localStorage.setItem(draftKey, JSON.stringify(draft))
-  }, [entryTexts, selectedProblemId, newProblemReference, location, activeSection, draftKey])
+  }, [entryTexts, selectedProblemId, newProblemReference, consultationMedications, location, activeSection, draftKey])
 
   useEffect(() => {
     const warn = (event) => {
-      const dirty = Object.values(entryTexts).some((value) => String(value || '').trim())
+      const dirty = Object.values(entryTexts).some((value) => String(value || '').trim()) || consultationMedications.length > 0
       if (!dirty) return
       event.preventDefault()
       event.returnValue = ''
     }
     window.addEventListener('beforeunload', warn)
     return () => window.removeEventListener('beforeunload', warn)
-  }, [entryTexts])
+  }, [entryTexts, consultationMedications])
 
   useEffect(() => {
     const guardLinks = (event) => {
-      const dirty = Object.values(entryTexts).some((value) => String(value || '').trim())
+      const dirty = Object.values(entryTexts).some((value) => String(value || '').trim()) || consultationMedications.length > 0
       if (!dirty) return
       const link = event.target instanceof Element ? event.target.closest('a[href]') : null
       if (!link) return
@@ -88,10 +94,13 @@ export default function NewConsultationPage() {
     }
     document.addEventListener('click', guardLinks, true)
     return () => document.removeEventListener('click', guardLinks, true)
-  }, [entryTexts])
+  }, [entryTexts, consultationMedications])
 
   const selectedProblem = useMemo(() => problems.find((problem) => problem.id === selectedProblemId) || null, [problems, selectedProblemId])
-  const completedEntries = useMemo(() => CONSULTATION_TEMPLATE.filter((type) => String(entryTexts[type] || '').trim()), [entryTexts])
+  const completedEntries = useMemo(() => CONSULTATION_TEMPLATE.filter((type) => {
+    if (type === 'Medication' && consultationMedications.length > 0) return true
+    return Boolean(String(entryTexts[type] || '').trim())
+  }), [entryTexts, consultationMedications])
 
   function chooseProblem(problemId) {
     setSelectedProblemId(problemId)
@@ -131,9 +140,34 @@ export default function NewConsultationPage() {
     window.setTimeout(() => sectionRefs.current[section]?.querySelector('textarea')?.focus(), 220)
   }
 
+  function medicationSummaryLine(medication) {
+    const name = String(medication?.name || 'Medication').trim()
+    const dose = String(medication?.dose || '').trim()
+    const quantity = String(medication?.quantity || '').trim()
+    return [name, dose, quantity ? `Qty ${quantity}` : ''].filter(Boolean).join(' — ')
+  }
+
+  async function prescribeFromConsultation(payload, pin) {
+    const saved = await createMedication(patientId, { ...payload, authoriser: clinician }, pin)
+    const medication = saved || { ...payload, authoriser: clinician, id: `local-${Date.now()}` }
+    setConsultationMedications((current) => {
+      if (medication?.id && current.some((row) => row.id === medication.id)) return current
+      return [...current, medication]
+    })
+    setAddingMedication(false)
+    return medication
+  }
+
   async function save() {
+    const medicationLines = consultationMedications.map(medicationSummaryLine).filter(Boolean)
     const entries = CONSULTATION_TEMPLATE
-      .map((type) => ({ type, text: String(entryTexts[type] || '').trim() }))
+      .map((type) => {
+        const typedText = String(entryTexts[type] || '').trim()
+        if (type !== 'Medication' || medicationLines.length === 0) return { type, text: typedText }
+        const prescribedText = `Prescribed during consultation:
+${medicationLines.map((line) => `- ${line}`).join('\n')}`
+        return { type, text: [typedText, prescribedText].filter(Boolean).join('\n\n') }
+      })
       .filter((entry) => entry.text)
     if (!entries.length) return
 
@@ -176,7 +210,7 @@ export default function NewConsultationPage() {
         { label: 'Next problem', icon: 'consult', onClick: () => jumpTo('Problem') },
         { label: 'Online visibility', icon: 'info', groupStart: true },
         { label: 'Book appointment', icon: 'appointment', groupStart: true, onClick: () => navigate(`/appointments?patient=${patientId}`) },
-        { label: 'Medication review', icon: 'medication', onClick: () => navigate(`/patients/${patientId}/medication`) },
+        { label: 'Add medication', icon: 'medication', onClick: () => { setActiveSection('Medication'); setAddingMedication(true) } },
         { label: 'Add fit note', icon: 'add', onClick: () => navigate(`/patients/${patientId}/documents?fitnote=1`) },
       ]} />
       <PatientHeader patient={patient} />
@@ -188,7 +222,7 @@ export default function NewConsultationPage() {
           {CONSULTATION_TEMPLATE.map((name) => (
             <button key={name} className={activeSection === name ? 'active' : ''} onClick={() => jumpTo(name)}>
               <span>{name}</span>
-              {String(entryTexts[name] || '').trim() && <em className="consult-entry-saved-dot" title={`${name} contains text`}>•</em>}
+              {(String(entryTexts[name] || '').trim() || (name === 'Medication' && consultationMedications.length > 0)) && <em className="consult-entry-saved-dot" title={`${name} contains text`}>•</em>}
             </button>
           ))}
         </aside>
@@ -245,7 +279,26 @@ export default function NewConsultationPage() {
                       <button type="button" onClick={() => navigate(`/patients/${patientId}/documents?fitnote=1`)}>Create fit note</button>
                     </div>
                   )}
-                  {section === 'Medication' && <div className="clinical-entry-hint">Use the Medication record to prescribe or alter medicines. Prescribing continues to require the clinician's 4-digit PIN.</div>}
+                  {section === 'Medication' && (
+                    <div className="consult-medication-workflow">
+                      <div className="clinical-entry-actions consult-medication-actions">
+                        <button type="button" className="consult-add-medication-button" onClick={() => setAddingMedication(true)}><Plus size={13}/> Add medication</button>
+                        <button type="button" onClick={() => navigate(`/patients/${patientId}/medication`)}><Pill size={13}/> Open medication record</button>
+                      </div>
+                      <div className="clinical-entry-hint">Prescribing here uses the same GP medicines search, dosage/quantity calculator, specialist controls and 4-digit prescribing PIN as the patient Medication record. Once authorised, the drug is added to the patient's medication record immediately.</div>
+                      {consultationMedications.length > 0 && (
+                        <div className="consult-medication-list">
+                          <strong>Prescribed during this consultation</strong>
+                          {consultationMedications.map((medication, index) => (
+                            <div className="consult-medication-item" key={medication.id || `${medication.name}-${index}`}>
+                              <Pill size={14}/>
+                              <span><b>{medication.name}</b><small>{medication.dose || 'Dose not entered'}{medication.quantity ? ` · ${medication.quantity}` : ''}</small></span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               </section>
             ))}
@@ -253,7 +306,7 @@ export default function NewConsultationPage() {
             <div className="clinical-template-endbar">
               <span>{completedEntries.length} of {CONSULTATION_TEMPLATE.length} sections contain entries</span>
               <button className="primary-button" onClick={save} disabled={saving || completedEntries.length === 0}><Save size={15} /> {saving ? 'Saving…' : 'Save consultation'}</button>
-              <button className="secondary-button" onClick={() => { const dirty = Object.values(entryTexts).some((value) => String(value || '').trim()); if (!dirty || window.confirm('Leave this consultation? Your autosaved draft will be kept.')) navigate(`/patients/${patientId}/consultations`) }}>Cancel</button>
+              <button className="secondary-button" onClick={() => { const dirty = Object.values(entryTexts).some((value) => String(value || '').trim()) || consultationMedications.length > 0; const message = consultationMedications.length > 0 ? 'Leave this consultation? Your autosaved consultation draft will be kept. Medication already authorised here remains on the patient medication record.' : 'Leave this consultation? Your autosaved draft will be kept.'; if (!dirty || window.confirm(message)) navigate(`/patients/${patientId}/consultations`) }}>Cancel</button>
             </div>
 
             <section className="recent-preview clinical-latest-contacts">
@@ -268,9 +321,20 @@ export default function NewConsultationPage() {
           <h3>Summary</h3>
           <div className="side-block"><strong>Diary</strong><span>Overdue tasks</span><span>Test request awaiting sample</span></div>
           <div className="side-block"><strong>Problems</strong><span>Active problems</span><span>{problems.length ? `${problems.length} recorded` : 'No active problems recorded'}</span></div>
-          <div className="side-block"><strong>Consultation template</strong>{CONSULTATION_TEMPLATE.map((section) => <span key={section}>{String(entryTexts[section] || '').trim() ? '✓' : '○'} {section}</span>)}</div>
+          <div className="side-block"><strong>Consultation template</strong>{CONSULTATION_TEMPLATE.map((section) => <span key={section}>{(String(entryTexts[section] || '').trim() || (section === 'Medication' && consultationMedications.length > 0)) ? '✓' : '○'} {section}</span>)}</div>
         </aside>
       </div>
+
+      {addingMedication && (
+        <MedicationModal
+          medication={{ type: 'Acute Meds' }}
+          authoriser={clinician}
+          isGpPartner={isGpPartner}
+          contextLabel="Consultation medication"
+          onClose={() => setAddingMedication(false)}
+          onSave={prescribeFromConsultation}
+        />
+      )}
     </div>
   )
 }

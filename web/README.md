@@ -1,12 +1,20 @@
 # RecordsWeb Web
 
-**Version:** 3.3.2  
+**Version:** 3.3.3  
 **Runtime:** Browser / Vite / React  
 **Deployment:** Multi-organisation
 
 RecordsWeb Web is the browser-hosted version of the RecordsWeb clinical records platform. It keeps the existing RecordsWeb desktop visual language and clinical workflow while supporting multiple approved organisations through an `@XX.XX` organisation extension.
 
-## RecordsWeb 3.3.2 — dosage frequency & quantity
+## RecordsWeb 3.3.3 — consultation medication prescribing
+
+- The **Medication** section of an open consultation now has **Add medication** and opens the same prescribing workflow as the patient Medication record.
+- Authorised drugs are added to the patient medication record immediately and are summarised into the consultation when it is saved.
+- Specialist-drug authorisation, prescribing PIN, medicine search, typical/custom dosage, editable frequency, course duration and quantity calculation are reused unchanged.
+- When automatic quantity cannot safely be calculated from the supplied reference, RecordsWeb now explains why and directs the prescriber to Custom quantity/Custom dosage instead of leaving an unexplained disabled control.
+- No new SQL migration is required for 3.3.3.
+
+## RecordsWeb 3.3.3 — dosage frequency & quantity
 
 - Typical dosage frequency is now an editable numeric field labelled **Frequency per day (ONLY CHANGE THE NUMBER)**.
 - Changing frequency updates the prescribed regimen and the automatic tablet/capsule quantity calculation.
@@ -14,7 +22,7 @@ RecordsWeb Web is the browser-hosted version of the RecordsWeb clinical records 
 - Example: 500 mg dose ÷ 500 mg capsule × 4 times/day × 7 days = **28 capsules**.
 - Website tab switching no longer triggers a focus billing refresh, and detected web updates no longer auto-reload the page; updates are manual to protect unsaved typed text.
 
-## RecordsWeb 3.3.2 — problems & platform access
+## RecordsWeb 3.3.3 — problems & platform access
 
 - Search-as-you-type GP problem reference lookup in Problems and New Consultation.
 - Supplied problem descriptions and Minor/Severe reference classification are shown when a catalogue result is selected.
@@ -81,11 +89,11 @@ Website Platform Management can create, edit, enable/disable communities and man
 
 Community Management now includes a per-organisation Roblox integration for waiting-room patient-call displays. See `docs/RECORDSWEB-3.2.3-ROBLOX-INTEGRATION.md` and run `supabase/recordsweb-3.2.3-roblox-integration.sql` before deploying the two Roblox Edge Functions.
 
-## RecordsWeb 3.3.2 — dosage & quantity calculator
+## RecordsWeb 3.3.3 — dosage & quantity calculator
 
 - Typical prescribed dosage options are generated from the supplied GP MEDS reference.
 - Numeric dose ranges such as Prednisolone 30–40 mg once daily become selectable 30 mg and 40 mg typical options.
 - Tablet/capsule quantity can be calculated from dose ÷ strength × frequency/day × course duration.
 - Prescribers can switch to Custom dosage and Custom quantity at any time.
 - Pack/tablet strength is deliberately entered by the clinician because GP MEDS.pdf supplies reference doses, not medicine pack strengths.
-- No new database migration is required for 3.3.2; the final prescribed dosage and quantity continue to use the existing medication fields and PIN-authorised workflow.
+- No new database migration is required for 3.3.3; the final prescribed dosage and quantity continue to use the existing medication fields and PIN-authorised workflow.

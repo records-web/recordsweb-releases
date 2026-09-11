@@ -2,7 +2,7 @@
   "name": "recordsweb",
   "productName": "RecordsWeb",
   "private": true,
-  "version": "3.3.2",
+  "version": "3.3.3",
   "description": "RecordsWeb desktop clinical records platform",
   "main": "electron/main.cjs",
   "type": "module",

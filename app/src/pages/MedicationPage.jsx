@@ -421,7 +421,7 @@ export default function MedicationPage() {
   )
 }
 
-function MedicationModal({ medication, authoriser, isGpPartner, onClose, onSave }) {
+export function MedicationModal({ medication, authoriser, isGpPartner, onClose, onSave, contextLabel = 'Medication record' }) {
   const initialReference = referenceFromMedication(medication)
   const initialTypicalOptions = buildTypicalDoseOptions(initialReference)
   const initialTypicalMatch = initialTypicalOptions.find((option) => option.label.toLowerCase() === String(medication.dose || '').trim().toLowerCase())
@@ -642,7 +642,7 @@ function MedicationModal({ medication, authoriser, isGpPartner, onClose, onSave 
           <div><strong>{isNew ? 'Add a drug' : 'Edit a drug'}</strong><span>GP prescribing reference search</span></div>
           <button type="button" onClick={onClose}><X size={18}/></button>
         </header>
-        <div className="modal-patient-strip">Medication record</div>
+        <div className="modal-patient-strip">{contextLabel}</div>
 
         <div className="med-catalogue-search-block">
           <label>Search medicine
@@ -723,6 +723,13 @@ function MedicationModal({ medication, authoriser, isGpPartner, onClose, onSave 
                   <button type="button" className={quantityMode === 'auto' ? 'active' : ''} disabled={!automaticQuantitySupported || !selectedTypical?.calculable} onClick={() => setQuantityMode('auto')}>Auto-calculate</button>
                   <button type="button" className={quantityMode === 'custom' ? 'active' : ''} onClick={() => setQuantityMode('custom')}>Custom quantity</button>
                 </div>
+                {(!automaticQuantitySupported || !selectedTypical?.calculable) && (
+                  <small className="med-auto-quantity-unavailable">
+                    {!automaticQuantitySupported
+                      ? 'Auto-calculate is not suitable for this formulation. Enter the supplied quantity manually.'
+                      : 'The supplied reference does not contain one exact calculable regimen. Choose Custom quantity or Custom dosage.'}
+                  </small>
+                )}
               </div>
 
               {quantityMode === 'auto' ? (

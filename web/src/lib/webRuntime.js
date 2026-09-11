@@ -1,4 +1,4 @@
-export const APP_VERSION = '3.3.2'
+export const APP_VERSION = '3.3.3'
 export const APP_RUNTIME_LABEL = 'Web Clinical System'
 
 export function getWebDeviceContext() {

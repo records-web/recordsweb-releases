@@ -4220,7 +4220,7 @@ html.rw-dark-mode .problem-reference-selected strong { color:#d7e7ee; }
 html.rw-dark-mode .problem-reference-selected span { color:#9fb6c1; }
 html.rw-dark-mode .problem-reference-warning { background:#3a211f; border-color:#7b4540; color:#f0c4be; }
 
-/* RecordsWeb 3.3.2 — dosage builder and quantity calculator */
+/* RecordsWeb 3.3.3 — dosage builder and quantity calculator */
 .med-dose-builder { margin:12px; border:1px solid #b7ccd8; background:#f8fbfd; }
 .med-dose-builder-title { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:9px 10px; border-bottom:1px solid #d4e1e8; background:#eef6fa; }
 .med-dose-builder-title > div:first-child { display:flex; flex-direction:column; gap:2px; }
@@ -4284,3 +4284,24 @@ html.rw-dark-mode .med-custom-dose-note { background:#302815; border-color:#7866
   .med-dose-builder-grid .span-two { grid-column:1; }
 }
 
+
+
+/* RecordsWeb 3.3.3 — prescribe medication inside an open consultation */
+.consult-medication-workflow { display:flex; flex-direction:column; gap:8px; margin-top:7px; }
+.consult-medication-actions { margin-top:0; }
+.consult-medication-actions button { display:inline-flex; align-items:center; gap:5px; }
+.consult-add-medication-button { border-color:#1685c5 !important; background:#eaf6fd !important; color:#075c8a !important; font-weight:700 !important; }
+.consult-medication-list { border:1px solid #a8c8d9; background:#f5fbfe; padding:8px; display:flex; flex-direction:column; gap:5px; }
+.consult-medication-list > strong { font-size:8px; color:#35586c; text-transform:uppercase; letter-spacing:.04em; }
+.consult-medication-item { display:flex; align-items:center; gap:7px; border-top:1px solid #d5e5ed; padding-top:5px; color:#234b62; }
+.consult-medication-item:first-of-type { border-top:0; }
+.consult-medication-item span { display:flex; flex-direction:column; gap:1px; min-width:0; }
+.consult-medication-item b { font-size:9px; }
+.consult-medication-item small { font-size:8px; color:#66808f; }
+.med-auto-quantity-unavailable { display:block; margin-top:5px; color:#8a5b22; font-size:7.5px; line-height:1.35; font-weight:500; }
+html.rw-dark-mode .consult-add-medication-button { background:#12364a !important; color:#8bd2fa !important; border-color:#28759f !important; }
+html.rw-dark-mode .consult-medication-list { background:#10242e; border-color:#3b5967; }
+html.rw-dark-mode .consult-medication-list > strong { color:#a8c6d5; }
+html.rw-dark-mode .consult-medication-item { color:#dceaf0; border-color:#294753; }
+html.rw-dark-mode .consult-medication-item small { color:#98afbb; }
+html.rw-dark-mode .med-auto-quantity-unavailable { color:#e2bd81; }
