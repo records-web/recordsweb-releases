@@ -23,7 +23,8 @@ jobs:
     steps:
       - name: Send release announcement to Discord
         env:
-          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+          DISCORD_WEBHOOK_URL_1: ${{ secrets.DISCORD_WEBHOOK_URL_1 }}
+          DISCORD_WEBHOOK_URL_2: ${{ secrets.DISCORD_WEBHOOK_URL_2 }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
           GITHUB_EVENT_NAME: ${{ github.event_name }}
@@ -37,6 +38,7 @@ jobs:
           import re
           import urllib.request
           import urllib.error
+          import urllib.parse
 
           from datetime import datetime
           from zoneinfo import ZoneInfo
@@ -46,7 +48,22 @@ jobs:
           # Configuration
           # --------------------------------------------------
 
-          webhook_url = os.environ["DISCORD_WEBHOOK_URL"]
+          webhook_urls = [
+              os.environ.get("DISCORD_WEBHOOK_URL_1", "").strip(),
+              os.environ.get("DISCORD_WEBHOOK_URL_2", "").strip(),
+          ]
+
+          webhook_urls = [
+              url
+              for url in webhook_urls
+              if url
+          ]
+
+          if not webhook_urls:
+              raise RuntimeError(
+                  "No Discord webhook URLs were configured."
+              )
+
           github_token = os.environ["GITHUB_TOKEN"]
           repository = os.environ["GITHUB_REPOSITORY"]
           event_name = os.environ["GITHUB_EVENT_NAME"]
@@ -84,7 +101,6 @@ jobs:
           # --------------------------------------------------
 
           if event_name == "release":
-              # Automatically triggered by publishing a release.
               with open(
                   event_path,
                   "r",
@@ -95,7 +111,6 @@ jobs:
               release = event["release"]
 
           elif manual_tag:
-              # Manual Run workflow with a specific tag.
               encoded_tag = urllib.parse.quote(
                   manual_tag,
                   safe=""
@@ -107,8 +122,6 @@ jobs:
               )
 
           else:
-              # Manual Run workflow with no tag:
-              # obtain the most recently published release.
               releases = github_request(
                   f"https://api.github.com/repos/"
                   f"{repository}/releases?per_page=30"
@@ -199,7 +212,6 @@ jobs:
                   "- No release notes were provided."
               )
 
-          # Remove Markdown links whose destination is GitHub.
           release_body = re.sub(
               r"\[([^\]]+)\]\("
               r"https?://(?:www\.)?github\.com/"
@@ -209,7 +221,6 @@ jobs:
               flags=re.IGNORECASE
           )
 
-          # Remove bare GitHub URLs.
           release_body = re.sub(
               r"https?://(?:www\.)?github\.com/"
               r"\S+",
@@ -218,14 +229,12 @@ jobs:
               flags=re.IGNORECASE
           )
 
-          # Remove excessive blank lines created by URL removal.
           release_body = re.sub(
               r"\n{3,}",
               "\n\n",
               release_body
           ).strip()
 
-          # Discord embed descriptions have limits.
           if len(release_body) > 3000:
               release_body = (
                   release_body[:2997]
@@ -255,11 +264,6 @@ jobs:
               "embeds": [
                   {
                       "title": title,
-
-                      # IMPORTANT:
-                      # There is deliberately NO "url" here.
-                      # Therefore the title is not clickable.
-
                       "description": description,
                       "color": 3447003,
                       "footer": {
@@ -274,48 +278,57 @@ jobs:
 
 
           # --------------------------------------------------
-          # Send to Discord
+          # Send to all Discord webhooks
           # --------------------------------------------------
 
-          discord_request = urllib.request.Request(
-              webhook_url,
-              data=json.dumps(
-                  payload
-              ).encode("utf-8"),
-              headers={
-                  "Content-Type": "application/json",
-                  "User-Agent": (
-                      "RecordsWeb-Release-Notifier"
-                  )
-              },
-              method="POST"
-          )
+          successful = 0
 
-          try:
-              with urllib.request.urlopen(
-                  discord_request
-              ) as response:
+          for index, webhook_url in enumerate(
+              webhook_urls,
+              start=1
+          ):
+              discord_request = urllib.request.Request(
+                  webhook_url,
+                  data=json.dumps(
+                      payload
+                  ).encode("utf-8"),
+                  headers={
+                      "Content-Type": "application/json",
+                      "User-Agent": (
+                          "RecordsWeb-Release-Notifier"
+                      )
+                  },
+                  method="POST"
+              )
+
+              try:
+                  with urllib.request.urlopen(
+                      discord_request
+                  ) as response:
+                      print(
+                          f"Discord webhook {index} sent. "
+                          f"HTTP {response.status}"
+                      )
+
+                      successful += 1
+
+              except urllib.error.HTTPError as error:
+                  error_body = error.read().decode(
+                      "utf-8",
+                      errors="replace"
+                  )
+
                   print(
-                      "Discord notification sent. "
-                      f"HTTP {response.status}"
+                      f"Discord webhook {index} failed:"
                   )
 
-          except urllib.error.HTTPError as error:
-              error_body = error.read().decode(
-                  "utf-8",
-                  errors="replace"
-              )
+                  print(error_body)
 
-              print(
-                  "Discord webhook failed:"
-              )
-              print(error_body)
-
-              raise
+                  raise
 
 
           print(
-              f"RecordsWeb V{version} "
-              f"was sent to Discord."
+              f"RecordsWeb V{version} was sent "
+              f"to {successful} Discord webhook(s)."
           )
           PY
