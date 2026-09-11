@@ -217,6 +217,8 @@ export async function updatePlatformCommunityBilling({
   announcementBoardEnabled,
   announcementBoardFee,
   billingNotes,
+  paymentExempt,
+  exemptionReason,
 }) {
   return invokePlatformAdmin({
     action: 'update-community-billing',
@@ -231,5 +233,7 @@ export async function updatePlatformCommunityBilling({
     announcement_board_enabled: Boolean(announcementBoardEnabled),
     announcement_board_fee: Number(announcementBoardFee),
     billing_notes: String(billingNotes || '').trim(),
+    billing_payment_exempt: Boolean(paymentExempt),
+    billing_exemption_reason: String(exemptionReason || '').trim(),
   })
 }

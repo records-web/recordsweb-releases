@@ -3432,3 +3432,19 @@ html.rw-dark-mode .billing-notes { background:#14242d; border-color:#355668; }
 html.rw-dark-mode .billing-support-note { background:#15291f; border-color:#37644a; color:#b9d8c4; }
 @media (max-width:1000px) { .billing-summary-grid { grid-template-columns:1fr 1fr; } }
 @media (max-width:700px) { .billing-summary-grid,.billing-detail-grid { grid-template-columns:1fr; } }
+
+/* RecordsWeb 3.2.6 — Stripe billing and payment exclusions */
+.billing-exempt-banner { display:flex; align-items:flex-start; gap:10px; margin:15px 15px 0; padding:12px 13px; border:1px solid #b9aed9; background:#f7f4ff; color:#5c4c86; }
+.billing-exempt-banner>svg { flex:0 0 auto; margin-top:1px; }
+.billing-exempt-banner>div { display:flex; flex-direction:column; gap:2px; }
+.billing-exempt-banner strong { font-size:10px; }
+.billing-exempt-banner span { font-size:9px; }
+.billing-exempt-banner small { margin-top:3px; color:#7769a1; font-size:8.5px; line-height:1.45; }
+.billing-detail-grid article>div.billing-action-row { justify-content:flex-end; padding-top:11px; }
+.billing-action-row button { display:inline-flex; align-items:center; justify-content:center; gap:6px; min-height:31px; padding:6px 10px; border:1px solid #aac3d2; background:#f5f9fb; color:#315f76; font:inherit; font-size:9px; font-weight:700; cursor:pointer; }
+.billing-action-row button.primary { border-color:#0f6fbd; background:#0f6fbd; color:#fff; }
+.billing-action-row button:disabled { opacity:.55; cursor:default; }
+html.rw-dark-mode .billing-exempt-banner { border-color:#66598e; background:#211d31; color:#d2c8f1; }
+html.rw-dark-mode .billing-exempt-banner small { color:#b1a5d4; }
+html.rw-dark-mode .billing-action-row button { border-color:#3b5c6d; background:#14242d; color:#c9dde7; }
+html.rw-dark-mode .billing-action-row button.primary { border-color:#2b8bc8; background:#176ea5; color:#fff; }

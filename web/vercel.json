@@ -23,6 +23,26 @@
     {
       "source": "/pricing",
       "destination": "/index.html"
+    },
+    {
+      "source": "/billing/:path*",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/management",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/platform-management",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/contact",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/login",
+      "destination": "/index.html"
     }
   ]
 }

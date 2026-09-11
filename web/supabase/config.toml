@@ -1,0 +1,2 @@
+[functions.recordsweb-stripe-webhook]
+verify_jwt = false

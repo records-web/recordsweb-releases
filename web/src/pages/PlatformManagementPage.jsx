@@ -547,6 +547,8 @@ function CommunityBillingPanel() {
       announcementBoardEnabled: Boolean(row.announcement_board_enabled),
       announcementBoardFee: Number(row.announcement_board_fee ?? 10).toFixed(2),
       billingNotes: row.billing_notes || '',
+      paymentExempt: Boolean(row.billing_payment_exempt),
+      exemptionReason: row.billing_exemption_reason || '',
     })
     setError('')
     setNotice('')
@@ -577,7 +579,7 @@ function CommunityBillingPanel() {
 
   return (
     <section className="platform-operator-panel platform-billing-panel">
-      <header><div><span>COMMUNITY BILLING</span><h2>Subscriptions & billing</h2><p>Maintain the commercial status shown to each organisation. RecordsWeb does not automatically charge cards from this screen.</p></div><button onClick={load} disabled={busy}><RefreshCw size={14}/> Refresh</button></header>
+      <header><div><span>COMMUNITY BILLING</span><h2>Subscriptions & billing</h2><p>Maintain Stripe billing, pricing and payment exclusions for each RecordsWeb community.</p></div><button onClick={load} disabled={busy}><RefreshCw size={14}/> Refresh</button></header>
       {error && <div className="review-request-message error">{error}</div>}
       {notice && <div className="review-request-message success"><CheckCircle2 size={15}/>{notice}</div>}
       <div className="platform-billing-list">
@@ -586,9 +588,9 @@ function CommunityBillingPanel() {
         {rows.map((row) => (
           <div className="platform-billing-row" key={row.id}>
             <div><strong>{row.name}</strong><span>@{row.org_code}</span></div>
-            <span className={`billing-status billing-status-${row.billing_status || 'active'}`}>{BILLING_STATUS_OPTIONS.find(([value]) => value === row.billing_status)?.[1] || row.billing_status || 'Active'}</span>
-            <strong>{billingMoney(row.billing_monthly_price ?? 9.5)}</strong>
-            <span>{row.billing_next_date || 'Not set'}</span>
+            <span className={`billing-status billing-status-${row.billing_payment_exempt ? 'complimentary' : (!row.stripe_subscription_id ? 'setup' : (row.billing_status || 'active'))}`}>{row.billing_payment_exempt ? 'Payment exempt' : (!row.stripe_subscription_id ? 'Stripe setup required' : (BILLING_STATUS_OPTIONS.find(([value]) => value === row.billing_status)?.[1] || row.billing_status || 'Active'))}</span>
+            <strong>{row.billing_payment_exempt ? 'No payment' : billingMoney(row.billing_monthly_price ?? 9.5)}</strong>
+            <span>{row.billing_payment_exempt ? 'Excluded' : (row.billing_next_date || 'Not set')}</span>
             <span>{row.announcement_board_enabled ? `Board · ${billingMoney(row.announcement_board_fee ?? 10)}` : 'None'}</span>
             <button type="button" onClick={() => edit(row)}><Pencil size={13}/> Edit billing</button>
           </div>
@@ -599,7 +601,9 @@ function CommunityBillingPanel() {
         <form className="platform-community-modal platform-billing-modal" onSubmit={save}>
           <header><div><span>EDIT BILLING</span><h3>{selected.name}</h3><p>@{selected.org_code} · RecordsWeb Standard</p></div><button type="button" onClick={() => { setSelected(null); setForm(null) }} disabled={busy} aria-label="Close"><X size={16}/></button></header>
           <div className="platform-community-modal-body">
-            <label><span>Billing status</span><select value={form.billingStatus} onChange={(event) => setField('billingStatus', event.target.value)}>{BILLING_STATUS_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+            <label className="platform-billing-check platform-billing-exempt-check"><input type="checkbox" checked={form.paymentExempt} onChange={(event) => setField('paymentExempt', event.target.checked)} /><span><strong>Exclude this community from payment</strong><small>No Stripe checkout or subscription payment will be required. If a Stripe subscription already exists, RecordsWeb will cancel it before applying the exemption.</small></span></label>
+            {form.paymentExempt && <label className="platform-billing-notes"><span>Payment exemption reason</span><textarea rows={3} maxLength={500} value={form.exemptionReason} onChange={(event) => setField('exemptionReason', event.target.value)} placeholder="Optional reason shown to organisation management." /></label>}
+            <label><span>Billing status</span><select value={form.paymentExempt ? 'complimentary' : form.billingStatus} onChange={(event) => setField('billingStatus', event.target.value)} disabled={form.paymentExempt}>{BILLING_STATUS_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
             <label><span>Monthly price (£)</span><input type="number" min="0" max="9999" step="0.01" value={form.monthlyPrice} onChange={(event) => setField('monthlyPrice', event.target.value)} required /></label>
             <label><span>Billing start date</span><input type="date" value={form.billingStartDate} onChange={(event) => setField('billingStartDate', event.target.value)} /></label>
             <label><span>Next billing date</span><input type="date" value={form.billingNextDate} onChange={(event) => setField('billingNextDate', event.target.value)} /></label>
@@ -609,7 +613,7 @@ function CommunityBillingPanel() {
             <label className="platform-billing-check"><input type="checkbox" checked={form.announcementBoardEnabled} onChange={(event) => setField('announcementBoardEnabled', event.target.checked)} /><span>In-game announcement board enabled</span></label>
             <label><span>Announcement board fee (£)</span><input type="number" min="0" max="9999" step="0.01" value={form.announcementBoardFee} onChange={(event) => setField('announcementBoardFee', event.target.value)} required /></label>
             <label className="platform-billing-notes"><span>Billing notes</span><textarea rows={4} maxLength={1000} value={form.billingNotes} onChange={(event) => setField('billingNotes', event.target.value)} placeholder="Billing note visible to organisation management." /></label>
-            <div className="platform-community-modal-note">This stores RecordsWeb billing state only. It does not take a payment or automatically suspend an organisation.</div>
+            <div className="platform-community-modal-note">Stripe payments are updated by signed webhook events. Payment-exempt communities bypass checkout completely and do not need to pay RecordsWeb subscription charges.</div>
           </div>
           <div className="platform-community-modal-actions"><button type="button" onClick={() => { setSelected(null); setForm(null) }} disabled={busy}>Cancel</button><button className="primary" disabled={busy}><Save size={13}/>{busy ? 'Saving…' : 'Save billing'}</button></div>
         </form>

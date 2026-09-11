@@ -2,7 +2,7 @@
   "name": "recordsweb-web",
   "productName": "RecordsWeb Web",
   "private": true,
-  "version": "3.2.5",
+  "version": "3.2.6",
   "description": "RecordsWeb multi-organisation browser clinical records platform",
   "type": "module",
   "scripts": {
@@ -16,7 +16,7 @@
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.28.0",
-    "nodemailer": "^7.0.6"
+    "nodemailer": "^7.0.13"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.3.4",
