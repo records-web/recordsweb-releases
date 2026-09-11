@@ -115,7 +115,7 @@ export async function saveRecordsWebAccessRequestReview({ id, status, operatorNo
 }
 
 
-export async function sendRecordsWebAccessRequestOutcomeEmail({ id, decision }) {
+export async function sendRecordsWebAccessRequestOutcomeEmail({ id, decision, force = false }) {
   if (!supabaseConfigured || !supabase) throw new Error('Supabase is not configured for request review.')
 
   const requestedDecision = String(decision || '').trim().toLowerCase()
@@ -139,6 +139,7 @@ export async function sendRecordsWebAccessRequestOutcomeEmail({ id, decision }) 
     body: JSON.stringify({
       requestId: id,
       decision: normalisedDecision,
+      force: Boolean(force),
     }),
   })
 

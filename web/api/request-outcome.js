@@ -49,16 +49,25 @@ function wait(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-async function sendDecisionMail(transporter, mailOptions, decision) {
-  try {
-    return await transporter.sendMail(mailOptions)
-  } catch (firstError) {
-    console.error(`RecordsWeb ${decision} email first attempt failed:`, firstError)
-    // Retry once. The second attempt omits HTML so a provider/content filter
-    // cannot prevent the applicant from receiving the plain-text decision.
-    await wait(500)
-    return transporter.sendMail({ ...mailOptions, html: undefined })
+async function sendDecisionMail(mailOptions, decision) {
+  let firstError = null
+
+  for (let attempt = 1; attempt <= 2; attempt += 1) {
+    const { transporter } = createRequestMailer()
+    const options = attempt === 1
+      ? mailOptions
+      : { ...mailOptions, html: undefined }
+
+    try {
+      return await transporter.sendMail(options)
+    } catch (error) {
+      if (!firstError) firstError = error
+      console.error(`RecordsWeb ${decision} email attempt ${attempt} failed:`, error)
+      if (attempt < 2) await wait(750)
+    }
   }
+
+  throw firstError || new Error(`Unable to send the RecordsWeb ${decision} email.`)
 }
 
 function requiredEnv(name, fallback = '') {
@@ -153,13 +162,17 @@ function emailShell({ eyebrow, heading, name, communityName, bodyHtml, supportEm
   `
 }
 
-function approvedMessage({ name, communityName, orgType, contactEmail, supportEmail, providerComments }) {
+function approvedMessage({ name, communityName, orgType, contactEmail, supportEmail, providerComments, amended = false }) {
   return {
-    subject: `RecordsWeb deployment request approved — ${communityName}`,
+    subject: amended
+      ? `RecordsWeb deployment request decision amended — ${communityName}`
+      : `RecordsWeb deployment request approved — ${communityName}`,
     text: [
       `Hello ${name},`,
       '',
-      `We’re pleased to confirm that the RecordsWeb deployment request for ${communityName} has been approved.`,
+      amended
+        ? `This is an amended decision for the RecordsWeb deployment request for ${communityName}. The request is now approved. This email replaces any previous approval or denial decision email for this request.`
+        : `We’re pleased to confirm that the RecordsWeb deployment request for ${communityName} has been approved.`,
       '',
       `Approved organisation type: ${orgType}`,
       `Contact email: ${contactEmail}`,
@@ -191,14 +204,15 @@ function approvedMessage({ name, communityName, orgType, contactEmail, supportEm
       'RecordsWeb is a fictional/demonstration clinical records system and is not an NHS service unless otherwise stated.',
     ].join('\n'),
     html: emailShell({
-      eyebrow: 'Deployment Request Decision',
-      heading: 'Request approved',
+      eyebrow: amended ? 'Amended Deployment Request Decision' : 'Deployment Request Decision',
+      heading: amended ? 'Decision amended — request approved' : 'Request approved',
       name,
       communityName,
       supportEmail,
       accent: '#1b9a59',
       bodyHtml: `
-        <p>We’re pleased to confirm that the RecordsWeb deployment request for <strong>${escapeHtml(communityName)}</strong> has been <strong style="color:#18794e">approved</strong>.</p>
+        ${amended ? '<div style="margin:0 0 22px;padding:14px 16px;border-left:4px solid #0f8fe8;background:#eef8ff"><strong>Amended decision:</strong> this email replaces any previous decision email sent for this request.</div>' : ''}
+        <p>${amended ? 'The RecordsWeb deployment request for' : 'We’re pleased to confirm that the RecordsWeb deployment request for'} <strong>${escapeHtml(communityName)}</strong> ${amended ? 'is now' : 'has been'} <strong style="color:#18794e">approved</strong>.</p>
         <div style="margin:22px 0;padding:14px 16px;border-left:4px solid #1b9a59;background:#effaf3">
           <strong>Approved organisation type:</strong> ${escapeHtml(orgType)}
         </div>
@@ -212,15 +226,21 @@ function approvedMessage({ name, communityName, orgType, contactEmail, supportEm
   }
 }
 
-function declinedMessage({ name, communityName, orgType, supportEmail, providerComments }) {
+function declinedMessage({ name, communityName, orgType, supportEmail, providerComments, amended = false }) {
   return {
-    subject: `RecordsWeb deployment request declined — ${communityName}`,
+    // Keep the subject neutral enough to avoid over-aggressive mailbox filtering;
+    // the message body clearly states that the request is denied.
+    subject: amended
+      ? `RecordsWeb deployment request decision amended — ${communityName}`
+      : `RecordsWeb deployment request update — ${communityName}`,
     text: [
       `Hello ${name},`,
       '',
       `Thank you for your interest in RecordsWeb and for submitting a deployment request for ${communityName}.`,
       '',
-      'Following review, we’re unable to approve this deployment request at this time.',
+      amended
+        ? 'This is an amended decision. The request is now denied, and this email replaces any previous approval or denial decision email for this request.'
+        : 'Following review, we’re unable to approve this deployment request at this time. The request has been denied.',
       '',
       `Requested organisation type: ${orgType}`,
       '',
@@ -251,15 +271,16 @@ function declinedMessage({ name, communityName, orgType, supportEmail, providerC
       'RecordsWeb is a fictional/demonstration clinical records system and is not an NHS service unless otherwise stated.',
     ].join('\n'),
     html: emailShell({
-      eyebrow: 'Deployment Request Decision',
-      heading: 'Request declined',
+      eyebrow: amended ? 'Amended Deployment Request Decision' : 'Deployment Request Decision',
+      heading: amended ? 'Decision amended — request denied' : 'Request denied',
       name,
       communityName,
       supportEmail,
       accent: '#c84848',
       bodyHtml: `
+        ${amended ? '<div style="margin:0 0 22px;padding:14px 16px;border-left:4px solid #0f8fe8;background:#eef8ff"><strong>Amended decision:</strong> this email replaces any previous decision email sent for this request.</div>' : ''}
         <p>Thank you for your interest in RecordsWeb and for submitting a deployment request for <strong>${escapeHtml(communityName)}</strong>.</p>
-        <p>Following review, we’re unable to approve this deployment request at this time.</p>
+        <p>${amended ? 'The decision on this request has changed. The request is now' : 'Following review, we’re unable to approve this deployment request at this time. The request has been'} <strong style="color:#a62b2b">denied</strong>.</p>
         <div style="margin:22px 0;padding:14px 16px;border-left:4px solid #c84848;background:#fff4f4">
           <strong>No RecordsWeb environment will be provisioned from this request.</strong>
         </div>
@@ -286,6 +307,7 @@ export default async function handler(req, res) {
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {})
     const requestId = clean(body.requestId, 64)
     const decision = normaliseDecision(body.decision)
+    const force = body.force === true
 
     if (!UUID_PATTERN.test(requestId)) {
       return res.status(400).json({ error: 'A valid RecordsWeb request reference is required.' })
@@ -297,7 +319,7 @@ export default async function handler(req, res) {
     const admin = serverSupabase()
     const { data: requestRow, error: requestError } = await admin
       .from('recordsweb_access_requests')
-      .select('id,community_name,requested_mode,contact_name,contact_email,status,provider_comments,approved_email_sent_at,declined_email_sent_at')
+      .select('id,community_name,requested_mode,contact_name,contact_email,status,provider_comments,approved_email_sent_at,declined_email_sent_at,decision_revision,decision_email_revision,last_decision_email_status,last_decision_email_sent_at')
       .eq('id', requestId)
       .maybeSingle()
 
@@ -311,11 +333,27 @@ export default async function handler(req, res) {
     }
 
     const markerField = decision === 'approved' ? 'approved_email_sent_at' : 'declined_email_sent_at'
-    if (requestRow[markerField]) {
-      return res.status(200).json({ ok: true, alreadySent: true, sentAt: requestRow[markerField] })
+    const decisionRevision = Number(requestRow.decision_revision || 0)
+    const emailRevision = Number(requestRow.decision_email_revision || 0)
+
+    // Email delivery is tied to the decision revision, not to whether this
+    // outcome has ever been emailed before. That allows Approved -> Denied ->
+    // Approved changes to each send an amended decision email while still
+    // preventing duplicate sends for the same saved decision.
+    if (!force && decisionRevision > 0 && emailRevision >= decisionRevision && requestRow.last_decision_email_status === decision) {
+      return res.status(200).json({
+        ok: true,
+        alreadySent: true,
+        sentAt: requestRow.last_decision_email_sent_at || requestRow[markerField] || null,
+        decisionRevision,
+      })
     }
 
-    const { transporter, smtpUser, supportEmail } = createRequestMailer()
+    const { smtpUser, supportEmail } = createRequestMailer()
+    const amended = decisionRevision > 1 || (
+      requestRow.last_decision_email_status
+      && requestRow.last_decision_email_status !== decision
+    )
 
     const messageInput = {
       name: clean(requestRow.contact_name, 120),
@@ -324,37 +362,62 @@ export default async function handler(req, res) {
       contactEmail: clean(requestRow.contact_email, 254),
       supportEmail,
       providerComments: clean(requestRow.provider_comments, 3000),
+      amended,
     }
 
     const message = decision === 'approved'
       ? approvedMessage(messageInput)
       : declinedMessage(messageInput)
 
-    const delivery = await sendDecisionMail(transporter, {
+    const delivery = await sendDecisionMail({
       from: `RecordsWeb <${smtpUser}>`,
       to: messageInput.contactEmail,
       replyTo: supportEmail,
       subject: message.subject,
       text: message.text,
       html: message.html,
+      headers: {
+        'X-RecordsWeb-Message': 'deployment-request-decision',
+        'X-RecordsWeb-Decision': decision === 'declined' ? 'denied' : 'approved',
+        'X-RecordsWeb-Decision-Revision': String(decisionRevision),
+      },
     }, decision)
 
     const sentAt = new Date().toISOString()
+    const markerUpdate = {
+      [markerField]: sentAt,
+      decision_email_revision: decisionRevision,
+      last_decision_email_status: decision,
+      last_decision_email_sent_at: sentAt,
+    }
+
     const { error: markerError } = await admin
       .from('recordsweb_access_requests')
-      .update({ [markerField]: sentAt })
+      .update(markerUpdate)
       .eq('id', requestId)
       .eq('status', decision)
+      .eq('decision_revision', decisionRevision)
 
     if (markerError) {
       console.error(`RecordsWeb ${decision} email marker failed:`, markerError)
     }
 
-    return res.status(200).json({ ok: true, decision, sentAt, messageId: delivery?.messageId || null })
+    return res.status(200).json({
+      ok: true,
+      decision,
+      amended,
+      sentAt,
+      decisionRevision,
+      messageId: delivery?.messageId || null,
+      forcedResend: force,
+    })
   } catch (error) {
     console.error('RecordsWeb deployment request outcome email error:', error)
+    const detail = clean(error?.message, 500)
     return res.status(500).json({
-      error: 'The request decision was saved, but the automatic decision email could not be sent.',
+      error: detail
+        ? `The request decision was saved, but the automatic decision email could not be sent: ${detail}`
+        : 'The request decision was saved, but the automatic decision email could not be sent.',
     })
   }
 }

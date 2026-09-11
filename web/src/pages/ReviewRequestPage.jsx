@@ -222,6 +222,7 @@ export default function ReviewRequestPage() {
           emailResult = await sendRecordsWebAccessRequestOutcomeEmail({
             id: requestId,
             decision: status,
+            force: !statusChanged,
           })
         } catch (mailError) {
           emailWarning = mailError?.message || 'The decision was saved, but the automatic applicant email could not be sent.'
@@ -236,9 +237,11 @@ export default function ReviewRequestPage() {
           ? `Request marked ${STATUS_LABELS[status].toLowerCase()}. The applicant had already been sent this decision email.`
           : `Request remains ${STATUS_LABELS[status].toLowerCase()}. The applicant decision email has already been sent.`)
       } else if (emailResult?.ok) {
-        setNotice(statusChanged
-          ? `Request marked ${STATUS_LABELS[status].toLowerCase()}. The applicant has been notified automatically.`
-          : `Request remains ${STATUS_LABELS[status].toLowerCase()}. The applicant has now been notified.`)
+        setNotice(emailResult?.amended
+          ? `Request changed to ${STATUS_LABELS[status].toLowerCase()}. An amended decision email has been sent to the applicant.`
+          : statusChanged
+            ? `Request marked ${STATUS_LABELS[status].toLowerCase()}. The applicant has been notified automatically.`
+            : `Request remains ${STATUS_LABELS[status].toLowerCase()}. The applicant has now been notified.`)
       } else {
         setNotice(statusChanged
           ? `Request marked ${STATUS_LABELS[status].toLowerCase()}.`
@@ -362,8 +365,8 @@ export default function ReviewRequestPage() {
 
                 <div className="review-request-actions">
                   <button className="reviewing" onClick={() => updateStatus('reviewing')} disabled={Boolean(savingStatus)}><Clock3 size={15}/>{savingStatus === 'reviewing' ? 'Saving…' : 'Mark reviewing'}</button>
-                  <button className="approved" onClick={() => updateStatus('approved')} disabled={Boolean(savingStatus)}><CheckCircle2 size={15}/>{savingStatus === 'approved' ? 'Saving…' : 'Approve'}</button>
-                  <button className="declined" onClick={() => updateStatus('declined')} disabled={Boolean(savingStatus)}><XCircle size={15}/>{savingStatus === 'declined' ? 'Saving…' : 'Deny'}</button>
+                  <button className="approved" onClick={() => updateStatus('approved')} disabled={Boolean(savingStatus)}><CheckCircle2 size={15}/>{savingStatus === 'approved' ? 'Saving…' : selected.status === 'declined' ? 'Change to approved' : selected.status === 'approved' ? 'Send / retry approval email' : 'Approve'}</button>
+                  <button className="declined" onClick={() => updateStatus('declined')} disabled={Boolean(savingStatus)}><XCircle size={15}/>{savingStatus === 'declined' ? 'Saving…' : selected.status === 'approved' ? 'Change to denied' : selected.status === 'declined' ? 'Send / retry denial email' : 'Deny'}</button>
                   <button onClick={() => updateStatus(selected.status, { notifyApplicant: false })} disabled={Boolean(savingStatus)}><FileCheck2 size={15}/>{savingStatus === selected.status ? 'Saving…' : 'Save notes'}</button>
                 </div>
 
