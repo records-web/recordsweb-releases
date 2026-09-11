@@ -22,6 +22,27 @@ function validateEmail(value) {
   return email
 }
 
+async function sendRequestConfirmation(requestId) {
+  try {
+    const response = await fetch('/api/request-confirmation', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ requestId }),
+    })
+
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}))
+      console.warn('RecordsWeb request confirmation email was not sent:', body?.error || `HTTP ${response.status}`)
+      return false
+    }
+
+    return true
+  } catch (error) {
+    console.warn('RecordsWeb request confirmation email was not sent:', error)
+    return false
+  }
+}
+
 function logoExtension(file) {
   if (file.type === 'image/png') return 'png'
   if (file.type === 'image/webp') return 'webp'
@@ -31,7 +52,7 @@ function logoExtension(file) {
 export async function submitRecordsWebAccessRequest(values, logoFile) {
   const request = {
     communityName: clean(values.communityName, 120),
-    requestedMode: values.requestedMode === 'hospital' ? 'hospital' : 'general_practice',
+    requestedMode: ['general_practice', 'hospital', 'ambulance'].includes(values.requestedMode) ? values.requestedMode : 'general_practice',
     discordUrl: requireHttpsUrl(values.discordUrl, 'Discord URL'),
     robloxGroupUrl: requireHttpsUrl(values.robloxGroupUrl, 'Roblox group link'),
     memberRange: clean(values.memberRange, 20),
@@ -94,5 +115,7 @@ export async function submitRecordsWebAccessRequest(values, logoFile) {
     throw new Error(error.message || 'Unable to submit the access request.')
   }
 
-  return { id: data || requestId, demo: false }
+  const submittedId = data || requestId
+  const confirmationEmailSent = await sendRequestConfirmation(submittedId)
+  return { id: submittedId, demo: false, confirmationEmailSent }
 }

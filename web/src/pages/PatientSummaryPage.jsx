@@ -5,12 +5,13 @@ import PatientHeader from '../components/PatientHeader'
 import Panel from '../components/Panel'
 import ClinicalToolbar from '../components/ClinicalToolbar'
 import { getPatient, listForPatient } from '../lib/dataService'
+import { listSharedCarePatientLinks } from '../lib/sharedCareService'
 
 export default function PatientSummaryPage() {
   const { patientId } = useParams()
   const navigate = useNavigate()
   const [patient, setPatient] = useState(null)
-  const [data, setData] = useState({ problems: [], medications: [], consultations: [], diary: [], alerts: [] })
+  const [data, setData] = useState({ problems: [], medications: [], consultations: [], diary: [], alerts: [], sharedCare: [] })
 
   useEffect(() => {
     Promise.all([
@@ -20,7 +21,8 @@ export default function PatientSummaryPage() {
       listForPatient('consultations', patientId, 'date'),
       listForPatient('diary_tasks', patientId, 'due_date', true),
       listForPatient('patient_alerts', patientId, 'created_at').catch(() => []),
-    ]).then(([p, problems, medications, consultations, diary, alerts]) => { setPatient(p); setData({ problems, medications, consultations, diary, alerts }) })
+      listSharedCarePatientLinks(patientId).catch(() => []),
+    ]).then(([p, problems, medications, consultations, diary, alerts, sharedCare]) => { setPatient(p); setData({ problems: problems.filter((problem) => String(problem.status || 'Active').trim().toLowerCase() === 'active'), medications, consultations, diary, alerts, sharedCare }) })
   }, [patientId])
 
   return (
@@ -35,7 +37,7 @@ export default function PatientSummaryPage() {
       <PatientHeader patient={patient} />
       <div className="summary-grid page-pad compact-pad">
         <div className="summary-column">
-          <Panel title="Record sharing"><p className="muted">There are no other organisations contributing to the shared record.</p><strong>Data entered by this organisation</strong><p className="muted">Current organisation records are shown below.</p></Panel>
+          <Panel title="Record sharing" count={data.sharedCare.length} actions={<button className="link-button" onClick={() => navigate(`/patients/${patientId}/shared-care`)}>Shared Care</button>}>{data.sharedCare.length ? <><strong>{data.sharedCare.length} linked organisation{data.sharedCare.length === 1 ? '' : 's'}</strong><p className="muted">Partner records are available through the audited Shared Care view.</p></> : <><p className="muted">There are no other organisations contributing to the shared record.</p><strong>Data entered by this organisation</strong><p className="muted">Current organisation records are shown below.</p></>}</Panel>
           <Panel title="Problems" count={data.problems.length} actions={<button className="link-button" onClick={() => navigate(`/patients/${patientId}/problems`)}>View all</button>}>
             <table className="compact-table"><thead><tr><th>Active problems</th><th>Onset date</th></tr></thead><tbody>{data.problems.slice(0, 6).map((x) => <tr key={x.id}><td className={x.status === 'Active' ? 'clinical-green' : ''}>{x.name}</td><td>{x.onset_date ? new Date(x.onset_date).toLocaleDateString('en-GB') : '—'}</td></tr>)}</tbody></table>
           </Panel>

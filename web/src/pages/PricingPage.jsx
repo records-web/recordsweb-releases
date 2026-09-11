@@ -35,6 +35,7 @@ export default function PricingPage() {
         </div>
         <nav>
           <button type="button" onClick={() => navigate('/')}><ArrowLeft size={15}/> Back to RecordsWeb</button>
+          <button type="button" onClick={() => navigate('/status')}>Status</button>
           <button type="button" onClick={() => navigate('/contact')}>Contact Us <Mail size={14}/></button>
           <button type="button" className="public-staff-button" onClick={() => navigate('/login')}>Staff sign in <ArrowRight size={15}/></button>
         </nav>
@@ -96,7 +97,7 @@ export default function PricingPage() {
         </section>
       </main>
 
-      <footer className="public-home-footer"><span>RecordsWeb · Pricing</span><div className="public-home-footer-actions"><button type="button" onClick={() => navigate('/contact')}>Contact Us</button><span>Version {APP_VERSION}</span></div></footer>
+      <footer className="public-home-footer"><span>RecordsWeb · Pricing</span><div className="public-home-footer-actions"><button type="button" onClick={() => navigate('/status')}>Status</button><button type="button" onClick={() => navigate('/contact')}>Contact Us</button><span>Version {APP_VERSION}</span></div></footer>
     </div>
   )
 }

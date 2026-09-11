@@ -26,6 +26,44 @@ function cleanText(value: unknown, max = 160) {
     .slice(0, max)
 }
 
+function validUuid(value: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+}
+
+function appointmentDayRange(date: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    throw new Error('A valid appointment date is required.')
+  }
+
+  const start = new Date(`${date}T00:00:00.000Z`)
+  if (!Number.isFinite(start.getTime())) {
+    throw new Error('A valid appointment date is required.')
+  }
+
+  const end = new Date(start.getTime() + 24 * 60 * 60 * 1000)
+  return {
+    start: start.toISOString(),
+    end: end.toISOString(),
+  }
+}
+
+function patientName(patient: any) {
+  if (!patient) return 'Unknown patient'
+
+  const first = cleanText(patient.first_name, 80)
+  const last = cleanText(patient.last_name, 80)
+  const title = cleanText(patient.title, 30)
+
+  return [
+    last ? `${last.toUpperCase()},` : '',
+    first,
+    title ? `(${title})` : '',
+  ]
+    .filter(Boolean)
+    .join(' ')
+    .trim() || 'Unknown patient'
+}
+
 function numericId(value: unknown, label: string) {
   const clean = cleanText(value, 24)
   if (!/^\d{1,20}$/.test(clean)) throw new Error(`${label} must contain numbers only.`)
@@ -346,6 +384,8 @@ Deno.serve(async (req) => {
     const universeId = cleanText(body?.universeId, 24)
     const placeId = cleanText(body?.placeId, 24)
     const serverId = cleanText(body?.serverId, 120)
+    const actorName = cleanText(body?.actorName, 80)
+    const actorUserId = cleanText(body?.actorUserId, 30)
 
     if (!/^\d+$/.test(universeId) || !/^\d+$/.test(placeId)) return json({ error: 'Roblox universeId and placeId are required.' }, 400)
     if (integration.universe_id && universeId !== String(integration.universe_id)) return json({ error: 'This Roblox universe is not authorised for the RecordsWeb community.' }, 403)
@@ -377,6 +417,135 @@ Deno.serve(async (req) => {
       if (latestError) throw new Error(latestError.message)
       const latestEventId = Array.isArray(latestRows) && latestRows.length ? Number(latestRows[0].id) : 0
       return json({ ...common, latestEventId })
+    }
+
+    if (action === 'appointments') {
+      const date = cleanText(body?.date, 10)
+      const range = appointmentDayRange(date)
+
+      const { data: appointments, error: appointmentError } = await admin
+        .from('appointments')
+        .select('id,patient_id,starts_at,duration_minutes,clinician,appointment_type,status,wait_started_at,room,patients(first_name,last_name,title,nhs_number)')
+        .eq('organisation_id', integration.organisation_id)
+        .gte('starts_at', range.start)
+        .lt('starts_at', range.end)
+        .order('starts_at', { ascending: true })
+
+      if (appointmentError) throw new Error(appointmentError.message)
+
+      return json({
+        ...common,
+        date,
+        appointments: (appointments || []).map((appointment: any) => ({
+          id: appointment.id,
+          startsAt: appointment.starts_at,
+          durationMinutes: Number(appointment.duration_minutes) || 10,
+          patientName: patientName(appointment.patients),
+          nhsNumber: cleanText(appointment.patients?.nhs_number, 20),
+          appointmentType: cleanText(appointment.appointment_type, 100),
+          clinician: cleanText(appointment.clinician, 120),
+          room: cleanText(appointment.room, 80),
+          status: cleanText(appointment.status, 40) || 'Booked',
+          waitStartedAt: appointment.wait_started_at,
+        })),
+      })
+    }
+
+    if (action === 'updateAppointmentStatus') {
+      const appointmentId = cleanText(body?.appointmentId, 64)
+      const nextStatus = cleanText(body?.status, 40)
+
+      const allowedStatuses = new Set([
+        'Booked',
+        'Arrived',
+        'Sent in',
+        'Walked out',
+        'Left',
+      ])
+
+      if (!validUuid(appointmentId)) {
+        return json({ error: 'Invalid appointment.' }, 400)
+      }
+
+      if (!allowedStatuses.has(nextStatus)) {
+        return json({ error: 'Invalid appointment status.' }, 400)
+      }
+
+      if (!billingWriteAllowed(organisation)) {
+        return json(
+          {
+            error:
+              'This RecordsWeb community is read-only because its subscription is suspended.',
+          },
+          403,
+        )
+      }
+
+      const { data: current, error: currentError } = await admin
+        .from('appointments')
+        .select('id,patient_id,status,wait_started_at')
+        .eq('organisation_id', integration.organisation_id)
+        .eq('id', appointmentId)
+        .maybeSingle()
+
+      if (currentError) throw new Error(currentError.message)
+      if (!current) return json({ error: 'Appointment not found.' }, 404)
+
+      const waitStartedAt =
+        nextStatus === 'Arrived'
+          ? current.status === 'Arrived' && current.wait_started_at
+            ? current.wait_started_at
+            : now
+          : null
+
+      const { data: updated, error: updateError } = await admin
+        .from('appointments')
+        .update({
+          status: nextStatus,
+          wait_started_at: waitStartedAt,
+          updated_at: now,
+        })
+        .eq('organisation_id', integration.organisation_id)
+        .eq('id', appointmentId)
+        .select('id,status,wait_started_at,patient_id')
+        .single()
+
+      if (updateError) throw new Error(updateError.message)
+
+      const { error: auditError } = await admin.from('audit_log').insert({
+        organisation_id: integration.organisation_id,
+        actor_id: null,
+        actor_name: actorName
+          ? `Roblox: ${actorName}`
+          : 'Roblox appointment terminal',
+        actor_role: 'RecordsWeb integration',
+        patient_id: updated.patient_id,
+        action: 'appointment.status.updated.roblox',
+        entity_type: 'appointments',
+        entity_id: updated.id,
+        description: `Appointment status changed from ${current.status || 'Booked'} to ${nextStatus} from Roblox.`,
+        metadata: {
+          previous_status: current.status || 'Booked',
+          status: nextStatus,
+          roblox_user_id: actorUserId || null,
+          universe_id: universeId,
+          place_id: placeId,
+          server_id: serverId || null,
+        },
+      })
+
+      if (auditError) {
+        console.error('recordsweb-game-api audit error', auditError)
+      }
+
+      return json({
+        ...common,
+        appointment: {
+          id: updated.id,
+          status: updated.status,
+          waitStartedAt: updated.wait_started_at,
+        },
+      })
     }
 
     if (['identity-get', 'identity-resolve', 'identity-register', 'identity-update'].includes(action)) {

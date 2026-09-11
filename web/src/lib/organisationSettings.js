@@ -58,7 +58,7 @@ export function normaliseOrganisationSettings(settings = {}) {
     organisationId: String(settings.organisationId || DEFAULT_ORGANISATION_SETTINGS.organisationId || ''),
     organisationName: String(settings.organisationName || DEFAULT_ORGANISATION_SETTINGS.organisationName || ''),
     organisationCode: String(settings.organisationCode || DEFAULT_ORGANISATION_SETTINGS.organisationCode || ''),
-    systemMode: settings.systemMode === 'hospital' ? 'hospital' : 'general_practice',
+    systemMode: ['general_practice', 'hospital', 'ambulance'].includes(settings.systemMode) ? settings.systemMode : 'general_practice',
     defaultLocation: String(settings.defaultLocation || DEFAULT_ORGANISATION_SETTINGS.defaultLocation || 'Main Site'),
     active: settings.active !== false,
     primaryColor: cleanHex(settings.primaryColor, RECORDSWEB_BRAND.primaryColor),

@@ -4305,3 +4305,261 @@ html.rw-dark-mode .consult-medication-list > strong { color:#a8c6d5; }
 html.rw-dark-mode .consult-medication-item { color:#dceaf0; border-color:#294753; }
 html.rw-dark-mode .consult-medication-item small { color:#98afbb; }
 html.rw-dark-mode .med-auto-quantity-unavailable { color:#e2bd81; }
+
+
+/* RecordsWeb 3.3.5 — problem history tabs and dark-mode screen-message contrast */
+.problem-status-tabs { display:flex; gap:2px; margin:0 0 6px; border-bottom:1px solid #9bb8ca; }
+.problem-status-tabs button { min-height:30px; padding:0 12px; border:1px solid #9bb8ca; border-bottom:0; background:#eaf4fb; color:#245a7b; font:600 10px "Segoe UI",Arial,sans-serif; cursor:pointer; }
+.problem-status-tabs button.active { background:#fff; color:#0f6fbd; position:relative; top:1px; }
+.problem-status-tabs button span { display:inline-grid; place-items:center; min-width:17px; height:17px; margin-left:6px; padding:0 4px; border-radius:9px; background:#d8e9f5; color:#365f78; font-size:8px; }
+.problems-table .problems-row { grid-template-columns:minmax(220px,1.6fr) minmax(100px,.7fr) minmax(110px,.8fr) minmax(120px,.8fr) minmax(120px,.8fr); }
+html.rw-dark-mode .problem-status-tabs { border-color:#385566 !important; }
+html.rw-dark-mode .problem-status-tabs button { background:#19242b !important; border-color:#415a68 !important; color:#c7d6de !important; }
+html.rw-dark-mode .problem-status-tabs button.active { background:#24404f !important; color:#e1f2fa !important; }
+html.rw-dark-mode .problem-status-tabs button span { background:#162832 !important; color:#b8d7e6 !important; }
+html.rw-dark-mode .message-preview { background:#101920 !important; color:#d7e2e8 !important; border-color:#334955 !important; }
+html.rw-dark-mode .message-preview h3 { color:#e7f3f8 !important; }
+html.rw-dark-mode .message-preview .message-from { color:#9db4c0 !important; }
+html.rw-dark-mode .message-preview p { color:#d7e2e8 !important; }
+html.rw-dark-mode .message-list > button.selected { background:#203b4a !important; color:#edf7fb !important; }
+
+/* RecordsWeb 3.3.9 public automated status page */
+.recordsweb-status-page { background:#eef5f9; }
+.public-status-main { padding:42px 0 56px; }
+.public-status-heading { display:flex; justify-content:space-between; gap:28px; align-items:flex-end; margin-bottom:24px; }
+.public-status-heading > div { max-width:780px; }
+.public-status-heading h1 { margin:6px 0 8px; font-size:36px; letter-spacing:-1.1px; color:#123a56; }
+.public-status-heading p { margin:0; color:#607c8d; font-size:14px; line-height:1.6; }
+.public-status-refresh { min-height:38px; display:inline-flex; align-items:center; gap:7px; border:1px solid #a9c9dd; background:#fff; color:#315f7f; padding:0 14px; font-size:11px; font-weight:800; white-space:nowrap; }
+.public-status-refresh:hover:not(:disabled) { background:#f5fbff; border-color:#71acd1; }
+.public-status-refresh:disabled { opacity:.65; cursor:wait; }
+.public-status-refresh .spin { animation:recordsweb-status-spin .8s linear infinite; }
+@keyframes recordsweb-status-spin { to { transform:rotate(360deg); } }
+.public-status-overall { min-height:86px; display:flex; align-items:center; gap:16px; padding:18px 22px; border:1px solid; margin-bottom:22px; box-shadow:0 5px 18px rgba(31,66,89,.06); }
+.public-status-overall.operational { background:#eaf8f0; border-color:#86cda3; color:#12643a; }
+.public-status-overall.degraded { background:#fff7df; border-color:#e2bf63; color:#775108; }
+.public-status-overall.outage { background:#fff0f0; border-color:#df8e8e; color:#8d2828; }
+.public-status-overall.unknown { background:#f1f5f7; border-color:#b9cbd6; color:#526c7b; }
+.public-status-overall-icon { width:44px; height:44px; display:grid; place-items:center; border:1px solid currentColor; background:rgba(255,255,255,.48); }
+.public-status-overall-copy { display:flex; flex-direction:column; gap:4px; min-width:0; }
+.public-status-overall-copy strong { font-size:19px; }
+.public-status-overall-copy span { font-size:12px; opacity:.84; }
+.public-status-updated { margin-left:auto; font-size:11px; font-weight:700; white-space:nowrap; }
+.public-status-fetch-error { display:flex; align-items:center; gap:8px; margin:-8px 0 20px; padding:10px 12px; background:#fff4f4; border:1px solid #e0a3a3; color:#8f2b2b; font-size:11px; }
+.public-status-groups { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+.public-status-group { background:#fff; border:1px solid #bfd3df; box-shadow:0 4px 16px rgba(31,66,89,.05); }
+.public-status-group-heading { min-height:64px; display:flex; align-items:center; justify-content:space-between; gap:16px; padding:12px 16px; background:#f7fbfd; border-bottom:1px solid #d3e2ea; }
+.public-status-group-heading > div { display:flex; flex-direction:column; gap:2px; }
+.public-status-group-heading span,.public-status-section-title > span { color:#0f6fbd; font-size:9px; letter-spacing:1px; font-weight:900; }
+.public-status-group-heading h2,.public-status-section-title h2 { margin:0; color:#163c56; font-size:17px; }
+.public-status-group-heading small { color:#718998; font-size:10px; }
+.public-status-component-list { display:flex; flex-direction:column; }
+.public-status-component { min-height:78px; display:flex; align-items:center; justify-content:space-between; gap:18px; padding:13px 16px; border-bottom:1px solid #e0ebf1; }
+.public-status-component:last-child { border-bottom:0; }
+.public-status-component-main { display:flex; align-items:center; gap:11px; min-width:0; }
+.public-status-component-main > div { display:flex; flex-direction:column; gap:3px; min-width:0; }
+.public-status-component-main strong { color:#193e56; font-size:12px; }
+.public-status-component-main small { color:#748b99; font-size:10px; line-height:1.35; }
+.public-status-component-icon { width:34px; height:34px; display:grid; place-items:center; border:1px solid #bdd2df; background:#f6fbfd; color:#476d83; flex:0 0 auto; }
+.public-status-component-icon.operational { color:#198754; border-color:#b5dbc4; background:#f0faf4; }
+.public-status-component-icon.degraded { color:#9a690b; border-color:#e6d09b; background:#fff9e9; }
+.public-status-component-icon.outage { color:#bd3434; border-color:#e0b0b0; background:#fff3f3; }
+.public-status-component-result { display:flex; align-items:flex-end; flex-direction:column; gap:5px; flex:0 0 auto; }
+.public-status-component-result small { color:#8498a4; font-size:9px; }
+.public-status-pill { display:inline-flex; min-height:23px; align-items:center; padding:0 8px; border:1px solid; font-size:9px; font-weight:900; text-transform:uppercase; letter-spacing:.3px; white-space:nowrap; }
+.public-status-pill.operational { color:#147642; border-color:#8bcca6; background:#edf9f2; }
+.public-status-pill.degraded { color:#845908; border-color:#dec16f; background:#fff7dd; }
+.public-status-pill.outage { color:#9d2929; border-color:#dd9999; background:#fff0f0; }
+.public-status-pill.unknown { color:#596f7c; border-color:#bacbd5; background:#f2f6f8; }
+.public-status-incidents { margin-top:22px; background:#fff; border:1px solid #bfd3df; box-shadow:0 4px 16px rgba(31,66,89,.05); }
+.public-status-section-title { padding:15px 16px 12px; border-bottom:1px solid #d9e6ed; }
+.public-status-no-incidents { min-height:86px; display:flex; align-items:center; gap:12px; padding:16px; color:#167a46; }
+.public-status-no-incidents > div { display:flex; flex-direction:column; gap:3px; }
+.public-status-no-incidents strong { color:#24465b; font-size:12px; }
+.public-status-no-incidents span { color:#718998; font-size:10px; }
+.public-status-incident-list article { display:flex; align-items:center; gap:12px; padding:13px 16px; border-bottom:1px solid #e0ebf1; }
+.public-status-incident-list article:last-child { border-bottom:0; }
+.public-status-incident-list article > div { flex:1; }
+.public-status-incident-list strong { display:block; color:#263f50; font-size:12px; }
+.public-status-incident-list p { margin:3px 0 0; color:#778b97; font-size:10px; }
+.public-status-incident-marker { width:9px; height:9px; border-radius:50%; background:#879aa5; flex:0 0 auto; }
+.public-status-incident-marker.degraded { background:#d29a21; }
+.public-status-incident-marker.outage { background:#c43b3b; }
+.public-status-automation-note { margin-top:18px; display:flex; gap:12px; padding:15px 16px; border:1px solid #bcd4e3; background:#eaf4fa; color:#315e78; }
+.public-status-automation-note > div { display:flex; flex-direction:column; gap:3px; }
+.public-status-automation-note strong { font-size:11px; }
+.public-status-automation-note p { margin:0; font-size:10px; line-height:1.5; color:#607e90; }
+
+html.rw-dark-mode .recordsweb-status-page { background:#10181e; }
+html.rw-dark-mode .public-status-heading h1 { color:#e3eef4; }
+html.rw-dark-mode .public-status-heading p { color:#91a9b7; }
+html.rw-dark-mode .public-status-refresh { background:#17242d; color:#c1d4df; border-color:#3d5d70; }
+html.rw-dark-mode .public-status-group,html.rw-dark-mode .public-status-incidents { background:#121e26; border-color:#34586c; box-shadow:none; }
+html.rw-dark-mode .public-status-group-heading,html.rw-dark-mode .public-status-section-title { background:#172731; border-color:#34586c; }
+html.rw-dark-mode .public-status-group-heading h2,html.rw-dark-mode .public-status-section-title h2,html.rw-dark-mode .public-status-component-main strong,html.rw-dark-mode .public-status-no-incidents strong,html.rw-dark-mode .public-status-incident-list strong { color:#dceaf2; }
+html.rw-dark-mode .public-status-group-heading small,html.rw-dark-mode .public-status-component-main small,html.rw-dark-mode .public-status-component-result small,html.rw-dark-mode .public-status-no-incidents span,html.rw-dark-mode .public-status-incident-list p { color:#8ea7b5; }
+html.rw-dark-mode .public-status-component,html.rw-dark-mode .public-status-incident-list article { border-color:#2c4858; }
+html.rw-dark-mode .public-status-component-icon { background:#192b35; border-color:#3e6478; }
+html.rw-dark-mode .public-status-automation-note { background:#142832; border-color:#356075; color:#8bc9ea; }
+html.rw-dark-mode .public-status-automation-note p { color:#96afbd; }
+
+@media (max-width:820px) {
+  .public-status-heading { align-items:flex-start; flex-direction:column; }
+  .public-status-groups { grid-template-columns:1fr; }
+  .public-status-overall { align-items:flex-start; flex-wrap:wrap; }
+  .public-status-updated { width:100%; margin-left:60px; }
+}
+@media (max-width:560px) {
+  .public-status-main { padding-top:28px; }
+  .public-status-heading h1 { font-size:30px; }
+  .public-status-component { align-items:flex-start; flex-direction:column; }
+  .public-status-component-result { width:100%; align-items:center; flex-direction:row; justify-content:space-between; padding-left:45px; }
+  .public-status-updated { margin-left:0; }
+}
+
+/* RecordsWeb 3.3.9 — Shared Care Network */
+.shared-care-panel { border:1px solid #b6ccd8; background:#f8fbfc; color:#31576b; }
+.shared-care-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:14px; padding:13px 15px; border-bottom:1px solid #bfd1da; background:#eaf3f7; }
+.shared-care-heading>div { display:flex; align-items:flex-start; gap:10px; }
+.shared-care-heading strong,.shared-care-heading span { display:block; }
+.shared-care-heading strong { font-size:12px; color:#28546b; }
+.shared-care-heading span { margin-top:2px; font-size:9px; color:#708997; line-height:1.45; }
+.shared-care-heading button,.shared-care-card button,.shared-care-permissions button,.shared-care-patient-intro button,.shared-care-patient-link button,.shared-care-candidate button { display:inline-flex; align-items:center; justify-content:center; gap:5px; min-height:29px; padding:5px 9px; border:1px solid #a9c2cf; background:#fff; color:#315e75; cursor:pointer; font:inherit; font-size:9px; }
+.shared-care-heading button:hover:not(:disabled),.shared-care-card button:hover:not(:disabled),.shared-care-permissions button:hover:not(:disabled),.shared-care-patient-intro button:hover:not(:disabled),.shared-care-patient-link button:hover:not(:disabled),.shared-care-candidate button:hover:not(:disabled) { background:#eaf5fa; border-color:#7fa9be; }
+.shared-care-message { margin:9px 12px 0; }
+.shared-care-summary { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; padding:12px; }
+.shared-care-summary>div { min-height:65px; display:grid; grid-template-columns:30px auto 1fr; grid-template-rows:1fr 1fr; align-items:center; column-gap:8px; padding:8px 10px; border:1px solid #bdd0da; background:#fff; }
+.shared-care-summary svg { grid-row:1/3; color:#1479b8; }
+.shared-care-summary strong { align-self:end; font-size:15px; color:#224d64; }
+.shared-care-summary span { align-self:start; color:#758c99; font-size:8px; }
+.shared-care-code-card { grid-template-columns:auto 1fr auto !important; }
+.shared-care-code-card strong { font-family:Consolas,'Courier New',monospace; letter-spacing:3px; font-size:18px; }
+.shared-care-code-card button { grid-column:3; grid-row:1/3; }
+.shared-care-card { margin:0 12px 12px; border:1px solid #b8cdd8; background:#fff; }
+.shared-care-card>header { display:flex; justify-content:space-between; padding:9px 11px; border-bottom:1px solid #c7d7df; background:#edf5f8; }
+.shared-care-card>header strong,.shared-care-card>header span { display:block; }
+.shared-care-card>header strong { font-size:10px; color:#315b71; }
+.shared-care-card>header span { margin-top:2px; color:#758c98; font-size:8px; }
+.shared-care-link-form { display:grid; grid-template-columns:minmax(220px,1fr) auto; align-items:end; gap:9px; padding:11px; }
+.shared-care-link-form label { display:flex; flex-direction:column; gap:4px; color:#416477; font-size:9px; font-weight:700; }
+.shared-care-link-form input { height:32px; border:1px solid #9bb8c9; padding:0 9px; background:#fff; color:#24485c; font:600 13px/1 Consolas,'Courier New',monospace; letter-spacing:2px; text-transform:uppercase; }
+.shared-care-security-note { display:flex; gap:7px; align-items:flex-start; margin:0 11px 11px; padding:8px 9px; border:1px solid #a9d0b7; background:#f1faf4; color:#3b6c4b; font-size:8px; line-height:1.45; }
+.shared-care-link-list { display:flex; flex-direction:column; }
+.shared-care-link { border-top:1px solid #d3e0e7; }
+.shared-care-link:first-child { border-top:0; }
+.shared-care-link-main { min-height:55px; display:grid; grid-template-columns:minmax(230px,1.3fr) 115px 150px minmax(220px,1fr); gap:10px; align-items:center; padding:8px 10px; }
+.shared-care-link-identity strong,.shared-care-link-identity span,.shared-care-link-date span,.shared-care-link-date strong { display:block; }
+.shared-care-link-identity strong { color:#244f66; font-size:10px; }
+.shared-care-link-identity span,.shared-care-link-date span { color:#7b909c; font-size:8px; }
+.shared-care-link-date strong { margin-top:2px; color:#426579; font-size:8px; }
+.shared-care-status { width:max-content; padding:3px 7px; border:1px solid #b9cbd5; background:#edf4f7; color:#506d7d; font-size:8px; font-weight:700; text-transform:uppercase; letter-spacing:.3px; }
+.shared-care-status-active { border-color:#7fb997; background:#edf8f1; color:#237445; }
+.shared-care-status-pending { border-color:#d7ba74; background:#fff8e7; color:#8a6817; }
+.shared-care-status-suspended { border-color:#d4a36b; background:#fff3e7; color:#94551d; }
+.shared-care-status-declined,.shared-care-status-revoked { border-color:#d69a96; background:#fff0ef; color:#9f4038; }
+.shared-care-link-actions { display:flex; gap:5px; justify-content:flex-end; flex-wrap:wrap; }
+.shared-care-awaiting { color:#8a6817; font-size:8px; font-style:italic; }
+.shared-care-permissions { padding:10px; border-top:1px solid #cbdce4; background:#f7fafc; }
+.shared-care-permissions-heading strong,.shared-care-permissions-heading span { display:block; }
+.shared-care-permissions-heading strong { font-size:9px; color:#315b71; }
+.shared-care-permissions-heading span { margin-top:2px; font-size:8px; color:#778e9a; }
+.shared-care-permission-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:6px; margin-top:9px; }
+.shared-care-permission-grid label { display:flex; align-items:center; gap:6px; min-height:31px; padding:5px 7px; border:1px solid #c3d5df; background:#fff; color:#3e6073; font-size:8px; }
+.shared-care-permissions-actions { display:flex; justify-content:flex-end; padding-top:9px; }
+
+.shared-care-patient-page { display:flex; flex-direction:column; gap:9px; }
+.shared-care-patient-intro { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; padding:9px 11px; border:1px solid #a9c6d6; background:#eaf4f9; color:#31576b; }
+.shared-care-patient-intro>div { display:flex; gap:8px; align-items:flex-start; }
+.shared-care-patient-intro strong,.shared-care-patient-intro span { display:block; }
+.shared-care-patient-intro strong { font-size:10px; }
+.shared-care-patient-intro span { margin-top:2px; font-size:8px; color:#728996; }
+.shared-care-patient-link-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; padding:8px; }
+.shared-care-patient-link { display:grid; grid-template-columns:1fr 31px; border:1px solid #bdd0da; background:#fff; }
+.shared-care-patient-link.active { border-color:#248bc7; box-shadow:inset 3px 0 #248bc7; }
+.shared-care-patient-link .shared-care-patient-open { justify-content:flex-start; border:0; min-height:58px; text-align:left; }
+.shared-care-patient-open div { min-width:0; }
+.shared-care-patient-open strong,.shared-care-patient-open span,.shared-care-patient-open small { display:block; }
+.shared-care-patient-open strong { color:#28546b; font-size:9px; }
+.shared-care-patient-open span { color:#66808f; font-size:8px; }
+.shared-care-patient-open small { margin-top:3px; color:#8397a2; font-size:7px; }
+.shared-care-unlink { border-width:0 0 0 1px !important; min-width:31px; padding:0 !important; }
+.shared-care-candidates { display:flex; flex-direction:column; }
+.shared-care-candidate { display:grid; grid-template-columns:1fr auto; gap:12px; align-items:center; padding:8px 10px; border-top:1px solid #d5e1e7; }
+.shared-care-candidate:first-child { border-top:0; }
+.shared-care-candidate strong,.shared-care-candidate span,.shared-care-candidate small { display:block; }
+.shared-care-candidate strong { color:#28546b; font-size:9px; }
+.shared-care-candidate span { color:#648091; font-size:8px; }
+.shared-care-candidate small { margin-top:2px; color:#8599a4; font-size:7px; }
+.shared-care-source-banner { display:flex; align-items:flex-start; gap:8px; padding:9px 11px; border:1px solid #83aec7; background:#dff0fa; color:#28546b; }
+.shared-care-source-banner strong,.shared-care-source-banner span { display:block; }
+.shared-care-source-banner strong { font-size:10px; }
+.shared-care-source-banner span { font-size:8px; color:#55788d; }
+.shared-care-remote-patient { display:grid; grid-template-columns:1.4fr repeat(4,1fr); border:1px solid #b8ccd7; border-top:0; background:#fff; }
+.shared-care-remote-patient>div { min-height:46px; padding:7px 9px; border-left:1px solid #d3e0e6; }
+.shared-care-remote-patient>div:first-child { border-left:0; }
+.shared-care-remote-patient span,.shared-care-remote-patient strong { display:block; }
+.shared-care-remote-patient span { color:#7b909c; font-size:7px; text-transform:uppercase; }
+.shared-care-remote-patient strong { margin-top:3px; color:#284f64; font-size:9px; }
+.shared-care-alerts { display:flex; gap:8px; margin-top:8px; padding:8px 10px; border:1px solid #db9c74; background:#fff3e8; color:#8a4f24; font-size:8px; }
+.shared-care-alerts div { display:flex; flex-direction:column; gap:2px; }
+.shared-care-record-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:8px; margin-top:8px; }
+.shared-care-record-section { min-height:90px; border:1px solid #b9cdd8; background:#fff; }
+.shared-care-record-section>header { display:flex; justify-content:space-between; padding:6px 8px; border-bottom:1px solid #cbdbe3; background:#edf5f8; color:#31596f; font-size:8px; }
+.shared-care-record-section>header span { min-width:20px; text-align:center; }
+.shared-care-record-section.blocked { opacity:.75; }
+.shared-care-record-section.blocked>div,.shared-care-record-empty { padding:12px; color:#8295a0; font-size:8px; }
+.shared-care-clinical-row { display:flex; justify-content:space-between; gap:12px; padding:7px 8px; border-top:1px solid #e0e8ec; }
+.shared-care-clinical-row:first-child { border-top:0; }
+.shared-care-clinical-row strong,.shared-care-clinical-row span { display:block; }
+.shared-care-clinical-row strong { color:#2f566b; font-size:8px; }
+.shared-care-clinical-row span { color:#708994; font-size:7px; }
+.shared-care-clinical-row time { flex:0 0 auto; color:#728996; font-size:7px; }
+.shared-care-consultation { padding:7px 8px; border-top:1px solid #e0e8ec; }
+.shared-care-consultation:first-child { border-top:0; }
+.shared-care-consultation header { display:flex; justify-content:space-between; gap:9px; color:#31596f; font-size:8px; }
+.shared-care-consultation header span { color:#7c919d; font-size:7px; }
+.shared-care-consultation p { margin:4px 0 0; color:#586f7c; font-size:7px; line-height:1.4; }
+.shared-care-loading { display:flex; align-items:center; gap:7px; padding:10px; border:1px solid #b7ccd7; background:#f1f7fa; color:#527285; font-size:8px; }
+
+html.rw-dark-mode .shared-care-panel,html.rw-dark-mode .shared-care-card,html.rw-dark-mode .shared-care-summary>div,html.rw-dark-mode .shared-care-patient-link,html.rw-dark-mode .shared-care-remote-patient,html.rw-dark-mode .shared-care-record-section { background:#111d24; border-color:#355668; color:#d5e4eb; }
+html.rw-dark-mode .shared-care-heading,html.rw-dark-mode .shared-care-card>header,html.rw-dark-mode .shared-care-record-section>header { background:#192b34; border-color:#355668; }
+html.rw-dark-mode .shared-care-heading strong,html.rw-dark-mode .shared-care-card>header strong,html.rw-dark-mode .shared-care-summary strong,html.rw-dark-mode .shared-care-link-identity strong,html.rw-dark-mode .shared-care-patient-open strong,html.rw-dark-mode .shared-care-candidate strong,html.rw-dark-mode .shared-care-remote-patient strong,html.rw-dark-mode .shared-care-clinical-row strong { color:#d7e9f1; }
+html.rw-dark-mode .shared-care-heading span,html.rw-dark-mode .shared-care-card>header span,html.rw-dark-mode .shared-care-summary span,html.rw-dark-mode .shared-care-link-identity span,html.rw-dark-mode .shared-care-link-date span,html.rw-dark-mode .shared-care-patient-open span,html.rw-dark-mode .shared-care-patient-open small,html.rw-dark-mode .shared-care-candidate span,html.rw-dark-mode .shared-care-candidate small,html.rw-dark-mode .shared-care-remote-patient span,html.rw-dark-mode .shared-care-clinical-row span,html.rw-dark-mode .shared-care-clinical-row time { color:#9bb1bd; }
+html.rw-dark-mode .shared-care-link,html.rw-dark-mode .shared-care-permissions,html.rw-dark-mode .shared-care-candidate,html.rw-dark-mode .shared-care-clinical-row,html.rw-dark-mode .shared-care-consultation { border-color:#304b5b; }
+html.rw-dark-mode .shared-care-permissions { background:#13242c; }
+html.rw-dark-mode .shared-care-permission-grid label { background:#0e1b22; border-color:#345365; color:#c7dae3; }
+html.rw-dark-mode .shared-care-link-form input,html.rw-dark-mode .shared-care-heading button,html.rw-dark-mode .shared-care-card button,html.rw-dark-mode .shared-care-permissions button,html.rw-dark-mode .shared-care-patient-intro button,html.rw-dark-mode .shared-care-patient-link button,html.rw-dark-mode .shared-care-candidate button { background:#0d1a21; border-color:#3a5c6f; color:#d8e7ed; }
+html.rw-dark-mode .shared-care-security-note { background:#102a1d; border-color:#2e6545; color:#a8d7b7; }
+html.rw-dark-mode .shared-care-patient-intro,html.rw-dark-mode .shared-care-source-banner { background:#17303e; border-color:#3d657b; color:#d7eaf4; }
+html.rw-dark-mode .shared-care-alerts { background:#342316; border-color:#775237; color:#efc39f; }
+html.rw-dark-mode .shared-care-loading { background:#142630; border-color:#355668; color:#b4cbd7; }
+
+@media (max-width:1000px) {
+  .shared-care-summary { grid-template-columns:1fr; }
+  .shared-care-link-main { grid-template-columns:1fr 100px; }
+  .shared-care-link-date { display:none; }
+  .shared-care-link-actions { grid-column:1/-1; justify-content:flex-start; }
+  .shared-care-permission-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .shared-care-patient-link-grid,.shared-care-record-grid { grid-template-columns:1fr; }
+  .shared-care-remote-patient { grid-template-columns:repeat(2,1fr); }
+}
+
+
+/* RecordsWeb 3.3.9 Shared Care patient banner indicator */
+.patient-name { gap: 8px; flex-wrap: wrap; }
+.patient-shared-care-badge {
+  display: inline-flex;
+  align-items: center;
+  width: auto;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,.4);
+  background: rgba(0,0,0,.18);
+  color: #fff;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .02em;
+  white-space: nowrap;
+}
+body[data-theme='light'] .patient-shared-care-badge { color: #fff; }
+@media print { .patient-shared-care-badge { color: #000; border-color: #777; background: transparent; } }

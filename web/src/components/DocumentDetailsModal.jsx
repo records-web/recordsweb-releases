@@ -92,7 +92,7 @@ export default function DocumentDetailsModal({ document, patient, onClose }) {
       }
       const html = buildFitNoteHtml(document, patient)
       fallbackPrint(html)
-      setPdfState('Use the print dialog to save as PDF.')
+      setPdfState('Print dialog opened — choose Save to PDF to download the fit note.')
     } catch (error) {
       setPdfState(error?.message || 'Unable to save the PDF.')
     }
@@ -230,10 +230,40 @@ function fallbackPrint(html) {
   frame.style.opacity = '0'
   frame.style.border = '0'
   frame.setAttribute('aria-hidden', 'true')
+
+  let removed = false
+  const cleanup = () => {
+    if (removed) return
+    removed = true
+    frame.remove()
+  }
+
+  frame.addEventListener('load', () => {
+    const printWindow = frame.contentWindow
+    if (!printWindow) {
+      cleanup()
+      return
+    }
+
+    const afterPrint = () => {
+      printWindow.removeEventListener('afterprint', afterPrint)
+      window.setTimeout(cleanup, 250)
+    }
+
+    printWindow.addEventListener('afterprint', afterPrint)
+    window.setTimeout(() => {
+      try {
+        printWindow.focus()
+        printWindow.print()
+      } catch {
+        cleanup()
+      }
+    }, 100)
+  }, { once: true })
+
+  // Use srcdoc and invoke print from the parent. This avoids the inline script
+  // that the website Content-Security-Policy correctly blocks.
+  frame.srcdoc = html
   window.document.body.appendChild(frame)
-  const doc = frame.contentDocument
-  doc.open()
-  doc.write(`${html}<script>window.onload=()=>setTimeout(()=>window.print(),150)<\/script>`)
-  doc.close()
-  setTimeout(() => frame.remove(), 60000)
+  window.setTimeout(cleanup, 60000)
 }

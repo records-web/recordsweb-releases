@@ -14,12 +14,16 @@ const SECONDARY_CARE_ROLES = [
   'Chief Executive Officer','Deputy Chief Executive Officer','Chief Operations Officer','Medical Director',
   'Director of Nursing','Consultant','Registrar (ST4-ST9)','Charge Nurse','Staff Nurse',
 ] as const
+const AMBULANCE_ROLES = [
+  'PHEM Consultant','PHEM Doctor','Critical Care Paramedic','Advanced Paramedic','Paramedic',
+  'Emergency Medical Technician','Emergency Care Assistant','Dispatcher','Clinical Team Leader','Operations Manager',
+] as const
 const ALLOWED_TITLES = ['', 'Mr', 'Mrs', 'Miss', 'Ms', 'Mx', 'Dr', 'Prof'] as const
 const COMMON_PASSWORDS = new Set(['password123','password1','qwerty123','letmein123','welcome123','recordsweb1','groveway123','changeme123','admin12345','1234567890'])
 
 function cleanRoles(value: unknown, fallback = 'Patient Coordinator', systemMode = 'general_practice') {
-  const allowed: readonly string[] = systemMode === 'hospital' ? SECONDARY_CARE_ROLES : PRIMARY_CARE_ROLES
-  const defaultRole = systemMode === 'hospital' ? 'Consultant' : 'Patient Coordinator'
+  const allowed: readonly string[] = systemMode === 'hospital' ? SECONDARY_CARE_ROLES : systemMode === 'ambulance' ? AMBULANCE_ROLES : PRIMARY_CARE_ROLES
+  const defaultRole = systemMode === 'hospital' ? 'Consultant' : systemMode === 'ambulance' ? 'Paramedic' : 'Patient Coordinator'
   const source = Array.isArray(value) ? value : []
   const clean = [...new Set(source.map((item) => String(item || '').trim()).filter((role) => allowed.includes(role)))]
   const safeFallback = allowed.includes(fallback) ? fallback : defaultRole

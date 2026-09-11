@@ -75,26 +75,33 @@ export default async function handler(req, res) {
     }
 
     /*
-      Recommended configuration:
+      Contact-form SMTP account. This is intentionally separate from
+      the deployment-request confirmation mailer.
 
-      IONOS_SMTP_USER=noreply@recordsweb.org
-      IONOS_SMTP_PASSWORD=your-password
+      Preferred configuration:
 
+      IONOS_CONTACT_SMTP_USER=contactus@recordsweb.org
+      IONOS_CONTACT_SMTP_PASSWORD=your-contact-mailbox-password
       CONTACT_TO=contactus@recordsweb.org
 
-      The SMTP user should be noreply@recordsweb.org because
-      automated confirmation messages are sent from that address.
+      The older IONOS_SMTP_USER / IONOS_SMTP_PASSWORD names remain as
+      fallbacks so existing RecordsWeb deployments do not suddenly break.
     */
 
-    const smtpUser = process.env.IONOS_SMTP_USER || "noreply@recordsweb.org";
+    const smtpUser =
+      process.env.IONOS_CONTACT_SMTP_USER ||
+      process.env.IONOS_SMTP_USER ||
+      "contactus@recordsweb.org";
 
-    const smtpPassword = process.env.IONOS_SMTP_PASSWORD;
+    const smtpPassword =
+      process.env.IONOS_CONTACT_SMTP_PASSWORD ||
+      process.env.IONOS_SMTP_PASSWORD;
 
     const recipient = process.env.CONTACT_TO || "contactus@recordsweb.org";
 
     if (!smtpPassword) {
       console.error(
-        "RecordsWeb contact form SMTP environment variables are not configured.",
+        "RecordsWeb contact-form SMTP environment variables are not configured.",
       );
 
       return res.status(500).json({

@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import LoginPage from './pages/LoginPage'
 import PublicHomePage from './pages/PublicHomePage'
 import ContactPage from './pages/ContactPage'
+import StatusPage from './pages/StatusPage'
 import PricingPage from './pages/PricingPage'
 import StripeCheckoutPage from './pages/StripeCheckoutPage'
 import BillingCompletePage from './pages/BillingCompletePage'
@@ -26,6 +27,7 @@ import StaffAreaPage from './pages/StaffAreaPage'
 import ManagementPage from './pages/ManagementPage'
 import SecurityPage from './pages/SecurityPage'
 import SettingsPage from './pages/SettingsPage'
+import SharedCarePatientPage from './pages/SharedCarePatientPage'
 import AppShell from './components/AppShell'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import MaintenanceGate from './components/maintenance/MaintenanceGate'
@@ -84,6 +86,7 @@ function StaffRoutes() {
             <Route path="patients/:patientId/diary" element={<DiaryPage />} />
             <Route path="patients/:patientId/documents" element={<DocumentsPage />} />
             <Route path="patients/:patientId/referrals" element={<ReferralsPage />} />
+            <Route path="patients/:patientId/shared-care" element={<SharedCarePatientPage />} />
             <Route path="appointments" element={<AppointmentBookPage />} />
             <Route path="registration" element={<RegistrationPage />} />
             <Route path="staff-area" element={<StaffAreaPage />} />
@@ -105,6 +108,7 @@ export default function App() {
         <Route path="/" element={<RootRoute />} />
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/pricing" element={<PricingPage />} />
+        <Route path="/status" element={<StatusPage />} />
         <Route path="/billing/complete" element={<BillingCompletePage />} />
         <Route path="/billing/checkout" element={<Protected><ManagementOnly><StripeCheckoutPage /></ManagementOnly></Protected>} />
         <Route path="/billing/checkout/return" element={<Protected><ManagementOnly><StripeCheckoutPage returnMode /></ManagementOnly></Protected>} />

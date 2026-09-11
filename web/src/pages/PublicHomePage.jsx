@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { ArrowRight, Building2, CalendarDays, CheckCircle2, ClipboardList, FileText, Gamepad2, Hospital, ImagePlus, LockKeyhole, Mail, Pill, Search, Send, Stethoscope, Users } from 'lucide-react'
+import { Ambulance, ArrowRight, Building2, CalendarDays, CheckCircle2, ClipboardList, FileText, Gamepad2, Handshake, Hospital, ImagePlus, LockKeyhole, Mail, Pill, Search, Send, Stethoscope, Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import recordsWebWordmark from '../assets/RW-Logo.png'
 import { submitRecordsWebAccessRequest } from '../lib/accessRequestService'
@@ -27,6 +27,7 @@ const FEATURES = [
   [CalendarDays, 'Appointments', 'Manage appointment books, arrival states and live waiting-time information.'],
   [LockKeyhole, 'Organisation isolation', 'Each approved community receives its own @XX.XX namespace and protected data boundary.'],
   [Gamepad2, 'Roblox bridge', 'Optionally connect the community to its Roblox experience for live waiting-room patient calls.'],
+  [Handshake, 'Shared Care', 'Link approved RecordsWeb communities so matched patients can be viewed across GP, hospital and ambulance services with directional permissions and audit logging.'],
 ]
 
 export default function PublicHomePage() {
@@ -55,8 +56,13 @@ export default function PublicHomePage() {
     setError('')
     setSuccess('')
     try {
+      const submittedEmail = form.contactEmail
       const result = await submitRecordsWebAccessRequest(form, logoFile)
-      setSuccess(`Request submitted successfully. Reference: ${result.id}`)
+      setSuccess(
+        result.confirmationEmailSent
+          ? `Request submitted successfully. Reference: ${result.id}. A confirmation email has been sent to ${submittedEmail}.`
+          : `Request submitted successfully. Reference: ${result.id}. Your request is safely in the review queue, but the confirmation email could not be sent automatically.`,
+      )
       setForm(INITIAL_FORM)
       setLogoFile(null)
       formRef.current?.reset()
@@ -76,6 +82,7 @@ export default function PublicHomePage() {
         </div>
         <nav>
           <button type="button" onClick={() => navigate('/pricing')}>Pricing</button>
+          <button type="button" onClick={() => navigate('/status')}>Status</button>
           <button type="button" onClick={() => requestSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}>Request access</button>
           <button type="button" className="public-staff-button" onClick={() => navigate('/login')}>Staff sign in <ArrowRight size={15}/></button>
         </nav>
@@ -116,6 +123,7 @@ export default function PublicHomePage() {
           <div className="public-mode-grid">
             <article><div className="public-mode-icon"><Stethoscope size={23}/></div><div><strong>Primary Care (GP)</strong><p>For general practice and primary care organisations using RecordsWeb for consultations, medication, documents, appointments, registration, investigations, referrals and staff administration.</p></div></article>
             <article><div className="public-mode-icon"><Hospital size={23}/></div><div><strong>Secondary Care (Hospital)</strong><p>For hospital and secondary care organisations using a RecordsWeb environment configured for hospital-based services, departments and future secondary-care modules.</p></div></article>
+            <article><div className="public-mode-icon"><Ambulance size={23}/></div><div><strong>Ambulance / PHEM</strong><p>For ambulance and pre-hospital emergency medicine communities, with Shared Care connectivity to linked GP and hospital RecordsWeb environments.</p></div></article>
           </div>
         </section>
 
@@ -139,7 +147,7 @@ export default function PublicHomePage() {
           <form ref={formRef} className="public-request-form" onSubmit={submit}>
             <div className="public-form-grid">
               <label><span>Community name *</span><input value={form.communityName} onChange={(e) => update('communityName', e.target.value)} maxLength={120} required /></label>
-              <label><span>Organisation type *</span><select value={form.requestedMode} onChange={(e) => update('requestedMode', e.target.value)}><option value="general_practice">Primary Care (GP)</option><option value="hospital">Secondary Care (Hospital)</option></select><small>Select the care setting that best reflects how this RecordsWeb environment will be used.</small></label>
+              <label><span>Organisation type *</span><select value={form.requestedMode} onChange={(e) => update('requestedMode', e.target.value)}><option value="general_practice">Primary Care (GP)</option><option value="hospital">Secondary Care (Hospital)</option><option value="ambulance">Ambulance / PHEM</option></select><small>Select the care setting that best reflects how this RecordsWeb environment will be used.</small></label>
               <label><span>Discord URL *</span><input type="url" placeholder="https://discord.gg/..." value={form.discordUrl} onChange={(e) => update('discordUrl', e.target.value)} required /></label>
               <label><span>Roblox group link *</span><input type="url" placeholder="https://www.roblox.com/communities/..." value={form.robloxGroupUrl} onChange={(e) => update('robloxGroupUrl', e.target.value)} required /></label>
               <label><span>Community members *</span><select value={form.memberRange} onChange={(e) => update('memberRange', e.target.value)} required><option value="">Select size</option><option value="10-99">10+</option><option value="100-999">100+</option><option value="1000-9999">1,000+</option><option value="10000+">10,000+</option></select></label>
@@ -158,7 +166,7 @@ export default function PublicHomePage() {
         </section>
       </main>
 
-      <footer className="public-home-footer"><span>RecordsWeb · Multi-organisation clinical records platform</span><div className="public-home-footer-actions"><button type="button" onClick={() => navigate('/pricing')}>Pricing</button><button type="button" onClick={() => navigate('/contact')}>Contact Us</button><span>Version {APP_VERSION}</span></div></footer>
+      <footer className="public-home-footer"><span>RecordsWeb · Multi-organisation clinical records platform</span><div className="public-home-footer-actions"><button type="button" onClick={() => navigate('/pricing')}>Pricing</button><button type="button" onClick={() => navigate('/status')}>Status</button><button type="button" onClick={() => navigate('/contact')}>Contact Us</button><span>Version {APP_VERSION}</span></div></footer>
     </div>
   )
 }

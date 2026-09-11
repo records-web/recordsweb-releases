@@ -52,7 +52,7 @@ function validatePassword(password: string, username = '') {
 function validateCommunityDetails(communityName: string, systemMode: string, defaultLocation: string) {
   if (!communityName) return 'Community name is required.'
   if (communityName.length > 120) return 'Community name must be 120 characters or fewer.'
-  if (!['general_practice', 'hospital'].includes(systemMode)) return 'RecordsWeb mode must be General Practitioner or Hospital.'
+  if (!['general_practice', 'hospital', 'ambulance'].includes(systemMode)) return 'RecordsWeb mode must be General Practitioner, Hospital or Ambulance / PHEM.'
   if (!defaultLocation) return 'Default location is required.'
   if (defaultLocation.length > 120) return 'Default location must be 120 characters or fewer.'
   return ''
@@ -137,7 +137,7 @@ async function ensureReservedOperator(admin: any, organisation: any, password: s
   if (passwordError) throw new Error(passwordError)
 
   const existingProfile = await findReservedOperatorProfile(admin, organisation)
-  const role = organisation.system_mode === 'hospital' ? 'Practice Manager' : 'GP Partner'
+  const role = organisation.system_mode === 'hospital' ? 'Practice Manager' : organisation.system_mode === 'ambulance' ? 'Operations Manager' : 'GP Partner'
   const now = new Date().toISOString()
 
   if (existingProfile) {
@@ -350,7 +350,7 @@ Deno.serve(async (req) => {
         return json({ error: `Community creation was rolled back because the organisation state could not be initialised: ${maintenanceError.message}` }, 500)
       }
 
-      const role = systemMode === 'hospital' ? 'Practice Manager' : 'GP Partner'
+      const role = systemMode === 'hospital' ? 'Practice Manager' : systemMode === 'ambulance' ? 'Operations Manager' : 'GP Partner'
       const now = new Date().toISOString()
       const operatorUsername = `gus.farnsworth@${organisationCode}`
       const { data: profile, error: profileInsertError } = await admin
@@ -419,7 +419,7 @@ Deno.serve(async (req) => {
 
       const reserved = await findReservedOperatorProfile(admin, updated)
       if (reserved) {
-        const role = systemMode === 'hospital' ? 'Practice Manager' : 'GP Partner'
+        const role = systemMode === 'hospital' ? 'Practice Manager' : systemMode === 'ambulance' ? 'Operations Manager' : 'GP Partner'
         await admin.from('profiles').update({ role, roles: [role], is_management: true }).eq('id', reserved.id)
       }
 

@@ -34,22 +34,26 @@ function installationConfigPath() {
 
 function readWindowsRegistryOrganisationCode() {
   if (process.platform !== 'win32') return ''
-  try {
-    const result = spawnSync('reg.exe', [
-      'QUERY',
-      'HKCU\\Software\\RecordsWeb',
-      '/v',
-      'OrganisationCode',
-    ], {
-      encoding: 'utf8',
-      windowsHide: true,
-    })
-    if (result.status !== 0) return ''
-    const match = String(result.stdout || '').match(/OrganisationCode\s+REG_\w+\s+([^\r\n]+)/i)
-    return normaliseOrganisationCode(match?.[1] || '')
-  } catch {
-    return ''
+
+  for (const hive of ['HKCU', 'HKLM']) {
+    try {
+      const result = spawnSync('reg.exe', [
+        'QUERY',
+        `${hive}\\Software\\RecordsWeb`,
+        '/v',
+        'OrganisationCode',
+      ], {
+        encoding: 'utf8',
+        windowsHide: true,
+      })
+      if (result.status !== 0) continue
+      const match = String(result.stdout || '').match(/OrganisationCode\s+REG_\w+\s+([^\r\n]+)/i)
+      const organisationCode = normaliseOrganisationCode(match?.[1] || '')
+      if (organisationCode) return organisationCode
+    } catch {}
   }
+
+  return ''
 }
 
 function writeWindowsRegistryOrganisationCode(organisationCode) {
