@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { CircleHelp, Download, LogOut, Moon, Search, Settings, ShieldCheck, Sun, UserCog, UserRound } from 'lucide-react'
+import { CircleHelp, CreditCard, Download, LogOut, Moon, Search, Settings, ShieldCheck, Sun, TriangleAlert, UserCog, UserRound } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { ORGANISATION } from '../lib/demoData'
@@ -16,6 +16,8 @@ import ForcedPasswordChange from './security/ForcedPasswordChange'
 import SessionLockOverlay from './security/SessionLockOverlay'
 import SystemNotificationCenter from './SystemNotificationCenter'
 import PatientPresenceBanner from './PatientPresenceBanner'
+import { getOrganisationBilling } from '../lib/billingService'
+import { deriveBillingAccess, setBillingAccess } from '../lib/billingAccess'
 
 function detectDesktopPlatform() {
   const ua = String(navigator.userAgent || '')
@@ -54,9 +56,38 @@ export default function AppShell({ children }) {
   const [locked, setLocked] = useState(false)
   const [downloadBusy, setDownloadBusy] = useState(false)
   const [downloadPromptOpen, setDownloadPromptOpen] = useState(false)
+  const [billingAccess, setBillingAccessState] = useState(() => deriveBillingAccess({}))
   const [desktopPlatform] = useState(() => detectDesktopPlatform())
   const lastActivityRef = useRef(Date.now())
   const lastPatientAuditRef = useRef('')
+
+
+  useEffect(() => {
+    const organisationId = session?.profile?.organisation_id || session?.profile?.organisations?.id || ''
+    if (!organisationId) return undefined
+
+    let live = true
+    setBillingAccessState(setBillingAccess({}))
+    const refreshBillingAccess = async () => {
+      try {
+        const billing = await getOrganisationBilling(organisationId)
+        if (!live) return
+        const access = setBillingAccess(billing)
+        setBillingAccessState(access)
+      } catch (error) {
+        console.warn('RecordsWeb billing access state could not be refreshed:', error)
+      }
+    }
+
+    refreshBillingAccess()
+    const timer = window.setInterval(refreshBillingAccess, 60000)
+    window.addEventListener('focus', refreshBillingAccess)
+    return () => {
+      live = false
+      window.clearInterval(timer)
+      window.removeEventListener('focus', refreshBillingAccess)
+    }
+  }, [session?.profile?.organisation_id, session?.profile?.organisations?.id])
 
 
   const patientMatch = location.pathname.match(/^\/patients\/([^/]+)/)
@@ -248,6 +279,21 @@ export default function AppShell({ children }) {
         <div className="worklist-spacer" />
         <span>Organisation: {organisationName}</span>
       </div>
+
+      {billingAccess.mode === 'grace' && (
+        <div className="recordsweb-billing-access-banner grace" role="status">
+          <TriangleAlert size={17}/>
+          <div><strong>Subscription payment overdue</strong><span>RecordsWeb remains fully available during the 7-day grace period{billingAccess.daysRemaining !== null ? ` · ${billingAccess.daysRemaining} day${billingAccess.daysRemaining === 1 ? '' : 's'} remaining` : ''}.</span></div>
+          {profile.is_management && <button type="button" onClick={() => navigate('/management')}><CreditCard size={14}/>Manage billing</button>}
+        </div>
+      )}
+      {billingAccess.mode === 'read_only' && (
+        <div className="recordsweb-billing-access-banner readonly" role="alert">
+          <TriangleAlert size={17}/>
+          <div><strong>RecordsWeb is in read-only mode</strong><span>The payment grace period has ended or the subscription is suspended. Existing records remain available, but changes are blocked.</span></div>
+          {profile.is_management && <button type="button" onClick={() => navigate('/management')}><CreditCard size={14}/>Manage billing</button>}
+        </div>
+      )}
 
       {notice && <div className="system-toast">{notice}</div>}
       <PatientPresenceBanner peers={patientPeers} />

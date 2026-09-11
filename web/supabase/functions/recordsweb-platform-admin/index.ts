@@ -81,7 +81,7 @@ async function getOrganisation(admin: any, organisationId: string) {
   if (!organisationId) return { organisation: null, error: 'Organisation id is required.' }
   const { data, error } = await admin
     .from('organisations')
-    .select('id,org_code,name,system_mode,default_location,active,created_at,billing_payment_exempt,billing_exemption_reason,stripe_customer_id,stripe_subscription_id,stripe_subscription_status,stripe_checkout_session_id,stripe_environment')
+    .select('id,org_code,name,system_mode,default_location,active,created_at,billing_payment_exempt,billing_exemption_reason,stripe_customer_id,stripe_subscription_id,stripe_subscription_status,stripe_checkout_session_id,stripe_environment,billing_status,billing_grace_started_at,billing_grace_ends_at,billing_read_only_since')
     .eq('id', organisationId)
     .maybeSingle()
   if (error) return { organisation: null, error: error.message }
@@ -535,6 +535,8 @@ Deno.serve(async (req) => {
       }
 
       const billingStatus = paymentExempt ? 'complimentary' : requestedBillingStatus
+      const now = new Date().toISOString()
+      const addGraceDays = (value: string, days = 7) => new Date(new Date(value).getTime() + days * 24 * 60 * 60 * 1000).toISOString()
       const patch: Record<string, unknown> = {
         billing_plan: 'standard',
         billing_status: billingStatus,
@@ -547,10 +549,23 @@ Deno.serve(async (req) => {
         billing_payment_exempt: paymentExempt,
         billing_exemption_reason: paymentExempt ? (exemptionReason || 'Payment excluded by RecordsWeb Platform Management.') : null,
       }
+
+      if (paymentExempt || billingStatus === 'complimentary' || billingStatus === 'active' || billingStatus === 'setup') {
+        patch.billing_grace_started_at = null
+        patch.billing_grace_ends_at = null
+        patch.billing_read_only_since = null
+      } else if (billingStatus === 'overdue') {
+        const graceStartedAt = cleanText((organisation as any).billing_grace_started_at) || now
+        patch.billing_grace_started_at = graceStartedAt
+        patch.billing_grace_ends_at = cleanText((organisation as any).billing_grace_ends_at) || addGraceDays(graceStartedAt)
+        patch.billing_read_only_since = null
+      } else if (billingStatus === 'suspended') {
+        patch.billing_read_only_since = cleanText((organisation as any).billing_read_only_since) || now
+      }
       if (paymentExempt) {
         patch.stripe_checkout_session_id = null
         patch.stripe_current_period_end = null
-        patch.stripe_updated_at = new Date().toISOString()
+        patch.stripe_updated_at = now
         if (stripeSubscriptionId) patch.stripe_subscription_id = stripeSubscriptionId
         if (cancelledStripeStatus) patch.stripe_subscription_status = cancelledStripeStatus
       }
@@ -559,7 +574,7 @@ Deno.serve(async (req) => {
         .from('organisations')
         .update(patch)
         .eq('id', organisation.id)
-        .select('id,org_code,name,billing_plan,billing_status,billing_monthly_price,billing_first_month_price,billing_first_month_offer,billing_setup_fee,billing_start_date,billing_next_date,announcement_board_enabled,announcement_board_fee,billing_notes,billing_payment_exempt,billing_exemption_reason,billing_email,stripe_customer_id,stripe_subscription_id,stripe_subscription_status,stripe_last_invoice_status,stripe_current_period_end,stripe_last_payment_at,stripe_environment,stripe_updated_at')
+        .select('id,org_code,name,billing_plan,billing_status,billing_monthly_price,billing_first_month_price,billing_first_month_offer,billing_setup_fee,billing_start_date,billing_next_date,announcement_board_enabled,announcement_board_fee,billing_notes,billing_payment_exempt,billing_exemption_reason,billing_email,stripe_customer_id,stripe_subscription_id,stripe_subscription_status,stripe_last_invoice_status,stripe_current_period_end,stripe_last_payment_at,stripe_environment,stripe_updated_at,billing_grace_started_at,billing_grace_ends_at,billing_read_only_since')
         .single()
       if (updateError || !updated) return json({ error: updateError?.message || 'Unable to update community billing.' }, 400)
 

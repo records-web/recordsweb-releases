@@ -2,6 +2,7 @@ import { supabase, supabaseConfigured, listAccounts } from './supabase'
 import { recordAudit } from './auditService'
 import { ORGANISATION } from './demoData'
 import { getInstallationNamespace } from './installation'
+import { assertBillingWriteAllowed } from './billingAccess'
 
 const DEMO_KEY = `recordsweb-demo-screen-messages-v1-${getInstallationNamespace()}`
 
@@ -49,6 +50,7 @@ export async function listScreenMessageAudit() {
 }
 
 export async function sendScreenMessages({ sender, recipientIds, subject, body, urgent }) {
+  assertBillingWriteAllowed('send staff screen messages')
   if (!recipientIds?.length) throw new Error('Select at least one recipient.')
   const cleanSubject = String(subject || '').trim().slice(0, 100)
   const cleanBody = String(body || '').trim().slice(0, 500)

@@ -27,6 +27,9 @@ export const DEFAULT_RECORDSWEB_BILLING = Object.freeze({
   stripe_last_payment_at: null,
   stripe_environment: null,
   stripe_updated_at: null,
+  billing_grace_started_at: null,
+  billing_grace_ends_at: null,
+  billing_read_only_since: null,
 })
 
 export function normaliseBilling(row = {}) {
@@ -50,15 +53,21 @@ export async function getOrganisationBilling(organisationId) {
   if (!organisationId) throw new Error('Organisation billing cannot be loaded because the organisation id is missing.')
   if (!supabaseConfigured || !supabase) return normaliseBilling({ id: organisationId })
 
+  // Refresh an expired 7-day payment grace period into stored suspended/read-only state.
+  // Older deployments without the 3.2.7 migration simply ignore this helper call.
+  try {
+    await supabase.rpc('recordsweb_refresh_billing_access_state')
+  } catch {}
+
   const { data, error } = await supabase
     .from('organisations')
-    .select('id,org_code,name,billing_plan,billing_status,billing_monthly_price,billing_first_month_price,billing_first_month_offer,billing_setup_fee,billing_start_date,billing_next_date,announcement_board_enabled,announcement_board_fee,billing_notes,billing_payment_exempt,billing_exemption_reason,billing_email,billing_setup_fee_paid_at,billing_first_month_offer_redeemed_at,announcement_board_paid_at,stripe_customer_id,stripe_subscription_id,stripe_subscription_status,stripe_last_invoice_status,stripe_checkout_session_id,stripe_current_period_end,stripe_last_payment_at,stripe_environment,stripe_updated_at')
+    .select('id,org_code,name,billing_plan,billing_status,billing_monthly_price,billing_first_month_price,billing_first_month_offer,billing_setup_fee,billing_start_date,billing_next_date,announcement_board_enabled,announcement_board_fee,billing_notes,billing_payment_exempt,billing_exemption_reason,billing_email,billing_setup_fee_paid_at,billing_first_month_offer_redeemed_at,announcement_board_paid_at,stripe_customer_id,stripe_subscription_id,stripe_subscription_status,stripe_last_invoice_status,stripe_checkout_session_id,stripe_current_period_end,stripe_last_payment_at,stripe_environment,stripe_updated_at,billing_grace_started_at,billing_grace_ends_at,billing_read_only_since')
     .eq('id', organisationId)
     .single()
 
   if (error) {
-    if (/billing_payment_exempt|stripe_customer_id|billing_plan|billing_status|billing_monthly_price|schema cache|column/i.test(error.message || '')) {
-      throw new Error('Stripe billing is not configured in Supabase yet. Run the RecordsWeb 3.2.6 Stripe billing migration.')
+    if (/billing_grace_ends_at|billing_payment_exempt|stripe_customer_id|billing_plan|billing_status|billing_monthly_price|schema cache|column/i.test(error.message || '')) {
+      throw new Error('Stripe billing is not configured in Supabase yet. Run the RecordsWeb 3.2.7 billing grace/read-only migration (after the 3.2.6 Stripe migration).')
     }
     throw error
   }

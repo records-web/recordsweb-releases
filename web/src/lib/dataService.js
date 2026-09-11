@@ -4,6 +4,7 @@ import { recordAudit } from './auditService'
 import { recordDocumentVersion } from './documentVersions'
 import { archiveDeletedRecord } from './deletedItems'
 import { getInstallationNamespace } from './installation'
+import { assertBillingWriteAllowed } from './billingAccess'
 
 import {
   demoPatients,
@@ -151,6 +152,7 @@ export async function getPatient(patientId) {
 }
 
 export async function createPatient(payload) {
+  assertBillingWriteAllowed('register a patient')
   const cleanPayload = { ...payload }
   delete cleanPayload.nhs_number
   let created
@@ -173,6 +175,7 @@ export async function createPatient(payload) {
 }
 
 export async function updatePatient(patientId, payload) {
+  assertBillingWriteAllowed('change patient demographics')
   let data
   if (!supabaseConfigured) data = demoUpdate('patients', patientId, payload)
   else { const result = await supabase.from('patients').update(payload).eq('id', patientId).select().single(); if (result.error) throw result.error; data=result.data }
@@ -194,6 +197,7 @@ export async function listForPatient(table, patientId, orderColumn = 'created_at
 }
 
 export async function createForPatient(table, patientId, payload) {
+  assertBillingWriteAllowed('create clinical records')
   let data
   if (!supabaseConfigured) data = demoInsert(table, { patient_id: patientId, ...payload })
   else {
@@ -207,6 +211,7 @@ export async function createForPatient(table, patientId, payload) {
 }
 
 export async function updateForPatient(table, id, payload) {
+  assertBillingWriteAllowed('change clinical records')
   let data
   if (!supabaseConfigured) data = demoUpdate(table, id, payload)
   else {
@@ -244,6 +249,7 @@ export async function getFitNotePdfBlob(documentId, storagePath = null) {
 }
 
 export async function lockFitNoteDocument(documentId) {
+  assertBillingWriteAllowed('sign or lock a fit note')
   if (!documentId) throw new Error('Missing fit note document information.')
   if (!supabaseConfigured) {
     return demoUpdate('documents', documentId, {
@@ -268,6 +274,7 @@ export async function lockFitNoteDocument(documentId) {
 }
 
 export async function archiveFitNotePdf(patientId, documentId, base64Pdf) {
+  assertBillingWriteAllowed('store clinical documents')
   if (!base64Pdf || !documentId || !patientId) throw new Error('Missing fit note PDF information.')
   if (!supabaseConfigured) return { storage_path: null, demo: true }
 
@@ -317,6 +324,7 @@ export async function updateConsultation(id, payload) {
 }
 
 async function saveMedicationWithPin(patientId, medicationId, payload, pin) {
+  assertBillingWriteAllowed('change medication records')
   const cleanPin = validatePrescribingPin(pin)
   if (!supabaseConfigured) {
     await verifyDemoPrescribingPin(cleanPin)
@@ -363,6 +371,7 @@ export async function listAppointments(date) {
 }
 
 export async function createAppointment(payload) {
+  assertBillingWriteAllowed('create appointments')
   let data
   if (!supabaseConfigured) data = demoInsert('appointments', payload)
   else {
@@ -376,6 +385,7 @@ export async function createAppointment(payload) {
 }
 
 export async function updateAppointment(id, payload) {
+  assertBillingWriteAllowed('change appointments')
   let data
   if (!supabaseConfigured) data = demoUpdate('appointments', id, payload)
   else {
@@ -396,6 +406,7 @@ export async function listStaffReports() {
 }
 
 export async function createStaffReport(payload) {
+  assertBillingWriteAllowed('create staff reports')
   if (!supabaseConfigured) return demoInsert('staff_reports', { status: 'Open', ...payload })
   const { data, error } = await supabase.from('staff_reports').insert({ status: 'Open', ...payload }).select().single()
   if (error) throw error
@@ -403,6 +414,7 @@ export async function createStaffReport(payload) {
 }
 
 export async function updateStaffReport(id, payload) {
+  assertBillingWriteAllowed('change staff reports')
   if (!supabaseConfigured) return demoUpdate('staff_reports', id, payload)
   const { data, error } = await supabase.from('staff_reports').update(payload).eq('id', id).select().single()
   if (error) throw error
@@ -417,6 +429,7 @@ export async function listStaffJobs() {
 }
 
 export async function createStaffJob(payload) {
+  assertBillingWriteAllowed('create staff jobs')
   if (!supabaseConfigured) return demoInsert('staff_jobs', { status: 'Open', ...payload })
   const { data, error } = await supabase.from('staff_jobs').insert(payload).select().single()
   if (error) throw error
@@ -424,6 +437,7 @@ export async function createStaffJob(payload) {
 }
 
 export async function updateStaffJob(id, payload) {
+  assertBillingWriteAllowed('change staff jobs')
   if (!supabaseConfigured) return demoUpdate('staff_jobs', id, payload)
   const { data, error } = await supabase.from('staff_jobs').update(payload).eq('id', id).select().single()
   if (error) throw error
@@ -438,6 +452,7 @@ export async function listStaffNotices() {
 }
 
 export async function createStaffNotice(payload) {
+  assertBillingWriteAllowed('create staff notices')
   if (!supabaseConfigured) return demoInsert('staff_notices', { active: true, ...payload })
   const { data, error } = await supabase.from('staff_notices').insert(payload).select().single()
   if (error) throw error
@@ -445,6 +460,7 @@ export async function createStaffNotice(payload) {
 }
 
 export async function updateStaffNotice(id, payload) {
+  assertBillingWriteAllowed('change staff notices')
   if (!supabaseConfigured) return demoUpdate('staff_notices', id, payload)
   const { data, error } = await supabase.from('staff_notices').update(payload).eq('id', id).select().single()
   if (error) throw error
@@ -459,6 +475,7 @@ export async function listOrganisationNotepad() {
 }
 
 export async function createOrganisationNotepadEntry(payload) {
+  assertBillingWriteAllowed('create notepad entries')
   if (!supabaseConfigured) return demoInsert('organisation_notepad', payload)
   const { data, error } = await supabase.from('organisation_notepad').insert(payload).select().single()
   if (error) throw error
@@ -466,6 +483,7 @@ export async function createOrganisationNotepadEntry(payload) {
 }
 
 export async function updateOrganisationNotepadEntry(id, payload) {
+  assertBillingWriteAllowed('change notepad entries')
   if (!supabaseConfigured) return demoUpdate('organisation_notepad', id, payload)
   const { data, error } = await supabase.from('organisation_notepad').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', id).select().single()
   if (error) throw error
@@ -473,6 +491,7 @@ export async function updateOrganisationNotepadEntry(id, payload) {
 }
 
 export async function deleteOrganisationNotepadEntry(id) {
+  assertBillingWriteAllowed('delete notepad entries')
   if (!supabaseConfigured) {
     const snapshot = demoRows('organisation_notepad').find((row) => row.id === id)
     if (snapshot) await archiveDeletedRecord('organisation_notepad', snapshot)
@@ -493,6 +512,7 @@ export async function listOrganisationNews() {
 }
 
 export async function createOrganisationNews(payload) {
+  assertBillingWriteAllowed('publish organisation news')
   if (!supabaseConfigured) return demoInsert('organisation_news', { active: true, ...payload })
   const { data, error } = await supabase.from('organisation_news').insert(payload).select().single()
   if (error) throw error
@@ -500,6 +520,7 @@ export async function createOrganisationNews(payload) {
 }
 
 export async function updateOrganisationNews(id, payload) {
+  assertBillingWriteAllowed('change organisation news')
   if (!supabaseConfigured) return demoUpdate('organisation_news', id, payload)
   const { data, error } = await supabase.from('organisation_news').update({ ...payload, updated_at: new Date().toISOString() }).eq('id', id).select().single()
   if (error) throw error
@@ -507,6 +528,7 @@ export async function updateOrganisationNews(id, payload) {
 }
 
 export async function deleteOrganisationNews(id) {
+  assertBillingWriteAllowed('delete organisation news')
   if (!supabaseConfigured) {
     const snapshot = demoRows('organisation_news').find((row) => row.id === id)
     if (snapshot) await archiveDeletedRecord('organisation_news', snapshot)

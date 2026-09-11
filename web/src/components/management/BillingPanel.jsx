@@ -3,6 +3,7 @@ import { CheckCircle2, CreditCard, ExternalLink, Megaphone, RefreshCw, ShieldChe
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import { createStripePortalSession, getOrganisationBilling } from '../../lib/billingService'
+import { deriveBillingAccess } from '../../lib/billingAccess'
 
 const STATUS_LABELS = {
   setup: 'Setup / first month',
@@ -22,6 +23,13 @@ function formatDate(value) {
   const date = new Date(`${String(value).slice(0, 10)}T00:00:00`)
   if (Number.isNaN(date.getTime())) return String(value)
   return new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'long', year: 'numeric' }).format(date)
+}
+
+function formatDateTime(value) {
+  if (!value) return 'Not set'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return String(value)
+  return new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' }).format(date)
 }
 
 function stripeStatusLabel(value) {
@@ -61,6 +69,8 @@ export default function BillingPanel() {
       ? (billing?.billing_status || 'setup')
       : 'setup'
 
+  const billingAccess = useMemo(() => deriveBillingAccess(billing || {}), [billing])
+
   async function manageBilling() {
     setActionBusy(true)
     setError('')
@@ -91,6 +101,20 @@ export default function BillingPanel() {
           <div className="billing-exempt-banner">
             <ShieldCheck size={20}/>
             <div><strong>Payment excluded</strong><span>This community does not need to pay a RecordsWeb subscription.</span>{billing.billing_exemption_reason && <small>{billing.billing_exemption_reason}</small>}</div>
+          </div>
+        )}
+
+        {!billing.billing_payment_exempt && billingAccess.mode === 'grace' && (
+          <div className="billing-grace-banner">
+            <TriangleAlert size={20}/>
+            <div><strong>Payment overdue · grace period active</strong><span>RecordsWeb remains fully available during the 7-day payment grace period.</span><small>Grace ends {formatDateTime(billing.billing_grace_ends_at)}{billingAccess.daysRemaining !== null ? ` · ${billingAccess.daysRemaining} day${billingAccess.daysRemaining === 1 ? '' : 's'} remaining` : ''}.</small></div>
+          </div>
+        )}
+
+        {!billing.billing_payment_exempt && billingAccess.mode === 'read_only' && (
+          <div className="billing-readonly-banner">
+            <TriangleAlert size={20}/>
+            <div><strong>Subscription suspended · RecordsWeb is read-only</strong><span>Existing records remain available, but new records and changes are blocked until billing is restored.</span><small>Use Manage billing below to update the payment method. Full write access is restored automatically after Stripe confirms payment.</small></div>
           </div>
         )}
 

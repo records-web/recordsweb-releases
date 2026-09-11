@@ -17,6 +17,8 @@ import ForcedPasswordChange from './security/ForcedPasswordChange'
 import SessionLockOverlay from './security/SessionLockOverlay'
 import SystemNotificationCenter from './SystemNotificationCenter'
 import PatientPresenceBanner from './PatientPresenceBanner'
+import { getOrganisationBilling } from '../lib/billingService'
+import { deriveBillingAccess, setBillingAccess } from '../lib/billingAccess'
 
 export default function AppShell({ children }) {
   const { session, logout, updateProfile } = useAuth()
@@ -42,6 +44,34 @@ export default function AppShell({ children }) {
   useEffect(() => {
     Promise.resolve(window.recordsWebDesktop?.setWindowMode?.('app')).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    const organisationId = session?.profile?.organisation_id || session?.profile?.organisations?.id || ''
+    if (!organisationId) return undefined
+
+    let live = true
+    setBillingAccessState(setBillingAccess({}))
+    const refreshBillingAccess = async () => {
+      try {
+        const billing = await getOrganisationBilling(organisationId)
+        if (!live) return
+        const access = setBillingAccess(billing)
+        setBillingAccessState(access)
+      } catch (error) {
+        console.warn('RecordsWeb billing access state could not be refreshed:', error)
+      }
+    }
+
+    refreshBillingAccess()
+    const timer = window.setInterval(refreshBillingAccess, 60000)
+    window.addEventListener('focus', refreshBillingAccess)
+    return () => {
+      live = false
+      window.clearInterval(timer)
+      window.removeEventListener('focus', refreshBillingAccess)
+    }
+  }, [session?.profile?.organisation_id, session?.profile?.organisations?.id])
+
 
   const patientMatch = location.pathname.match(/^\/patients\/([^/]+)/)
   const openPatientId = patientMatch ? decodeURIComponent(patientMatch[1]) : ''
@@ -178,6 +208,21 @@ export default function AppShell({ children }) {
         <div className="worklist-spacer" />
         <span>Organisation: {organisationName}</span>
       </div>
+
+      {billingAccess.mode === 'grace' && (
+        <div className="recordsweb-billing-access-banner grace" role="status">
+          <TriangleAlert size={17}/>
+          <div><strong>Subscription payment overdue</strong><span>RecordsWeb remains fully available during the 7-day grace period{billingAccess.daysRemaining !== null ? ` · ${billingAccess.daysRemaining} day${billingAccess.daysRemaining === 1 ? '' : 's'} remaining` : ''}.</span></div>
+          {profile.is_management && <button type="button" onClick={() => navigate('/management')}><CreditCard size={14}/>Manage billing</button>}
+        </div>
+      )}
+      {billingAccess.mode === 'read_only' && (
+        <div className="recordsweb-billing-access-banner readonly" role="alert">
+          <TriangleAlert size={17}/>
+          <div><strong>RecordsWeb is in read-only mode</strong><span>The payment grace period has ended or the subscription is suspended. Existing records remain available, but changes are blocked.</span></div>
+          {profile.is_management && <button type="button" onClick={() => navigate('/management')}><CreditCard size={14}/>Manage billing</button>}
+        </div>
+      )}
 
       {notice && <div className="system-toast">{notice}</div>}
       <RequiredUpdateNotice />

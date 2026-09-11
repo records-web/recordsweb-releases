@@ -1,9 +1,11 @@
 import { supabase, supabaseConfigured } from './supabase'
+import { assertBillingWriteAllowed } from './billingAccess'
 import { getInstallationNamespace } from './installation'
 const KEY=`recordsweb-demo-document-versions-v1-${getInstallationNamespace()}`
 function read(){try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch{return[]}}
 function write(v){localStorage.setItem(KEY,JSON.stringify(v))}
 export async function recordDocumentVersion(document) {
+  assertBillingWriteAllowed('change clinical documents')
   if (!document?.id) return null
   if (!supabaseConfigured || !supabase) {
     const all=read(); const n=1+Math.max(0,...all.filter(v=>v.document_id===document.id).map(v=>v.version_number||0)); const row={id:`dv-${Date.now()}`,document_id:document.id,patient_id:document.patient_id,version_number:n,snapshot:document,changed_at:new Date().toISOString()}; all.unshift(row); write(all); return row

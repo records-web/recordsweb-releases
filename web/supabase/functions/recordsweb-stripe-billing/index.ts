@@ -170,7 +170,10 @@ async function findOrganisationForCaller(admin: any, token: string) {
         stripe_subscription_id,
         stripe_subscription_status,
         stripe_checkout_session_id,
-        stripe_environment
+        stripe_environment,
+        billing_grace_started_at,
+        billing_grace_ends_at,
+        billing_read_only_since
       )
     `,
     )
@@ -229,7 +232,10 @@ async function getOrganisation(admin: any, organisationId: string) {
       stripe_subscription_id,
       stripe_subscription_status,
       stripe_checkout_session_id,
-      stripe_environment
+      stripe_environment,
+      billing_grace_started_at,
+      billing_grace_ends_at,
+      billing_read_only_since
     `,
     )
     .eq("id", organisationId)
@@ -334,6 +340,10 @@ async function syncCheckoutSession(
     patch.stripe_last_payment_at = now;
 
     patch.stripe_last_invoice_status = "paid";
+    patch.billing_status = "active";
+    patch.billing_grace_started_at = null;
+    patch.billing_grace_ends_at = null;
+    patch.billing_read_only_since = null;
   }
 
   if (
@@ -712,15 +722,15 @@ async function createCheckoutSession(
 
     params.ui_mode = "elements";
 
-    params.return_url = `${base}/billing/checkout/return?session_id={CHECKOUT_SESSION_ID}`;
+    params.return_url = `${base}/#/billing/complete?status=success`;
   } else {
     /*
      * Hosted Checkout fallback.
      */
 
-    params.success_url = `${base}/billing/complete?status=success&session_id={CHECKOUT_SESSION_ID}`;
+    params.success_url = `${base}/#/billing/complete?status=success&session_id={CHECKOUT_SESSION_ID}`;
 
-    params.cancel_url = `${base}/billing/complete?status=cancelled`;
+    params.cancel_url = `${base}/#/billing/complete?status=cancelled`;
 
     params.submit_type = "subscribe";
   }
@@ -1005,7 +1015,7 @@ Deno.serve(async (req) => {
       const portal = await stripe.billingPortal.sessions.create({
         customer: organisation.stripe_customer_id,
 
-        return_url: `${publicUrl()}/management`,
+        return_url: `${publicUrl()}/#/management`,
       });
 
       return json({

@@ -1,6 +1,7 @@
 import { ORGANISATION, updateRuntimeOrganisation } from './demoData'
 import { getInstalledOrganisationCode } from './installation'
 import { supabase, supabaseConfigured } from './supabase'
+import { assertBillingWriteAllowed } from './billingAccess'
 
 export const ORGANISATION_SETTINGS_KEY = `recordsweb-organisation-settings-v3-${(getInstalledOrganisationCode() || 'unconfigured').toLowerCase()}`
 export const BRANDING_BUCKET = 'recordsweb-branding'
@@ -209,6 +210,7 @@ async function removeStorageLogo(path) {
 }
 
 export async function saveOrganisationSettings(settings, options = {}) {
+  assertBillingWriteAllowed('change community branding')
   const next = normaliseOrganisationSettings(settings)
   const logoFile = options.logoFile || null
   const removeLogo = Boolean(options.removeLogo)
