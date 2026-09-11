@@ -306,6 +306,17 @@ Deno.serve(async (req) => {
           logo_path: null,
           logo_file_name: null,
           logo_updated_at: null,
+          billing_plan: 'standard',
+          billing_status: 'setup',
+          billing_monthly_price: 9.50,
+          billing_first_month_price: 5.00,
+          billing_first_month_offer: true,
+          billing_setup_fee: 7.00,
+          billing_start_date: null,
+          billing_next_date: null,
+          announcement_board_enabled: false,
+          announcement_board_fee: 10.00,
+          billing_notes: null,
         })
         .select('*')
         .single()
@@ -430,6 +441,65 @@ Deno.serve(async (req) => {
       await writeAudit(admin, callerProfile, active ? 'platform.community.enabled' : 'platform.community.disabled', organisation.id, `${active ? 'Enabled' : 'Disabled'} RecordsWeb community ${organisation.name} (@${organisation.org_code}).`, {
         organisation_code: organisation.org_code,
         active,
+      })
+
+      return json({ ok: true, community: updated })
+    }
+
+
+    if (action === 'update-community-billing') {
+      const organisationId = cleanText(body.organisation_id)
+      const billingStatus = cleanText(body.billing_status, 'active').toLowerCase()
+      const allowedStatuses = ['setup', 'active', 'overdue', 'suspended', 'complimentary']
+      if (!allowedStatuses.includes(billingStatus)) return json({ error: 'Invalid billing status.' }, 400)
+
+      const amounts = {
+        billing_monthly_price: Number(body.billing_monthly_price),
+        billing_first_month_price: Number(body.billing_first_month_price),
+        billing_setup_fee: Number(body.billing_setup_fee),
+        announcement_board_fee: Number(body.announcement_board_fee),
+      }
+      for (const [name, value] of Object.entries(amounts)) {
+        if (!Number.isFinite(value) || value < 0 || value > 9999) return json({ error: `${name} must be a valid non-negative amount below 10000.` }, 400)
+      }
+
+      const datePattern = /^\d{4}-\d{2}-\d{2}$/
+      const billingStartDate = cleanText(body.billing_start_date) || null
+      const billingNextDate = cleanText(body.billing_next_date) || null
+      if (billingStartDate && !datePattern.test(billingStartDate)) return json({ error: 'Billing start date must use YYYY-MM-DD.' }, 400)
+      if (billingNextDate && !datePattern.test(billingNextDate)) return json({ error: 'Next billing date must use YYYY-MM-DD.' }, 400)
+
+      const billingNotes = cleanText(body.billing_notes)
+      if (billingNotes.length > 1000) return json({ error: 'Billing notes must be 1000 characters or fewer.' }, 400)
+
+      const { organisation, error } = await getOrganisation(admin, organisationId)
+      if (error || !organisation) return json({ error }, 404)
+
+      const patch = {
+        billing_plan: 'standard',
+        billing_status: billingStatus,
+        ...amounts,
+        billing_first_month_offer: Boolean(body.billing_first_month_offer),
+        billing_start_date: billingStartDate,
+        billing_next_date: billingNextDate,
+        announcement_board_enabled: Boolean(body.announcement_board_enabled),
+        billing_notes: billingNotes || null,
+      }
+
+      const { data: updated, error: updateError } = await admin
+        .from('organisations')
+        .update(patch)
+        .eq('id', organisation.id)
+        .select('id,org_code,name,billing_plan,billing_status,billing_monthly_price,billing_first_month_price,billing_first_month_offer,billing_setup_fee,billing_start_date,billing_next_date,announcement_board_enabled,announcement_board_fee,billing_notes')
+        .single()
+      if (updateError || !updated) return json({ error: updateError?.message || 'Unable to update community billing.' }, 400)
+
+      await writeAudit(admin, callerProfile, 'platform.community.billing_updated', organisation.id, `Updated RecordsWeb billing for ${organisation.name} (@${organisation.org_code}).`, {
+        organisation_code: organisation.org_code,
+        billing_status: billingStatus,
+        billing_monthly_price: amounts.billing_monthly_price,
+        billing_next_date: billingNextDate,
+        announcement_board_enabled: Boolean(body.announcement_board_enabled),
       })
 
       return json({ ok: true, community: updated })

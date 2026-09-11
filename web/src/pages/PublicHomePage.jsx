@@ -31,7 +31,12 @@ const FEATURES = [
 
 export default function PublicHomePage() {
   const navigate = useNavigate()
-  useEffect(() => { applyRecordsWebProductBrand() }, [])
+  useEffect(() => {
+    applyRecordsWebProductBrand()
+    if (window.location.hash === '#request-access') {
+      window.setTimeout(() => document.getElementById('request-access')?.scrollIntoView({ behavior: 'smooth' }), 0)
+    }
+  }, [])
   const requestSectionRef = useRef(null)
   const formRef = useRef(null)
   const [form, setForm] = useState(INITIAL_FORM)
@@ -70,6 +75,7 @@ export default function PublicHomePage() {
           <span>Clinical records platform</span>
         </div>
         <nav>
+          <button type="button" onClick={() => navigate('/pricing')}>Pricing</button>
           <button type="button" onClick={() => requestSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}>Request access</button>
           <button type="button" className="public-staff-button" onClick={() => navigate('/login')}>Staff sign in <ArrowRight size={15}/></button>
         </nav>
@@ -83,6 +89,7 @@ export default function PublicHomePage() {
             <p>RecordsWeb provides approved communities with their own organisation extension, staff namespace and isolated clinical-record environment while keeping a consistent RecordsWeb workflow.</p>
             <div className="public-hero-actions">
               <button type="button" className="public-primary" onClick={() => navigate('/login')}>Open staff area <ArrowRight size={16}/></button>
+              <button type="button" className="public-secondary" onClick={() => navigate('/pricing')}>View pricing</button>
               <button type="button" className="public-secondary" onClick={() => requestSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}>Request access</button>
               <button type="button" className="public-secondary" onClick={() => navigate('/contact')}>Contact Us <Mail size={15}/></button>
             </div>
@@ -151,7 +158,7 @@ export default function PublicHomePage() {
         </section>
       </main>
 
-      <footer className="public-home-footer"><span>RecordsWeb · Multi-organisation clinical records platform</span><div className="public-home-footer-actions"><button type="button" onClick={() => navigate('/contact')}>Contact Us</button><span>Version {APP_VERSION}</span></div></footer>
+      <footer className="public-home-footer"><span>RecordsWeb · Multi-organisation clinical records platform</span><div className="public-home-footer-actions"><button type="button" onClick={() => navigate('/pricing')}>Pricing</button><button type="button" onClick={() => navigate('/contact')}>Contact Us</button><span>Version {APP_VERSION}</span></div></footer>
     </div>
   )
 }

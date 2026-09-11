@@ -5,6 +5,7 @@ import {
   Building2,
   CheckCircle2,
   Clock3,
+  CreditCard,
   FileCheck2,
   LogOut,
   KeyRound,
@@ -43,6 +44,7 @@ import {
   signInPlatformOperator,
   signOutPlatformOperator,
   updatePlatformCommunity,
+  updatePlatformCommunityBilling,
   verifyPlatformOperator,
 } from '../lib/platformOperationsService'
 
@@ -502,6 +504,120 @@ function CommunitiesPanel({ operatorAccountEmail = '' }) {
   )
 }
 
+
+const BILLING_STATUS_OPTIONS = [
+  ['setup', 'Setup / first month'],
+  ['active', 'Active'],
+  ['overdue', 'Payment overdue'],
+  ['suspended', 'Suspended'],
+  ['complimentary', 'Complimentary'],
+]
+
+function billingMoney(value) {
+  const number = Number(value)
+  return Number.isFinite(number) ? `£${number.toFixed(2)}` : '—'
+}
+
+function CommunityBillingPanel() {
+  const [rows, setRows] = useState([])
+  const [selected, setSelected] = useState(null)
+  const [form, setForm] = useState(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+
+  const load = useCallback(async () => {
+    setError('')
+    try { setRows(await listPlatformCommunities()) }
+    catch (err) { setError(err?.message || 'Unable to load community billing.') }
+  }, [])
+
+  useEffect(() => { load() }, [load])
+
+  function edit(row) {
+    setSelected(row)
+    setForm({
+      billingStatus: row.billing_status || 'active',
+      monthlyPrice: Number(row.billing_monthly_price ?? 9.50).toFixed(2),
+      firstMonthPrice: Number(row.billing_first_month_price ?? 5).toFixed(2),
+      firstMonthOffer: Boolean(row.billing_first_month_offer),
+      setupFee: Number(row.billing_setup_fee ?? 7).toFixed(2),
+      billingStartDate: row.billing_start_date || '',
+      billingNextDate: row.billing_next_date || '',
+      announcementBoardEnabled: Boolean(row.announcement_board_enabled),
+      announcementBoardFee: Number(row.announcement_board_fee ?? 10).toFixed(2),
+      billingNotes: row.billing_notes || '',
+    })
+    setError('')
+    setNotice('')
+  }
+
+  function setField(name, value) {
+    setForm((current) => ({ ...current, [name]: value }))
+  }
+
+  async function save(event) {
+    event.preventDefault()
+    if (!selected || !form) return
+    const numericFields = [form.monthlyPrice, form.firstMonthPrice, form.setupFee, form.announcementBoardFee].map(Number)
+    if (numericFields.some((value) => !Number.isFinite(value) || value < 0 || value > 9999)) {
+      setError('Billing prices must be valid non-negative amounts below £10,000.')
+      return
+    }
+    setBusy(true); setError(''); setNotice('')
+    try {
+      await updatePlatformCommunityBilling({ organisationId: selected.id, ...form })
+      setNotice(`Billing updated for ${selected.name} (@${selected.org_code}).`)
+      setSelected(null)
+      setForm(null)
+      await load()
+    } catch (err) { setError(err?.message || 'Unable to update community billing.') }
+    finally { setBusy(false) }
+  }
+
+  return (
+    <section className="platform-operator-panel platform-billing-panel">
+      <header><div><span>COMMUNITY BILLING</span><h2>Subscriptions & billing</h2><p>Maintain the commercial status shown to each organisation. RecordsWeb does not automatically charge cards from this screen.</p></div><button onClick={load} disabled={busy}><RefreshCw size={14}/> Refresh</button></header>
+      {error && <div className="review-request-message error">{error}</div>}
+      {notice && <div className="review-request-message success"><CheckCircle2 size={15}/>{notice}</div>}
+      <div className="platform-billing-list">
+        <div className="platform-billing-row platform-billing-head"><strong>Community</strong><strong>Status</strong><strong>Monthly</strong><strong>Next billing</strong><strong>Add-on</strong><span /></div>
+        {rows.length === 0 && <div className="platform-empty">No communities found.</div>}
+        {rows.map((row) => (
+          <div className="platform-billing-row" key={row.id}>
+            <div><strong>{row.name}</strong><span>@{row.org_code}</span></div>
+            <span className={`billing-status billing-status-${row.billing_status || 'active'}`}>{BILLING_STATUS_OPTIONS.find(([value]) => value === row.billing_status)?.[1] || row.billing_status || 'Active'}</span>
+            <strong>{billingMoney(row.billing_monthly_price ?? 9.5)}</strong>
+            <span>{row.billing_next_date || 'Not set'}</span>
+            <span>{row.announcement_board_enabled ? `Board · ${billingMoney(row.announcement_board_fee ?? 10)}` : 'None'}</span>
+            <button type="button" onClick={() => edit(row)}><Pencil size={13}/> Edit billing</button>
+          </div>
+        ))}
+      </div>
+
+      {selected && form && <div className="platform-community-modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget && !busy) { setSelected(null); setForm(null) } }}>
+        <form className="platform-community-modal platform-billing-modal" onSubmit={save}>
+          <header><div><span>EDIT BILLING</span><h3>{selected.name}</h3><p>@{selected.org_code} · RecordsWeb Standard</p></div><button type="button" onClick={() => { setSelected(null); setForm(null) }} disabled={busy} aria-label="Close"><X size={16}/></button></header>
+          <div className="platform-community-modal-body">
+            <label><span>Billing status</span><select value={form.billingStatus} onChange={(event) => setField('billingStatus', event.target.value)}>{BILLING_STATUS_OPTIONS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label>
+            <label><span>Monthly price (£)</span><input type="number" min="0" max="9999" step="0.01" value={form.monthlyPrice} onChange={(event) => setField('monthlyPrice', event.target.value)} required /></label>
+            <label><span>Billing start date</span><input type="date" value={form.billingStartDate} onChange={(event) => setField('billingStartDate', event.target.value)} /></label>
+            <label><span>Next billing date</span><input type="date" value={form.billingNextDate} onChange={(event) => setField('billingNextDate', event.target.value)} /></label>
+            <label><span>First-month price (£)</span><input type="number" min="0" max="9999" step="0.01" value={form.firstMonthPrice} onChange={(event) => setField('firstMonthPrice', event.target.value)} required /></label>
+            <label><span>Standard setup fee (£)</span><input type="number" min="0" max="9999" step="0.01" value={form.setupFee} onChange={(event) => setField('setupFee', event.target.value)} required /></label>
+            <label className="platform-billing-check"><input type="checkbox" checked={form.firstMonthOffer} onChange={(event) => setField('firstMonthOffer', event.target.checked)} /><span>Apply £{form.firstMonthPrice || '5.00'} first-month offer with setup included</span></label>
+            <label className="platform-billing-check"><input type="checkbox" checked={form.announcementBoardEnabled} onChange={(event) => setField('announcementBoardEnabled', event.target.checked)} /><span>In-game announcement board enabled</span></label>
+            <label><span>Announcement board fee (£)</span><input type="number" min="0" max="9999" step="0.01" value={form.announcementBoardFee} onChange={(event) => setField('announcementBoardFee', event.target.value)} required /></label>
+            <label className="platform-billing-notes"><span>Billing notes</span><textarea rows={4} maxLength={1000} value={form.billingNotes} onChange={(event) => setField('billingNotes', event.target.value)} placeholder="Billing note visible to organisation management." /></label>
+            <div className="platform-community-modal-note">This stores RecordsWeb billing state only. It does not take a payment or automatically suspend an organisation.</div>
+          </div>
+          <div className="platform-community-modal-actions"><button type="button" onClick={() => { setSelected(null); setForm(null) }} disabled={busy}>Cancel</button><button className="primary" disabled={busy}><Save size={13}/>{busy ? 'Saving…' : 'Save billing'}</button></div>
+        </form>
+      </div>}
+    </section>
+  )
+}
+
 export default function PlatformManagementPage() {
   useEffect(() => { applyRecordsWebProductBrand() }, [])
   const navigate = useNavigate()
@@ -577,6 +693,7 @@ export default function PlatformManagementPage() {
           <button className={section === 'maintenance' ? 'active' : ''} onClick={() => setSection('maintenance')}><Wrench size={14}/> Maintenance</button>
           <button className={section === 'releases' ? 'active' : ''} onClick={() => setSection('releases')}><Rocket size={14}/> Releases</button>
           <button className={section === 'communities' ? 'active' : ''} onClick={() => setSection('communities')}><Building2 size={14}/> Communities</button>
+          <button className={section === 'billing' ? 'active' : ''} onClick={() => setSection('billing')}><CreditCard size={14}/> Billing</button>
           <button onClick={() => navigate('/review-request')}><FileCheck2 size={14}/> Review requests</button>
         </div>
 
@@ -584,12 +701,14 @@ export default function PlatformManagementPage() {
           <button onClick={() => setSection('maintenance')}><Wrench size={22}/><div><strong>Platform maintenance</strong><span>Temporarily block all community staff access across RecordsWeb.</span></div></button>
           <button onClick={() => setSection('releases')}><Rocket size={22}/><div><strong>Release control</strong><span>Publish the active version used by desktop and website update checks.</span></div></button>
           <button onClick={() => setSection('communities')}><Building2 size={22}/><div><strong>Community management</strong><span>Create, edit, enable or disable RecordsWeb communities and manage reserved operators.</span></div></button>
+          <button onClick={() => setSection('billing')}><CreditCard size={22}/><div><strong>Subscriptions & billing</strong><span>Set monthly pricing, billing status, dates and optional organisation services.</span></div></button>
           <button onClick={() => navigate('/review-request')}><FileCheck2 size={22}/><div><strong>Access requests</strong><span>Review communities requesting a RecordsWeb deployment.</span></div></button>
           <div><ServerCog size={22}/><div><strong>Operator-only controls</strong><span>Community managers cannot access or change these platform-wide settings.</span></div></div>
         </section>}
         {section === 'maintenance' && <MaintenancePanel />}
         {section === 'releases' && <ReleasesPanel />}
         {section === 'communities' && <CommunitiesPanel operatorAccountEmail={operatorSession?.user?.email || ''} />}
+        {section === 'billing' && <CommunityBillingPanel />}
       </main>
       <footer className="review-request-footer"><span>RecordsWeb · Restricted platform operator area</span><span>Version {APP_VERSION}</span></footer>
     </div>

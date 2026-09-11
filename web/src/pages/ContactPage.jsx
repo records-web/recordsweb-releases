@@ -41,7 +41,7 @@ export default function ContactPage() {
       })
       const payload = await response.json().catch(() => ({}))
       if (!response.ok) throw new Error(payload.error || 'Unable to send your message.')
-      setSuccess('Your message has been sent to the RecordsWeb team.')
+      setSuccess('Your message has been sent to the RecordsWeb team. A confirmation copy has also been emailed to you.')
       setForm(INITIAL_FORM)
     } catch (err) {
       setError(err?.message || 'Unable to send your message.')
@@ -58,6 +58,7 @@ export default function ContactPage() {
           <span>Clinical records platform</span>
         </div>
         <nav>
+          <button type="button" onClick={() => navigate('/pricing')}>Pricing</button>
           <button type="button" onClick={() => navigate('/')}><ArrowLeft size={15}/> Back to RecordsWeb</button>
           <button type="button" className="public-staff-button" onClick={() => navigate('/login')}>Staff sign in</button>
         </nav>

@@ -3381,3 +3381,54 @@ html.rw-dark-mode .roblox-notice { background:#172a20; border-color:#35664a; col
 html.rw-dark-mode .community-brand-preview { background:#172731; border-color:#3f6276; }
 html.rw-dark-mode .community-brand-preview-right { color:#d5e6ef; }
 html.rw-dark-mode .community-brand-preview-right span { color:#9eb8c7; }
+
+
+/* RecordsWeb 3.2.5 — subscription and billing */
+.organisation-billing-panel { border:1px solid #aac6d7; background:#fff; }
+.organisation-billing-header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding:14px 16px; border-bottom:1px solid #bfd4e0; background:linear-gradient(#f8fcff,#edf6fb); }
+.organisation-billing-header>div>span { color:#0f6fbd; font-size:8px; font-weight:800; letter-spacing:.12em; }
+.organisation-billing-header h2 { margin:3px 0 2px; color:#29566f; font-size:15px; }
+.organisation-billing-header p { margin:0; color:#718895; font-size:9px; }
+.organisation-billing-header button { display:inline-flex; align-items:center; gap:5px; min-height:29px; padding:5px 9px; border:1px solid #afc7d5; background:#fff; color:#3c6276; font-size:9px; }
+.billing-message { display:flex; align-items:center; gap:8px; margin:13px 15px 0; padding:10px; font-size:9px; }
+.billing-message.error { border:1px solid #e0aaaa; background:#fff3f3; color:#8a3030; }
+.billing-summary-grid { display:grid; grid-template-columns:1.35fr repeat(3,1fr); gap:8px; padding:15px; }
+.billing-summary-grid>div { min-height:78px; display:flex; flex-direction:column; justify-content:center; gap:5px; padding:11px 12px; border:1px solid #bfd2dd; background:#f8fbfd; }
+.billing-summary-grid>div>span { color:#728a97; font-size:8px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; }
+.billing-summary-grid>div>strong { color:#2a566e; font-size:11px; }
+.billing-summary-main { flex-direction:row!important; align-items:center; justify-content:flex-start!important; gap:11px!important; background:linear-gradient(135deg,#eef8ff,#fff)!important; border-color:#9fc8e1!important; }
+.billing-summary-main>svg { color:#0f6fbd; flex:0 0 auto; }
+.billing-summary-main>div>span { display:block; color:#0f6fbd; font-size:8px; font-weight:800; letter-spacing:.08em; }
+.billing-summary-main>div>strong { display:block; margin-top:2px; color:#164e70; font-size:21px; }
+.billing-summary-main small { font-size:9px; font-weight:600; color:#69818f; }
+.billing-summary-main p { margin:2px 0 0; color:#66808f; font-size:9px; }
+.billing-status { display:inline-flex; width:max-content; max-width:100%; padding:3px 7px; border:1px solid #a9c3d2; background:#edf4f8; color:#375f74!important; font-size:9px!important; font-weight:800!important; }
+.billing-status-active { border-color:#9bc8aa; background:#eef9f2; color:#267047!important; }
+.billing-status-setup { border-color:#98bed8; background:#edf7fd; color:#21678f!important; }
+.billing-status-overdue { border-color:#d8bd77; background:#fff9e8; color:#7e6218!important; }
+.billing-status-suspended { border-color:#d6a4a4; background:#fff1f1; color:#8d3434!important; }
+.billing-status-complimentary { border-color:#b9aed9; background:#f5f1ff; color:#5f4c91!important; }
+.billing-detail-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:0 15px 15px; }
+.billing-detail-grid article { padding:13px; border:1px solid #c1d4de; background:#fff; }
+.billing-detail-grid h3 { margin:0 0 9px; color:#2c5b73; font-size:11px; }
+.billing-detail-grid article>div { display:flex; justify-content:space-between; gap:14px; padding:7px 0; border-top:1px solid #e2ebf0; font-size:9px; }
+.billing-detail-grid article>div span { color:#6d8491; }
+.billing-detail-grid article>div strong { color:#315b70; text-align:right; }
+.billing-detail-grid article>p { display:flex; align-items:flex-start; gap:6px; margin:10px 0 0; color:#758b97; font-size:8.5px; line-height:1.5; }
+.billing-detail-grid article>p svg { flex:0 0 auto; margin-top:1px; color:#0f6fbd; }
+.billing-notes { margin:0 15px 15px; padding:11px 12px; border:1px solid #c7d7df; background:#f5f9fb; }
+.billing-notes strong { color:#385f73; font-size:9px; }
+.billing-notes p { margin:5px 0 0; color:#708792; font-size:9px; line-height:1.5; white-space:pre-wrap; }
+.billing-support-note { display:flex; align-items:flex-start; gap:7px; margin:0 15px 15px; padding:10px 11px; border:1px solid #b9d6c4; background:#eff8f2; color:#3e6950; font-size:9px; line-height:1.5; }
+.billing-support-note svg { flex:0 0 auto; color:#2a8050; }
+html.rw-dark-mode .organisation-billing-panel,html.rw-dark-mode .billing-detail-grid article { background:#111d24; border-color:#355668; }
+html.rw-dark-mode .organisation-billing-header { background:#192b34; border-color:#355668; }
+html.rw-dark-mode .organisation-billing-header h2,html.rw-dark-mode .billing-detail-grid h3 { color:#d8e9f0; }
+html.rw-dark-mode .organisation-billing-header p,html.rw-dark-mode .billing-detail-grid article>div span,html.rw-dark-mode .billing-detail-grid article>p { color:#9eb5c1; }
+html.rw-dark-mode .organisation-billing-header button { background:#14242d; border-color:#3a5b6b; color:#c4d9e3; }
+html.rw-dark-mode .billing-summary-grid>div,html.rw-dark-mode .billing-summary-main { background:#14242d!important; border-color:#36596b!important; }
+html.rw-dark-mode .billing-summary-grid>div>strong,html.rw-dark-mode .billing-summary-main>div>strong,html.rw-dark-mode .billing-detail-grid article>div strong { color:#d5e7ef; }
+html.rw-dark-mode .billing-notes { background:#14242d; border-color:#355668; }
+html.rw-dark-mode .billing-support-note { background:#15291f; border-color:#37644a; color:#b9d8c4; }
+@media (max-width:1000px) { .billing-summary-grid { grid-template-columns:1fr 1fr; } }
+@media (max-width:700px) { .billing-summary-grid,.billing-detail-grid { grid-template-columns:1fr; } }

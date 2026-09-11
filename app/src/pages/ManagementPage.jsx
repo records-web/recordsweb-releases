@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Activity, Gamepad2, KeyRound, MessageSquareText, Palette, RotateCcw, ServerCog, ShieldCheck, UsersRound } from 'lucide-react'
+import { Activity, CreditCard, Gamepad2, KeyRound, MessageSquareText, Palette, RotateCcw, ServerCog, ShieldCheck, UsersRound } from 'lucide-react'
 import StaffAccountsPanel from '../components/management/StaffAccountsPanel'
 import StaffAccountModal from '../components/management/StaffAccountModal'
 import ResetPasswordModal from '../components/management/ResetPasswordModal'
@@ -12,6 +12,7 @@ import AuditLogPanel from '../components/management/AuditLogPanel'
 import StaffProfileDetailsModal from '../components/management/StaffProfileDetailsModal'
 import RobloxIntegrationPanel from '../components/management/RobloxIntegrationPanel'
 import BrandingPanel from '../components/management/BrandingPanel'
+import BillingPanel from '../components/management/BillingPanel'
 import { checkAdminService, createAccount, forceLogoutAccount, listAccounts, resetAccountPassword, setAccountActive, updateAccount } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { listStaffSessions, subscribeToStaffSessionChanges, summariseStaffSessions } from '../lib/staffSessions'
@@ -110,6 +111,7 @@ export default function ManagementPage() {
       <div className="management-section-tabs">
         <button className={section === 'staff' ? 'active' : ''} onClick={() => setSection('staff')}><UsersRound size={14}/> Staff accounts</button>
         <button className={section === 'branding' ? 'active' : ''} onClick={() => setSection('branding')}><Palette size={14}/> Community branding</button>
+        <button className={section === 'billing' ? 'active' : ''} onClick={() => setSection('billing')}><CreditCard size={14}/> Subscription & billing</button>
         <button className={section === 'messages' ? 'active' : ''} onClick={() => setSection('messages')}><MessageSquareText size={14}/> Screen message logs</button>
         <button className={section === 'audit' ? 'active' : ''} onClick={() => setSection('audit')}><Activity size={14}/> Audit log</button>
         <button className={section === 'deleted' ? 'active' : ''} onClick={() => setSection('deleted')}><RotateCcw size={14}/> Deleted items</button>
@@ -132,6 +134,7 @@ export default function ManagementPage() {
       )}
 
       {section === 'branding' && <BrandingPanel />}
+      {section === 'billing' && <BillingPanel />}
       {section === 'messages' && <ScreenMessageAuditPanel staff={rows} />}
       {section === 'audit' && <AuditLogPanel />}
       {section === 'deleted' && <DeletedItemsPanel />}

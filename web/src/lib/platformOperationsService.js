@@ -203,3 +203,33 @@ export async function setPlatformCommunityOperatorPassword({ organisationId, pas
     password: String(password || ''),
   })
 }
+
+
+export async function updatePlatformCommunityBilling({
+  organisationId,
+  billingStatus,
+  monthlyPrice,
+  firstMonthPrice,
+  firstMonthOffer,
+  setupFee,
+  billingStartDate,
+  billingNextDate,
+  announcementBoardEnabled,
+  announcementBoardFee,
+  billingNotes,
+}) {
+  return invokePlatformAdmin({
+    action: 'update-community-billing',
+    organisation_id: organisationId,
+    billing_status: String(billingStatus || 'active').trim(),
+    billing_monthly_price: Number(monthlyPrice),
+    billing_first_month_price: Number(firstMonthPrice),
+    billing_first_month_offer: Boolean(firstMonthOffer),
+    billing_setup_fee: Number(setupFee),
+    billing_start_date: billingStartDate || null,
+    billing_next_date: billingNextDate || null,
+    announcement_board_enabled: Boolean(announcementBoardEnabled),
+    announcement_board_fee: Number(announcementBoardFee),
+    billing_notes: String(billingNotes || '').trim(),
+  })
+}

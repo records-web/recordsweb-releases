@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import LoginPage from './pages/LoginPage'
 import PublicHomePage from './pages/PublicHomePage'
 import ContactPage from './pages/ContactPage'
+import PricingPage from './pages/PricingPage'
 import ReviewRequestPage from './pages/ReviewRequestPage'
 import PlatformManagementPage from './pages/PlatformManagementPage'
 import HomePage from './pages/HomePage'
@@ -101,6 +102,7 @@ export default function App() {
       <Routes>
         <Route path="/" element={<RootRoute />} />
         <Route path="/contact" element={<ContactPage />} />
+        <Route path="/pricing" element={<PricingPage />} />
         <Route path="/login" element={<StaffEnvironment><LoginPage /></StaffEnvironment>} />
         <Route path="/review-request" element={<ReviewRequestPage />} />
         <Route path="/platform-management" element={<PlatformManagementPage />} />
