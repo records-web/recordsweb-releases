@@ -2246,7 +2246,7 @@ create table if not exists public.recordsweb_access_requests (
   roblox_group_url text not null, member_range text not null, contact_name text not null,
   contact_email text not null, discord_username text, logo_path text, additional_details text,
   authorised_contact boolean not null default false, status text not null default 'pending',
-  operator_notes text, reviewed_at timestamptz, reviewed_by uuid references auth.users(id) on delete set null,
+  operator_notes text, provider_comments text, reviewed_at timestamptz, reviewed_by uuid references auth.users(id) on delete set null,
   created_at timestamptz not null default now(), updated_at timestamptz not null default now(),
   constraint recordsweb_access_requests_mode check (requested_mode in ('general_practice','hospital')),
   constraint recordsweb_access_requests_members check (member_range in ('10-99','100-999','1000-9999','10000+')),
@@ -2319,6 +2319,7 @@ returns table (
   authorised_contact boolean,
   status text,
   operator_notes text,
+  provider_comments text,
   reviewed_at timestamptz,
   reviewed_by uuid,
   created_at timestamptz,
@@ -2355,6 +2356,7 @@ begin
     r.authorised_contact,
     r.status,
     r.operator_notes,
+    r.provider_comments,
     r.reviewed_at,
     r.reviewed_by,
     r.created_at,
@@ -2373,7 +2375,8 @@ grant execute on function public.recordsweb_list_access_requests(text) to authen
 create or replace function public.recordsweb_review_access_request(
   p_request_id uuid,
   p_status text,
-  p_operator_notes text default null
+  p_operator_notes text default null,
+  p_provider_comments text default null
 )
 returns uuid
 language plpgsql
@@ -2396,6 +2399,7 @@ begin
   set
     status = v_status,
     operator_notes = nullif(trim(coalesce(p_operator_notes, '')), ''),
+    provider_comments = nullif(trim(coalesce(p_provider_comments, '')), ''),
     reviewed_at = case when v_status = 'pending' then null else now() end,
     reviewed_by = case when v_status = 'pending' then null else auth.uid() end,
     updated_at = now()
@@ -2410,8 +2414,8 @@ begin
 end;
 $$;
 
-revoke all on function public.recordsweb_review_access_request(uuid,text,text) from public;
-grant execute on function public.recordsweb_review_access_request(uuid,text,text) to authenticated;
+revoke all on function public.recordsweb_review_access_request(uuid,text,text,text) from public;
+grant execute on function public.recordsweb_review_access_request(uuid,text,text,text) to authenticated;
 
 -- The request-logo bucket remains private. Only the authorised reviewer can
 -- read objects, which allows the web client to create short-lived signed URLs.

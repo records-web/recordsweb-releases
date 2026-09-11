@@ -35,7 +35,7 @@ const FILTERS = [
   ['pending', 'Pending'],
   ['reviewing', 'Reviewing'],
   ['approved', 'Approved'],
-  ['declined', 'Declined'],
+  ['declined', 'Denied'],
   ['', 'All'],
 ]
 
@@ -43,7 +43,7 @@ const STATUS_LABELS = {
   pending: 'Pending',
   reviewing: 'Reviewing',
   approved: 'Approved',
-  declined: 'Declined',
+  declined: 'Denied',
 }
 
 function formatDate(value) {
@@ -138,6 +138,7 @@ export default function ReviewRequestPage() {
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
   const [operatorNotes, setOperatorNotes] = useState('')
+  const [providerComments, setProviderComments] = useState('')
   const [savingStatus, setSavingStatus] = useState('')
 
   const authorised = isAccessRequestReviewer(reviewerSession)
@@ -192,12 +193,13 @@ export default function ReviewRequestPage() {
     let live = true
     setLogoUrl('')
     setOperatorNotes(selected?.operator_notes || '')
+    setProviderComments(selected?.provider_comments || '')
     if (!selected?.logo_path || !authorised) return undefined
     createAccessRequestLogoUrl(selected.logo_path).then((url) => {
       if (live) setLogoUrl(url)
     }).catch(() => {})
     return () => { live = false }
-  }, [selected?.id, selected?.logo_path, selected?.operator_notes, authorised])
+  }, [selected?.id, selected?.logo_path, selected?.operator_notes, selected?.provider_comments, authorised])
 
   async function updateStatus(status, { notifyApplicant = true } = {}) {
     if (!selected || savingStatus) return
@@ -210,7 +212,7 @@ export default function ReviewRequestPage() {
     setNotice('')
 
     try {
-      await saveRecordsWebAccessRequestReview({ id: requestId, status, operatorNotes })
+      await saveRecordsWebAccessRequestReview({ id: requestId, status, operatorNotes, providerComments })
 
       let emailResult = null
       let emailWarning = ''
@@ -350,12 +352,18 @@ export default function ReviewRequestPage() {
                 <div className="review-request-block"><span>Additional information</span><p>{selected.additional_details || 'No additional information was supplied.'}</p></div>
                 <div className="review-request-block"><span>Authorisation confirmation</span><p>{selected.authorised_contact ? 'Confirmed by the submitter.' : 'Not confirmed.'}</p></div>
 
-                <label className="review-request-notes"><span>Reviewer notes</span><textarea value={operatorNotes} onChange={(e) => setOperatorNotes(e.target.value)} maxLength={3000} rows={6} placeholder="Private notes about eligibility, checks completed, or setup requirements." /></label>
+                <label className="review-request-notes review-request-provider-comments">
+                  <span>Comments from the provider</span>
+                  <small>Visible to the applicant and included in approval or denial emails.</small>
+                  <textarea value={providerComments} onChange={(e) => setProviderComments(e.target.value)} maxLength={3000} rows={5} placeholder="Add any information, reasons, next steps, or other comments you want the applicant to receive." />
+                </label>
+
+                <label className="review-request-notes"><span>Reviewer notes</span><small>Private. These notes are never included in applicant emails.</small><textarea value={operatorNotes} onChange={(e) => setOperatorNotes(e.target.value)} maxLength={3000} rows={6} placeholder="Private notes about eligibility, checks completed, or setup requirements." /></label>
 
                 <div className="review-request-actions">
                   <button className="reviewing" onClick={() => updateStatus('reviewing')} disabled={Boolean(savingStatus)}><Clock3 size={15}/>{savingStatus === 'reviewing' ? 'Saving…' : 'Mark reviewing'}</button>
                   <button className="approved" onClick={() => updateStatus('approved')} disabled={Boolean(savingStatus)}><CheckCircle2 size={15}/>{savingStatus === 'approved' ? 'Saving…' : 'Approve'}</button>
-                  <button className="declined" onClick={() => updateStatus('declined')} disabled={Boolean(savingStatus)}><XCircle size={15}/>{savingStatus === 'declined' ? 'Saving…' : 'Decline'}</button>
+                  <button className="declined" onClick={() => updateStatus('declined')} disabled={Boolean(savingStatus)}><XCircle size={15}/>{savingStatus === 'declined' ? 'Saving…' : 'Deny'}</button>
                   <button onClick={() => updateStatus(selected.status, { notifyApplicant: false })} disabled={Boolean(savingStatus)}><FileCheck2 size={15}/>{savingStatus === selected.status ? 'Saving…' : 'Save notes'}</button>
                 </div>
 

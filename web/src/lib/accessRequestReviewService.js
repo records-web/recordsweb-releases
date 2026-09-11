@@ -91,7 +91,7 @@ export async function listRecordsWebAccessRequests(status = '') {
   return Array.isArray(data) ? data : []
 }
 
-export async function saveRecordsWebAccessRequestReview({ id, status, operatorNotes }) {
+export async function saveRecordsWebAccessRequestReview({ id, status, operatorNotes, providerComments }) {
   if (!supabaseConfigured || !supabase) throw new Error('Supabase is not configured for request review.')
   const normalisedStatus = String(status || '').trim().toLowerCase()
   if (!VALID_STATUSES.has(normalisedStatus)) throw new Error('Choose a valid request status.')
@@ -100,6 +100,7 @@ export async function saveRecordsWebAccessRequestReview({ id, status, operatorNo
     p_request_id: id,
     p_status: normalisedStatus,
     p_operator_notes: String(operatorNotes || '').trim() || null,
+    p_provider_comments: String(providerComments || '').trim() || null,
   })
   if (error) {
     if (/recordsweb_review_access_request|does not exist|schema cache/i.test(error.message || '')) {
@@ -117,7 +118,8 @@ export async function saveRecordsWebAccessRequestReview({ id, status, operatorNo
 export async function sendRecordsWebAccessRequestOutcomeEmail({ id, decision }) {
   if (!supabaseConfigured || !supabase) throw new Error('Supabase is not configured for request review.')
 
-  const normalisedDecision = String(decision || '').trim().toLowerCase()
+  const requestedDecision = String(decision || '').trim().toLowerCase()
+  const normalisedDecision = requestedDecision === 'denied' ? 'declined' : requestedDecision
   if (!['approved', 'declined'].includes(normalisedDecision)) {
     throw new Error('Decision email can only be sent for approved or declined requests.')
   }

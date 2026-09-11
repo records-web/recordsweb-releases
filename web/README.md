@@ -152,3 +152,8 @@ Community Management now includes a per-organisation Roblox integration for wait
 - Prescribers can switch to Custom dosage and Custom quantity at any time.
 - Pack/tablet strength is deliberately entered by the clinician because GP MEDS.pdf supplies reference doses, not medicine pack strengths.
 - No new database migration is required for 3.3.3; the final prescribed dosage and quantity continue to use the existing medication fields and PIN-authorised workflow.
+
+
+## 3.3.9 Provider Comments & Decision Email Fix
+
+See `docs/RECORDSWEB-3.3.9-PROVIDER-COMMENTS-DECISION-EMAIL-FIX.md`. Run `supabase/recordsweb-3.3.9-provider-comments-decision-email-fix.sql` before deploying this website build.

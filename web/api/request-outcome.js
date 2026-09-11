@@ -2,7 +2,7 @@ import { createRequestMailer } from '../server/requestMailer.js'
 import { createClient } from '@supabase/supabase-js'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
-const VALID_DECISIONS = new Set(['approved', 'declined'])
+const VALID_DECISIONS = new Set(['approved', 'declined', 'denied'])
 
 function clean(value, max = 500) {
   return String(value ?? '').trim().slice(0, max)
@@ -21,6 +21,44 @@ function organisationType(mode) {
   if (mode === 'hospital') return 'Secondary Care (Hospital)'
   if (mode === 'ambulance') return 'Ambulance / PHEM'
   return 'Primary Care (GP)'
+}
+
+function normaliseDecision(value) {
+  const decision = clean(value, 32).toLowerCase()
+  return decision === 'denied' ? 'declined' : decision
+}
+
+function commentsText(value) {
+  const comments = clean(value, 3000)
+  return comments ? ['Comments from the provider', '', comments, ''].join('\n') : ''
+}
+
+function commentsHtml(value) {
+  const comments = clean(value, 3000)
+  if (!comments) return ''
+  const html = escapeHtml(comments).replace(/\r?\n/g, '<br>')
+  return `
+    <div style="margin:22px 0;border:1px solid #bfd8e6;background:#f7fcff">
+      <div style="padding:10px 14px;background:#e8f4fb;color:#0f6fbd;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.6px">Comments from the provider</div>
+      <div style="padding:14px 16px;color:#294657">${html}</div>
+    </div>
+  `
+}
+
+function wait(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
+async function sendDecisionMail(transporter, mailOptions, decision) {
+  try {
+    return await transporter.sendMail(mailOptions)
+  } catch (firstError) {
+    console.error(`RecordsWeb ${decision} email first attempt failed:`, firstError)
+    // Retry once. The second attempt omits HTML so a provider/content filter
+    // cannot prevent the applicant from receiving the plain-text decision.
+    await wait(500)
+    return transporter.sendMail({ ...mailOptions, html: undefined })
+  }
 }
 
 function requiredEnv(name, fallback = '') {
@@ -115,7 +153,7 @@ function emailShell({ eyebrow, heading, name, communityName, bodyHtml, supportEm
   `
 }
 
-function approvedMessage({ name, communityName, orgType, contactEmail, supportEmail }) {
+function approvedMessage({ name, communityName, orgType, contactEmail, supportEmail, providerComments }) {
   return {
     subject: `RecordsWeb deployment request approved — ${communityName}`,
     text: [
@@ -132,6 +170,7 @@ function approvedMessage({ name, communityName, orgType, contactEmail, supportEm
       '',
       'You do not need to submit another deployment request for this community.',
       '',
+      commentsText(providerComments),
       `If you need to provide additional information, contact ${supportEmail} and include your community name.`,
       '',
       'Kind Regards',
@@ -167,14 +206,15 @@ function approvedMessage({ name, communityName, orgType, contactEmail, supportEm
         <p>The RecordsWeb team will now proceed with the necessary provisioning and setup steps for your community.</p>
         <p>Approval of the request does not necessarily mean that the environment is already live. Any remaining setup information, access details, or actions required from your community will be provided separately.</p>
         <p>You do not need to submit another deployment request for this community.</p>
+        ${commentsHtml(providerComments)}
       `,
     }),
   }
 }
 
-function declinedMessage({ name, communityName, orgType, supportEmail }) {
+function declinedMessage({ name, communityName, orgType, supportEmail, providerComments }) {
   return {
-    subject: `RecordsWeb deployment request decision — ${communityName}`,
+    subject: `RecordsWeb deployment request declined — ${communityName}`,
     text: [
       `Hello ${name},`,
       '',
@@ -186,7 +226,8 @@ function declinedMessage({ name, communityName, orgType, supportEmail }) {
       '',
       'No RecordsWeb environment will be provisioned from this request.',
       '',
-      'Internal reviewer notes are not included in automated decision emails. If you require clarification about the decision, contact the RecordsWeb team using the address below and include your community name so the request can be located.',
+      commentsText(providerComments),
+      'Private reviewer notes are not included in automated decision emails. If you require clarification about the decision, contact the RecordsWeb team using the address below and include your community name so the request can be located.',
       '',
       'If your community circumstances or the information relevant to your request materially change, you may contact us before submitting another request.',
       '',
@@ -211,7 +252,7 @@ function declinedMessage({ name, communityName, orgType, supportEmail }) {
     ].join('\n'),
     html: emailShell({
       eyebrow: 'Deployment Request Decision',
-      heading: 'Request decision',
+      heading: 'Request declined',
       name,
       communityName,
       supportEmail,
@@ -223,7 +264,8 @@ function declinedMessage({ name, communityName, orgType, supportEmail }) {
           <strong>No RecordsWeb environment will be provisioned from this request.</strong>
         </div>
         <p><strong>Requested organisation type:</strong> ${escapeHtml(orgType)}</p>
-        <p>Internal reviewer notes are not included in automated decision emails. If you require clarification about the decision, contact the RecordsWeb team and include your community name so the request can be located.</p>
+        ${commentsHtml(providerComments)}
+        <p>Private reviewer notes are not included in automated decision emails. If you require clarification about the decision, contact the RecordsWeb team and include your community name so the request can be located.</p>
         <p>If your community circumstances or the information relevant to your request materially change, you may contact us before submitting another request.</p>
       `,
     }),
@@ -243,19 +285,19 @@ export default async function handler(req, res) {
 
     const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {})
     const requestId = clean(body.requestId, 64)
-    const decision = clean(body.decision, 32).toLowerCase()
+    const decision = normaliseDecision(body.decision)
 
     if (!UUID_PATTERN.test(requestId)) {
       return res.status(400).json({ error: 'A valid RecordsWeb request reference is required.' })
     }
-    if (!VALID_DECISIONS.has(decision)) {
+    if (!['approved', 'declined'].includes(decision)) {
       return res.status(400).json({ error: 'Decision must be approved or declined.' })
     }
 
     const admin = serverSupabase()
     const { data: requestRow, error: requestError } = await admin
       .from('recordsweb_access_requests')
-      .select('id,community_name,requested_mode,contact_name,contact_email,status,approved_email_sent_at,declined_email_sent_at')
+      .select('id,community_name,requested_mode,contact_name,contact_email,status,provider_comments,approved_email_sent_at,declined_email_sent_at')
       .eq('id', requestId)
       .maybeSingle()
 
@@ -281,20 +323,21 @@ export default async function handler(req, res) {
       orgType: organisationType(requestRow.requested_mode),
       contactEmail: clean(requestRow.contact_email, 254),
       supportEmail,
+      providerComments: clean(requestRow.provider_comments, 3000),
     }
 
     const message = decision === 'approved'
       ? approvedMessage(messageInput)
       : declinedMessage(messageInput)
 
-    await transporter.sendMail({
+    const delivery = await sendDecisionMail(transporter, {
       from: `RecordsWeb <${smtpUser}>`,
       to: messageInput.contactEmail,
       replyTo: supportEmail,
       subject: message.subject,
       text: message.text,
       html: message.html,
-    })
+    }, decision)
 
     const sentAt = new Date().toISOString()
     const { error: markerError } = await admin
@@ -307,7 +350,7 @@ export default async function handler(req, res) {
       console.error(`RecordsWeb ${decision} email marker failed:`, markerError)
     }
 
-    return res.status(200).json({ ok: true, decision, sentAt })
+    return res.status(200).json({ ok: true, decision, sentAt, messageId: delivery?.messageId || null })
   } catch (error) {
     console.error('RecordsWeb deployment request outcome email error:', error)
     return res.status(500).json({
