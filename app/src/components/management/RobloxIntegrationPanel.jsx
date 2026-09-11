@@ -35,14 +35,16 @@ export default function RobloxIntegrationPanel() {
   const [placeIdsText, setPlaceIdsText] = useState('')
   const [displayNameMode, setDisplayNameMode] = useState('first_name_last_initial')
   const [displayDurationSeconds, setDisplayDurationSeconds] = useState(12)
+  const [patientIdentityEnabled, setPatientIdentityEnabled] = useState(true)
   const [newCode, setNewCode] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
 
   const endpoint = useMemo(() => {
-    const root = String(import.meta.env.VITE_SUPABASE_URL || '').replace(/\/+$/, '')
-    return root ? `${root}/functions/v1/recordsweb-game-api` : 'https://YOUR_PROJECT.supabase.co/functions/v1/recordsweb-game-api'
+    const configured = String(import.meta.env.VITE_RECORDSWEB_GAME_API_URL || '').trim().replace(/\/+$/, '')
+    if (configured) return configured
+    return 'https://api.recordsweb.org'
   }, [])
 
   function applyStatus(result) {
@@ -53,6 +55,7 @@ export default function RobloxIntegrationPanel() {
     setPlaceIdsText(Array.isArray(integration.place_ids) ? integration.place_ids.join(', ') : '')
     setDisplayNameMode(integration.display_name_mode || 'first_name_last_initial')
     setDisplayDurationSeconds(Number(integration.display_duration_seconds) || 12)
+    setPatientIdentityEnabled(integration.patient_identity_enabled !== false)
   }
 
   async function load() {
@@ -75,7 +78,7 @@ export default function RobloxIntegrationPanel() {
     if (enabled && !state?.has_key) { setError('Generate a connection code before enabling the Roblox integration.'); return }
     setBusy(true)
     try {
-      const result = await saveRobloxIntegration({ enabled, universeId: cleanUniverse, placeIds: places, displayNameMode, displayDurationSeconds })
+      const result = await saveRobloxIntegration({ enabled, universeId: cleanUniverse, placeIds: places, displayNameMode, displayDurationSeconds, patientIdentityEnabled })
       applyStatus(result)
       setNotice('Roblox integration settings saved.')
     } catch (err) { setError(err?.message || 'Unable to save Roblox integration settings.') }
@@ -139,6 +142,7 @@ export default function RobloxIntegrationPanel() {
           <label className="roblox-wide"><span>Allowed Place IDs <em>Optional</em></span><input value={placeIdsText} onChange={(e) => setPlaceIdsText(e.target.value)} placeholder="1234567890, 9876543210"/><small>Comma-separated. When set, requests from other places are rejected.</small></label>
           <label><span>Patient display</span><select value={displayNameMode} onChange={(e) => setDisplayNameMode(e.target.value)}><option value="first_name_last_initial">First name + surname initial</option><option value="full_name">Full patient name</option><option value="record_number">Record number only</option></select></label>
           <label><span>Display duration</span><select value={displayDurationSeconds} onChange={(e) => setDisplayDurationSeconds(Number(e.target.value))}><option value={8}>8 seconds</option><option value={10}>10 seconds</option><option value={12}>12 seconds</option><option value={15}>15 seconds</option><option value={20}>20 seconds</option><option value={30}>30 seconds</option></select></label>
+          <label className="roblox-toggle-row roblox-wide"><span><strong>Persistent RP patient identities</strong><small>One saved roleplay patient per Roblox UserId in this community. The same Roblox player may use a different patient identity in another community.</small></span><input type="checkbox" checked={patientIdentityEnabled} onChange={(e) => setPatientIdentityEnabled(e.target.checked)} /></label>
         </div>
         <div className="roblox-card-actions"><button className="primary-button" onClick={save} disabled={busy}><Save size={14}/> Save integration settings</button></div>
       </section>
@@ -165,6 +169,7 @@ export default function RobloxIntegrationPanel() {
 
       {error && <div className="form-error">{error}</div>}
       {notice && <div className="roblox-notice"><CheckCircle2 size={15}/>{notice}</div>}
+      <div className="roblox-help-note"><strong>Persistent RP patient identity:</strong> {patientIdentityEnabled ? 'Enabled' : 'Disabled'} · <strong>{Number(state?.identity_count) || 0}</strong> linked Roblox {Number(state?.identity_count) === 1 ? 'identity' : 'identities'}. Identities are scoped to <strong>@{state?.organisation_code || 'this community'}</strong>; RecordsWeb does not automatically share or match the patient with other communities.</div>
       <div className="roblox-help-note">When an appointment changes to <strong>S — Patient in consulting room</strong>, Supabase creates a short-lived patient-call event. Connected Roblox servers receive that event on their next poll and display it on every <strong>RecordsWebDisplay</strong> screen in the experience.</div>
     </div>
   )

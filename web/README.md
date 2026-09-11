@@ -1,10 +1,22 @@
 # RecordsWeb Web
 
-**Version:** 3.3.3  
+**Version:** 3.3.4  
 **Runtime:** Browser / Vite / React  
 **Deployment:** Multi-organisation
 
 RecordsWeb Web is the browser-hosted version of the RecordsWeb clinical records platform. It keeps the existing RecordsWeb desktop visual language and clinical workflow while supporting multiple approved organisations through an `@XX.XX` organisation extension.
+
+## RecordsWeb 3.3.4 — community-scoped Roblox RP patient identities
+
+- Each Roblox UserId can now have one persistent roleplay patient identity per RecordsWeb community.
+- The same Roblox player can have a completely separate identity in another community.
+- The game API supports `identity-get`, `identity-resolve`, `identity-register`, and `identity-update`.
+- A first-time Roblox patient is created as a normal RecordsWeb patient record and re-used on later sessions.
+- Management can enable/disable persistent RP patient identities and see the current linked-identity count.
+- The Management panel now advertises the Cloudflare endpoint `https://api.recordsweb.org` by default.
+- Run `supabase/recordsweb-3.3.4-roblox-patient-identities.sql` and redeploy `recordsweb-roblox-admin` plus `recordsweb-game-api`.
+- The previously corrupted Nano ID lockfile entry has also been repaired so npm/Vercel/GitHub Actions do not request the nonexistent `nanoid-3.3.38.tgz`.
+
 
 ## RecordsWeb 3.3.3 — consultation medication prescribing
 

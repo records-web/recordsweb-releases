@@ -83,7 +83,7 @@ async function callerContext(admin: any, token: string) {
   return { user: userData.user, profile, organisation }
 }
 
-function publicIntegration(row: any, organisation: any) {
+function publicIntegration(row: any, organisation: any, identityCount = 0) {
   return {
     organisation_id: organisation.id,
     organisation_code: organisation.org_code,
@@ -95,6 +95,9 @@ function publicIntegration(row: any, organisation: any) {
     place_ids: Array.isArray(row?.place_ids) ? row.place_ids : [],
     display_name_mode: row?.display_name_mode || 'first_name_last_initial',
     display_duration_seconds: Number(row?.display_duration_seconds) || 12,
+    patient_identity_enabled: row?.patient_identity_enabled !== false,
+    identity_count: Number(identityCount) || 0,
+    identity_scope: 'community',
     last_heartbeat_at: row?.last_heartbeat_at || null,
     last_universe_id: row?.last_universe_id || null,
     last_place_id: row?.last_place_id || null,
@@ -123,6 +126,18 @@ async function ensureIntegration(admin: any, organisationId: string) {
     .single()
   if (error) throw new Error(error.message)
   return data
+}
+
+async function getIdentityCount(admin: any, organisationId: string) {
+  const { count, error } = await admin
+    .from('recordsweb_roblox_patient_identities')
+    .select('id', { count: 'exact', head: true })
+    .eq('organisation_id', organisationId)
+  if (error) {
+    console.warn('Unable to count RecordsWeb Roblox patient identities', error)
+    return 0
+  }
+  return Number(count) || 0
 }
 
 async function audit(admin: any, ctx: any, action: string, description: string, metadata: Record<string, unknown> = {}) {
@@ -170,7 +185,8 @@ Deno.serve(async (req) => {
     let row = await ensureIntegration(admin, ctx.organisation.id)
 
     if (action === 'status') {
-      return json({ ok: true, integration: publicIntegration(row, ctx.organisation) })
+      const identityCount = await getIdentityCount(admin, ctx.organisation.id)
+      return json({ ok: true, integration: publicIntegration(row, ctx.organisation, identityCount) })
     }
 
     if (action === 'save') {
@@ -180,6 +196,7 @@ Deno.serve(async (req) => {
       const allowedPlaceIds = placeIds(body?.place_ids)
       const mode = displayMode(body?.display_name_mode)
       const duration = displayDuration(body?.display_duration_seconds)
+      const patientIdentityEnabled = body?.patient_identity_enabled !== false
       const { data, error } = await admin
         .from('recordsweb_roblox_integrations')
         .update({
@@ -188,6 +205,7 @@ Deno.serve(async (req) => {
           place_ids: allowedPlaceIds,
           display_name_mode: mode,
           display_duration_seconds: duration,
+          patient_identity_enabled: patientIdentityEnabled,
           updated_at: new Date().toISOString(),
         })
         .eq('organisation_id', ctx.organisation.id)
@@ -197,8 +215,10 @@ Deno.serve(async (req) => {
       row = data
       await audit(admin, ctx, 'roblox.integration.updated', `Updated Roblox integration settings for @${ctx.organisation.org_code}.`, {
         enabled: nextEnabled, universe_id: universeId || null, place_ids: allowedPlaceIds, display_name_mode: mode, display_duration_seconds: duration,
+        patient_identity_enabled: patientIdentityEnabled,
       })
-      return json({ ok: true, integration: publicIntegration(row, ctx.organisation) })
+      const identityCount = await getIdentityCount(admin, ctx.organisation.id)
+      return json({ ok: true, integration: publicIntegration(row, ctx.organisation, identityCount) })
     }
 
     if (action === 'generate-key') {
@@ -218,7 +238,8 @@ Deno.serve(async (req) => {
       if (error) return json({ error: error.message }, 400)
       row = data
       await audit(admin, ctx, 'roblox.connection_code.generated', `Generated a new Roblox connection code for @${ctx.organisation.org_code}.`)
-      return json({ ok: true, connection_code: connectionCode, integration: publicIntegration(row, ctx.organisation) })
+      const identityCount = await getIdentityCount(admin, ctx.organisation.id)
+      return json({ ok: true, connection_code: connectionCode, integration: publicIntegration(row, ctx.organisation, identityCount) })
     }
 
     if (action === 'revoke-key') {
@@ -237,7 +258,8 @@ Deno.serve(async (req) => {
       if (error) return json({ error: error.message }, 400)
       row = data
       await audit(admin, ctx, 'roblox.connection_code.revoked', `Revoked the Roblox connection code for @${ctx.organisation.org_code}.`)
-      return json({ ok: true, integration: publicIntegration(row, ctx.organisation) })
+      const identityCount = await getIdentityCount(admin, ctx.organisation.id)
+      return json({ ok: true, integration: publicIntegration(row, ctx.organisation, identityCount) })
     }
 
     return json({ error: 'Unknown action.' }, 400)

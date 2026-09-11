@@ -1,6 +1,16 @@
-# RecordsWeb 3.3.3
+# RecordsWeb 3.3.4
 
 RecordsWeb is an Electron + React desktop clinical-record platform. The same application can be bound to an approved organisation through its four-letter `@XX.XX` extension while preserving organisation-level data isolation.
+
+
+## RecordsWeb 3.3.4 — community-scoped Roblox RP patient identities
+
+- One persistent Roblox roleplay patient per Roblox UserId per RecordsWeb community.
+- Separate communities keep separate patient identities for the same Roblox account.
+- New server API actions: `identity-get`, `identity-resolve`, `identity-register`, and `identity-update`.
+- Management includes a Persistent RP patient identities control and linked identity count.
+- Run the included 3.3.4 SQL migration and redeploy the Roblox Edge Functions.
+- The corrupted Nano ID lockfile entry has been repaired for CI/macOS packaging.
 
 
 ## RecordsWeb 3.3.3 — consultation medication prescribing

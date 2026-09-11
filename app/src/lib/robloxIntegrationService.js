@@ -26,7 +26,7 @@ export async function getRobloxIntegration() {
   return invokeRobloxAdmin({ action: 'status' })
 }
 
-export async function saveRobloxIntegration({ enabled, universeId, placeIds, displayNameMode, displayDurationSeconds }) {
+export async function saveRobloxIntegration({ enabled, universeId, placeIds, displayNameMode, displayDurationSeconds, patientIdentityEnabled }) {
   return invokeRobloxAdmin({
     action: 'save',
     enabled: Boolean(enabled),
@@ -34,6 +34,7 @@ export async function saveRobloxIntegration({ enabled, universeId, placeIds, dis
     place_ids: Array.isArray(placeIds) ? placeIds : [],
     display_name_mode: String(displayNameMode || 'first_name_last_initial'),
     display_duration_seconds: Number(displayDurationSeconds) || 12,
+    patient_identity_enabled: patientIdentityEnabled !== false,
   })
 }
 

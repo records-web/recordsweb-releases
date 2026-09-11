@@ -1,19 +1,26 @@
-RecordsWeb 3.2.3 Roblox integration — Supabase deployment
+RecordsWeb 3.3.4 Roblox integration — Supabase deployment
 
 1) SQL Editor
-   Run: supabase/recordsweb-3.2.3-roblox-integration.sql
+   Run the existing Roblox integration migration if this project is new, then run:
+   supabase/recordsweb-3.3.4-roblox-patient-identities.sql
 
 2) Authenticated community-management Edge Function
-   supabase functions deploy recordsweb-roblox-admin
+   supabase functions deploy recordsweb-roblox-admin --project-ref cdakocrmfstsknbgugkc
 
 3) Roblox game-facing Edge Function
-   supabase functions deploy recordsweb-game-api --no-verify-jwt
+   supabase functions deploy recordsweb-game-api --no-verify-jwt --project-ref cdakocrmfstsknbgugkc
 
 IMPORTANT: recordsweb-game-api must be deployed with --no-verify-jwt. Roblox authenticates using the community's revocable x-recordsweb-key secret, not a Supabase staff JWT.
 
 4) In RecordsWeb, sign into the community as Management and open:
    Management -> Roblox integration
 
-5) Generate the connection code, configure Universe/Place IDs, enable and save.
+5) Generate the connection code, configure Universe/Place IDs, enable the integration, and leave Persistent RP patient identities enabled if the game will use community-scoped roleplay patients.
 
-6) In Roblox Studio, enable Game Settings -> Security -> Allow HTTP Requests and configure the supplied RecordsWeb Roblox model.
+6) Preferred public endpoint:
+   https://api.recordsweb.org
+
+7) In Roblox Studio, enable Game Settings -> Security -> Allow HTTP Requests and configure the supplied RecordsWeb server-side scripts.
+
+8) Optional RP identity server bridge example:
+   docs/roblox/RecordsWebRoleplayIdentityBridge.server.lua

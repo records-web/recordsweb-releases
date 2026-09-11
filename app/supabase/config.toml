@@ -1,2 +1,5 @@
 [functions.recordsweb-stripe-webhook]
 verify_jwt = false
+
+[functions.recordsweb-game-api]
+verify_jwt = false
