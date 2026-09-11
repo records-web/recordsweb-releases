@@ -25,6 +25,10 @@
       "destination": "/index.html"
     },
     {
+      "source": "/status",
+      "destination": "/index.html"
+    },
+    {
       "source": "/billing/:path*",
       "destination": "/index.html"
     },

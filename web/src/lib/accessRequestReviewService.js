@@ -113,6 +113,47 @@ export async function saveRecordsWebAccessRequestReview({ id, status, operatorNo
   return data
 }
 
+
+export async function sendRecordsWebAccessRequestOutcomeEmail({ id, decision }) {
+  if (!supabaseConfigured || !supabase) throw new Error('Supabase is not configured for request review.')
+
+  const normalisedDecision = String(decision || '').trim().toLowerCase()
+  if (!['approved', 'declined'].includes(normalisedDecision)) {
+    throw new Error('Decision email can only be sent for approved or declined requests.')
+  }
+
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+  if (sessionError) throw new Error('Unable to verify the reviewer session before sending the decision email.')
+
+  const accessToken = sessionData?.session?.access_token
+  if (!accessToken) throw new Error('Reviewer authentication expired. Sign in again before sending the decision email.')
+
+  const response = await fetch('/api/request-outcome', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({
+      requestId: id,
+      decision: normalisedDecision,
+    }),
+  })
+
+  let result = {}
+  try {
+    result = await response.json()
+  } catch {
+    result = {}
+  }
+
+  if (!response.ok) {
+    throw new Error(result?.error || 'The request decision was saved, but the applicant email could not be sent.')
+  }
+
+  return result
+}
+
 export async function createAccessRequestLogoUrl(path, expiresIn = 600) {
   if (!path || !supabase) return ''
   const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(path, expiresIn)

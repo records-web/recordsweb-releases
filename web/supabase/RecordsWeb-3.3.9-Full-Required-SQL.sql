@@ -1,3 +1,48 @@
+-- ============================================================================
+-- RecordsWeb 3.3.9 — FULL REQUIRED DATABASE UPDATE
+-- ============================================================================
+--
+-- Run this entire file in the Supabase SQL Editor.
+--
+-- Includes:
+--   • v3.3.5 Problems end-date support
+--   • v3.3.6 Shared Care Network
+--       - GP <-> Hospital
+--       - GP <-> Ambulance / PHEM
+--       - Hospital <-> Ambulance / PHEM
+--       - GP <-> GP
+--       - Hospital <-> Hospital
+--       - Ambulance <-> Ambulance
+--       - Multiple simultaneous links, allowing wider networks such as
+--         Ambulance <-> Hospital <-> GP while preserving pair-by-pair approval
+--   • Ambulance / PHEM organisation mode and staff roles
+--   • Permanent six-character Shared Care community codes
+--   • Shared patient matching, linking, permissions, snapshots and auditing
+--   • v3.3.9 deployment-request received / approved / declined email tracking
+--
+-- FIX INCLUDED:
+-- The previous Shared Care migration used gen_random_bytes(1) inside a function
+-- with search_path = public. Supabase normally exposes pgcrypto functions from
+-- the extensions schema, which caused ERROR 42883. This version no longer uses
+-- gen_random_bytes(); it creates the code from PostgreSQL's built-in random UUID.
+--
+-- This migration expects the existing RecordsWeb schema/migrations to already
+-- be installed (profiles, organisations, patients, audit_log, billing helpers,
+-- Roblox patient identities, etc.).
+-- ============================================================================
+
+begin;
+
+-- ---------------------------------------------------------------------------
+-- v3.3.5 — Problems: active/past problem end dates
+-- ---------------------------------------------------------------------------
+
+alter table public.problems
+  add column if not exists end_date date;
+
+comment on column public.problems.end_date is
+  'Date the clinical problem ended/resolved. Null while the problem remains active.';
+
 -- RecordsWeb 3.3.6 — Shared Care Network
 -- Adds community-to-community linking, outbound sharing permissions, patient
 -- record linking and secure cross-community patient snapshots.
@@ -45,7 +90,9 @@ begin
     end loop;
 
     exit when not exists (
-      select 1 from public.organisations o where o.shared_care_code = candidate
+      select 1
+      from public.organisations o
+      where o.shared_care_code = candidate
     );
   end loop;
 
@@ -69,6 +116,9 @@ exception when duplicate_object then null; end $$;
 
 alter table public.organisations
   alter column shared_care_code set default public.recordsweb_generate_shared_care_code();
+
+alter table public.organisations
+  alter column shared_care_code set not null;
 
 create or replace function public.recordsweb_normalise_organisation()
 returns trigger
@@ -237,12 +287,14 @@ revoke all on public.recordsweb_shared_patient_links from anon, authenticated;
 grant select on public.recordsweb_shared_care_links to authenticated;
 grant select on public.recordsweb_shared_patient_links to authenticated;
 
+drop policy if exists "shared_care_link_participant_read" on public.recordsweb_shared_care_links;
 create policy "shared_care_link_participant_read"
 on public.recordsweb_shared_care_links for select to authenticated
 using (
   public.current_organisation_id() in (organisation_a_id, organisation_b_id)
 );
 
+drop policy if exists "shared_patient_link_participant_read" on public.recordsweb_shared_patient_links;
 create policy "shared_patient_link_participant_read"
 on public.recordsweb_shared_patient_links for select to authenticated
 using (
@@ -1055,4 +1107,57 @@ $$;
 revoke all on function public.recordsweb_submit_access_request(uuid,text,text,text,text,text,text,text,text,text,text,boolean) from public;
 grant execute on function public.recordsweb_submit_access_request(uuid,text,text,text,text,text,text,text,text,text,text,boolean) to anon, authenticated;
 
+-- ---------------------------------------------------------------------------
+-- v3.3.9 — Deployment request email automation tracking
+-- ---------------------------------------------------------------------------
+
+alter table public.recordsweb_access_requests
+  add column if not exists confirmation_email_sent_at timestamptz,
+  add column if not exists approved_email_sent_at timestamptz,
+  add column if not exists declined_email_sent_at timestamptz;
+
+comment on column public.recordsweb_access_requests.confirmation_email_sent_at is
+  'When the automatic RecordsWeb deployment-request received email was successfully sent.';
+
+comment on column public.recordsweb_access_requests.approved_email_sent_at is
+  'When the automatic RecordsWeb deployment-request approval email was successfully sent.';
+
+comment on column public.recordsweb_access_requests.declined_email_sent_at is
+  'When the automatic RecordsWeb deployment-request decline email was successfully sent.';
+
 commit;
+
+-- ============================================================================
+-- OPTIONAL CHECKS AFTER SUCCESS
+-- ============================================================================
+
+-- Every community should have a unique six-character Shared Care code:
+-- select id, org_code, name, system_mode, shared_care_code
+-- from public.organisations
+-- order by name;
+
+-- Check active Shared Care relationships:
+-- select *
+-- from public.recordsweb_shared_care_links
+-- order by created_at desc;
+
+-- Check the new problem end-date field:
+-- select column_name, data_type
+-- from information_schema.columns
+-- where table_schema = 'public'
+--   and table_name = 'problems'
+--   and column_name = 'end_date';
+
+-- Check deployment-request email tracking:
+-- select column_name, data_type
+-- from information_schema.columns
+-- where table_schema = 'public'
+--   and table_name = 'recordsweb_access_requests'
+--   and column_name in ('confirmation_email_sent_at','approved_email_sent_at','declined_email_sent_at');
+
+-- List Shared Care RPCs:
+-- select routine_name
+-- from information_schema.routines
+-- where routine_schema = 'public'
+--   and routine_name like 'recordsweb_shared_care_%'
+-- order by routine_name;

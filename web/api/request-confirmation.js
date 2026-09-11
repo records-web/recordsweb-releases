@@ -1,4 +1,4 @@
-import nodemailer from 'nodemailer'
+import { createRequestMailer } from '../server/requestMailer.js'
 import { createClient } from '@supabase/supabase-js'
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
@@ -65,16 +65,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, alreadySent: true })
     }
 
-    const smtpUser = clean(process.env.IONOS_NOREPLY_SMTP_USER || 'noreply@recordsweb.org', 254)
-    const smtpPassword = requiredEnv('IONOS_NOREPLY_SMTP_PASSWORD', process.env.IONOS_SMTP_PASSWORD)
-    const supportEmail = clean(process.env.RECORDSWEB_SUPPORT_EMAIL || 'contactus@recordsweb.org', 254)
-
-    const transporter = nodemailer.createTransport({
-      host: clean(process.env.IONOS_NOREPLY_SMTP_HOST || 'smtp.ionos.co.uk', 254),
-      port: Number(process.env.IONOS_NOREPLY_SMTP_PORT || 465),
-      secure: true,
-      auth: { user: smtpUser, pass: smtpPassword },
-    })
+    const { transporter, smtpUser, supportEmail } = createRequestMailer()
 
     const name = clean(requestRow.contact_name, 120)
     const communityName = clean(requestRow.community_name, 120)

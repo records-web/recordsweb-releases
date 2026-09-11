@@ -22,6 +22,7 @@ import {
   isAccessRequestReviewer,
   listRecordsWebAccessRequests,
   saveRecordsWebAccessRequestReview,
+  sendRecordsWebAccessRequestOutcomeEmail,
   signInAccessRequestReviewer,
   signOutAccessRequestReviewer,
 } from '../lib/accessRequestReviewService'
@@ -198,15 +199,51 @@ export default function ReviewRequestPage() {
     return () => { live = false }
   }, [selected?.id, selected?.logo_path, selected?.operator_notes, authorised])
 
-  async function updateStatus(status) {
+  async function updateStatus(status, { notifyApplicant = true } = {}) {
     if (!selected || savingStatus) return
+    const requestId = selected.id
+    const previousStatus = selected.status
+    const statusChanged = previousStatus !== status
+
     setSavingStatus(status)
     setError('')
     setNotice('')
+
     try {
-      await saveRecordsWebAccessRequestReview({ id: selected.id, status, operatorNotes })
-      setNotice(`Request marked ${STATUS_LABELS[status].toLowerCase()}.`)
-      await loadRequests(selected.id)
+      await saveRecordsWebAccessRequestReview({ id: requestId, status, operatorNotes })
+
+      let emailResult = null
+      let emailWarning = ''
+
+      if (notifyApplicant && (status === 'approved' || status === 'declined')) {
+        try {
+          emailResult = await sendRecordsWebAccessRequestOutcomeEmail({
+            id: requestId,
+            decision: status,
+          })
+        } catch (mailError) {
+          emailWarning = mailError?.message || 'The decision was saved, but the automatic applicant email could not be sent.'
+        }
+      }
+
+      if (emailWarning) {
+        setNotice(`Request marked ${STATUS_LABELS[status].toLowerCase()}.`)
+        setError(emailWarning)
+      } else if (emailResult?.alreadySent) {
+        setNotice(statusChanged
+          ? `Request marked ${STATUS_LABELS[status].toLowerCase()}. The applicant had already been sent this decision email.`
+          : `Request remains ${STATUS_LABELS[status].toLowerCase()}. The applicant decision email has already been sent.`)
+      } else if (emailResult?.ok) {
+        setNotice(statusChanged
+          ? `Request marked ${STATUS_LABELS[status].toLowerCase()}. The applicant has been notified automatically.`
+          : `Request remains ${STATUS_LABELS[status].toLowerCase()}. The applicant has now been notified.`)
+      } else {
+        setNotice(statusChanged
+          ? `Request marked ${STATUS_LABELS[status].toLowerCase()}.`
+          : 'Reviewer notes saved.')
+      }
+
+      await loadRequests(requestId)
     } catch (err) {
       setError(err?.message || 'Unable to update this request.')
     } finally {
@@ -319,7 +356,7 @@ export default function ReviewRequestPage() {
                   <button className="reviewing" onClick={() => updateStatus('reviewing')} disabled={Boolean(savingStatus)}><Clock3 size={15}/>{savingStatus === 'reviewing' ? 'Saving…' : 'Mark reviewing'}</button>
                   <button className="approved" onClick={() => updateStatus('approved')} disabled={Boolean(savingStatus)}><CheckCircle2 size={15}/>{savingStatus === 'approved' ? 'Saving…' : 'Approve'}</button>
                   <button className="declined" onClick={() => updateStatus('declined')} disabled={Boolean(savingStatus)}><XCircle size={15}/>{savingStatus === 'declined' ? 'Saving…' : 'Decline'}</button>
-                  <button onClick={() => updateStatus(selected.status)} disabled={Boolean(savingStatus)}><FileCheck2 size={15}/>{savingStatus === selected.status ? 'Saving…' : 'Save notes'}</button>
+                  <button onClick={() => updateStatus(selected.status, { notifyApplicant: false })} disabled={Boolean(savingStatus)}><FileCheck2 size={15}/>{savingStatus === selected.status ? 'Saving…' : 'Save notes'}</button>
                 </div>
 
                 {selected.reviewed_at && <div className="review-request-reviewed"><ShieldCheck size={14}/> Last reviewed {formatDate(selected.reviewed_at)}</div>}

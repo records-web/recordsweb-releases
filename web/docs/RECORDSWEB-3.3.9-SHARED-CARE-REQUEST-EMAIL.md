@@ -1,6 +1,6 @@
-# RecordsWeb 3.3.9 — Shared Care + automated request email
+# RecordsWeb 3.3.9 — Shared Care + automated request emails
 
-## Deployment request confirmation email
+## Deployment request emails
 
 The public deployment request form saves the request first, then calls `/api/request-confirmation`. The mail endpoint looks up the saved request with the Supabase service role before sending, so it cannot be used as a generic arbitrary-email relay.
 
@@ -14,7 +14,7 @@ Two separate Nodemailer configurations are supported:
 
 Legacy `IONOS_SMTP_USER` / `IONOS_SMTP_PASSWORD` remain fallback values for existing deployments.
 
-### Deployment request confirmation
+### Deployment request mailer (received + approved + declined)
 
 - `IONOS_NOREPLY_SMTP_USER=noreply@recordsweb.org`
 - `IONOS_NOREPLY_SMTP_PASSWORD=...`
@@ -22,11 +22,14 @@ Legacy `IONOS_SMTP_USER` / `IONOS_SMTP_PASSWORD` remain fallback values for exis
 - optional `IONOS_NOREPLY_SMTP_PORT=465`
 - `RECORDSWEB_SUPPORT_EMAIL=contactus@recordsweb.org`
 - `SUPABASE_URL=...`
+- `SUPABASE_ANON_KEY=...` (server-side alias; `VITE_SUPABASE_ANON_KEY` remains supported as a fallback for reviewer verification)
 - `SUPABASE_SERVICE_ROLE_KEY=...` (server-side Vercel environment variable only; never expose it as `VITE_...`)
 
-Run `supabase/recordsweb-3.3.9-request-confirmation-email.sql` once.
+Run `supabase/recordsweb-3.3.9-request-confirmation-email.sql` once. It now adds tracking for the received, approved and declined emails.
 
-The request is never rolled back merely because SMTP fails. The applicant sees that the request is safely queued even when the confirmation email could not be delivered.
+The request is never rolled back merely because SMTP fails. The same rule applies to decisions: approval/decline is saved first and the applicant email is attempted afterwards. Private reviewer notes are never included in automated decision emails.
+
+When an authorised reviewer selects **Approve** or **Decline**, the website calls `/api/request-outcome`. The endpoint verifies the reviewer bearer token using `recordsweb_is_access_request_reviewer()` before using the server-side request mailer. `approved_email_sent_at` and `declined_email_sent_at` prevent normal duplicate notifications.
 
 ## Shared Care network
 

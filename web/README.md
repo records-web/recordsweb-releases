@@ -1,13 +1,16 @@
 # RecordsWeb
 
-## RecordsWeb 3.3.9 — Shared Care + request confirmation mail
+## RecordsWeb 3.3.9 — Shared Care + complete request email automation
 
 - Version aligned at **3.3.9**.
 - Shared Care supports multiple simultaneous GP, Hospital and Ambulance / PHEM links, including networks of three or more communities.
 - All existing Shared Care security remains direct-link based: every relationship requires mutual approval and patient records are linked individually.
-- The public deployment request form now automatically emails the applicant from `noreply@recordsweb.org` after the request is safely stored.
-- Contact and deployment-request mail use separate Nodemailer/SMTP configurations.
-- Run `supabase/recordsweb-3.3.9-request-confirmation-email.sql` once.
+- The public deployment request form automatically emails the applicant from `noreply@recordsweb.org` after the request is safely stored.
+- Approving or declining a request in `/review-request` now automatically sends a branded decision email from the same `noreply@recordsweb.org` request mailer.
+- Approval/decline messages never expose private reviewer notes.
+- Decision emails are tracked with `approved_email_sent_at` / `declined_email_sent_at` so normal retries and refreshes do not intentionally send duplicates.
+- Contact and deployment-request mail remain two separate Nodemailer/SMTP configurations.
+- Run `supabase/recordsweb-3.3.9-request-confirmation-email.sql` once, or `supabase/recordsweb-3.3.9-request-outcome-emails.sql` if the confirmation column is already installed.
 
 
 ## RecordsWeb 3.3.6 — Shared Care Network
@@ -30,7 +33,7 @@
 
 # RecordsWeb Web
 
-**Version:** 3.3.4  
+**Version:** 3.3.9  
 **Runtime:** Browser / Vite / React  
 **Deployment:** Multi-organisation
 
