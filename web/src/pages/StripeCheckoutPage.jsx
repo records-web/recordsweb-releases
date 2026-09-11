@@ -467,10 +467,7 @@ function StripeCheckoutMain() {
             type="submit"
             className="stripe-checkout-primary"
             disabled={
-              !ready ||
-              !canConfirm ||
-              submitting ||
-              Boolean(billing?.billing_payment_exempt)
+              !ready || submitting || Boolean(billing?.billing_payment_exempt)
             }
           >
             <LockKeyhole size={15} />
