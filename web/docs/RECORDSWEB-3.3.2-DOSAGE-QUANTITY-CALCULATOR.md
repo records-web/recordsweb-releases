@@ -46,7 +46,3 @@ Changing the frequency immediately changes both the saved prescribed-dose wordin
 calculates `500 ÷ 500 × 4 × 7 = 28 capsules`.
 
 Course duration remains clinician-editable, so an antibiotic course is not forced to 5 or 7 days.
-
-## Website tab switching
-
-The web app no longer performs focus-triggered billing refreshes and no longer automatically reloads itself when a web update is detected. Available updates remain visible in the RecordsWeb update notice and are applied only when the user chooses **Refresh now**. This prevents switching browser tabs from discarding typed but unsaved text.

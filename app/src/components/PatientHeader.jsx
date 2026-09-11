@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { NavLink } from 'react-router-dom'
 import { AlertTriangle } from 'lucide-react'
 import { listForPatient } from '../lib/dataService'
+import { listSharedCarePatientLinks } from '../lib/sharedCareService'
 
 const tabs = [
   ['Summary', ''],
@@ -13,6 +14,7 @@ const tabs = [
   ['Diary', 'diary'],
   ['Documents', 'documents'],
   ['Referrals', 'referrals'],
+  ['Shared Care', 'shared-care'],
 ]
 
 function ageFromDob(dob) {
@@ -27,10 +29,12 @@ function ageFromDob(dob) {
 
 export default function PatientHeader({ patient }) {
   const [alerts, setAlerts] = useState([])
+  const [sharedCareCount, setSharedCareCount] = useState(0)
   useEffect(() => {
     let live = true
-    if (!patient?.id) { setAlerts([]); return () => { live = false } }
+    if (!patient?.id) { setAlerts([]); setSharedCareCount(0); return () => { live = false } }
     listForPatient('patient_alerts', patient.id, 'created_at').then((rows) => { if (live) setAlerts(rows.filter((row) => row.active !== false)) }).catch(() => { if (live) setAlerts([]) })
+    listSharedCarePatientLinks(patient.id).then((rows) => { if (live) setSharedCareCount(Array.isArray(rows) ? rows.length : 0) }).catch(() => { if (live) setSharedCareCount(0) })
     return () => { live = false }
   }, [patient?.id])
   if (!patient) return <div className="patient-header patient-header-loading">Loading patient…</div>
@@ -41,7 +45,7 @@ export default function PatientHeader({ patient }) {
     <>
       <div className="patient-header">
         <div className="patient-status">{patient.status || 'Active'}</div>
-        <div className="patient-name">{displayName}</div>
+        <div className="patient-name"><span>{displayName}</span>{sharedCareCount > 0 && <span className="patient-shared-care-badge">Shared Care {sharedCareCount}</span>}</div>
         <div className="patient-meta"><span>Born</span><strong>{new Date(patient.dob).toLocaleDateString('en-GB')}</strong><small>({ageFromDob(patient.dob)})</small></div>
         <div className="patient-meta"><span>Gender</span><strong>{patient.gender || patient.sex}</strong></div>
         <div className="patient-meta"><span>NHS No.</span><strong>{patient.nhs_number || '—'}</strong></div>

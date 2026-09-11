@@ -27,7 +27,7 @@ export default function RoleSelector({ roles, primaryRole, systemMode = 'general
       <div className="staff-role-editor-header">
         <div>
           <strong>Staff roles</strong>
-          <span>{systemMode === 'hospital' ? 'Select the hospital role or roles this member of staff performs.' : 'Select every role this member of staff performs.'}</span>
+          <span>{systemMode === 'hospital' ? 'Select the hospital role or roles this member of staff performs.' : systemMode === 'ambulance' ? 'Select the ambulance / PHEM role or roles this member of staff performs.' : 'Select every role this member of staff performs.'}</span>
         </div>
         <label>
           <span>Primary role</span>

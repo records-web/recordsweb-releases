@@ -1,7 +1,43 @@
+# RecordsWeb
+
+## RecordsWeb 3.3.9 — Shared Care + request confirmation mail
+
+- Version aligned at **3.3.9**.
+- Shared Care supports multiple simultaneous GP, Hospital and Ambulance / PHEM links, including networks of three or more communities.
+- All existing Shared Care security remains direct-link based: every relationship requires mutual approval and patient records are linked individually.
+- Web-only public request email automation is documented here for release alignment; the Electron client does not host the public mail endpoint.
+- Run `supabase/recordsweb-3.3.9-request-confirmation-email.sql` once against the shared RecordsWeb database.
+
+
+## RecordsWeb 3.3.6 — Shared Care Network
+
+- Adds Management → **Shared Care** with permanent six-character community codes, bilateral approval, suspend/revoke controls and directional clinical sharing permissions.
+- Primary Care, Secondary Care and Ambulance / PHEM communities can interlink in any combination.
+- Adds Patient → **Shared Care** with confirmed patient-to-patient linking and audited read-only partner records.
+- Suggested patient matches use Roblox identity, NHS number, or exact name + DOB; no patient is automatically merged.
+- Adds Ambulance / PHEM organisation mode and staff roles.
+- Run `supabase/recordsweb-3.3.6-shared-care.sql`, then redeploy `recordsweb-admin` and `recordsweb-platform-admin`.
+
+## RecordsWeb 3.3.6 — release alignment
+
+- Electron is version-aligned with the RecordsWeb Web 3.3.6 public status release.
+- The public automated status page is hosted by RecordsWeb Web at `/status`; no desktop-only status implementation is required.
+- Existing 3.3.5 clinical, Roblox identity, dark-mode, Problems and fit-note functionality is preserved.
+
 # RecordsWeb 3.3.4
 
 RecordsWeb is an Electron + React desktop clinical-record platform. The same application can be bound to an approved organisation through its four-letter `@XX.XX` extension while preserving organisation-level data isolation.
 
+
+## RecordsWeb 3.3.5 — problems history, messaging contrast & web fit-note export
+
+- Screen Messages now remain readable in dark mode; the message preview no longer renders light text on a white panel.
+- Problems now store and display both a **Start date** and **End date**. Past/Resolved problems require an end date.
+- The Problems record now has separate **Active Problems** and **Past Problems** tabs.
+- New Consultation and Patient Summary only treat genuinely Active problems as active.
+- Website fit-note Print / Save PDF now works with the site's CSP by triggering the browser print dialog without blocked inline JavaScript.
+- The v3.3.4 Roblox appointment-terminal API repair and Sex/Gender RP identity scripts are bundled into this release.
+- Run `supabase/recordsweb-3.3.5-problem-end-dates.sql` before using problem end dates.
 
 ## RecordsWeb 3.3.4 — community-scoped Roblox RP patient identities
 

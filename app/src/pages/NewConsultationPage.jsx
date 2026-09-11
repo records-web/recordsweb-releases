@@ -48,7 +48,7 @@ export default function NewConsultationPage() {
     ]).then(([p, c, problemRows]) => {
       setPatient(p)
       setRecent(c.slice(0, 3))
-      setProblems(problemRows.filter((problem) => String(problem.status || 'Active').toLowerCase() !== 'inactive'))
+      setProblems(problemRows.filter((problem) => String(problem.status || 'Active').trim().toLowerCase() === 'active'))
       try {
         const draft = JSON.parse(localStorage.getItem(draftKey) || 'null')
         if (draft && typeof draft === 'object') {

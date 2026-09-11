@@ -19,6 +19,7 @@ import StaffAreaPage from './pages/StaffAreaPage'
 import ManagementPage from './pages/ManagementPage'
 import SecurityPage from './pages/SecurityPage'
 import SettingsPage from './pages/SettingsPage'
+import SharedCarePatientPage from './pages/SharedCarePatientPage'
 import AppShell from './components/AppShell'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import UpdateGate from './components/update/UpdateGate'
@@ -64,6 +65,7 @@ export default function App() {
                 <Route path="patients/:patientId/diary" element={<DiaryPage />} />
                 <Route path="patients/:patientId/documents" element={<DocumentsPage />} />
                 <Route path="patients/:patientId/referrals" element={<ReferralsPage />} />
+            <Route path="patients/:patientId/shared-care" element={<SharedCarePatientPage />} />
                 <Route path="appointments" element={<AppointmentBookPage />} />
                 <Route path="registration" element={<RegistrationPage />} />
                 <Route path="staff-area" element={<StaffAreaPage />} />

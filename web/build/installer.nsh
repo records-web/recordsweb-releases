@@ -1,3 +1,5 @@
+!ifndef BUILD_UNINSTALLER
+
 !include "MUI2.nsh"
 !include "nsDialogs.nsh"
 !include "LogicLib.nsh"
@@ -9,25 +11,67 @@ ${StrCase}
 Var RWOrganisationDialog
 Var RWOrganisationInput
 Var RWOrganisationCode
+Var RWExistingInstall
 
 # RecordsWeb uses an assisted NSIS installer so a fresh Windows installation can
 # be bound to the organisation namespace supplied by the RecordsWeb operator.
-# Upgrades never prompt again: the existing value is preserved. Legacy Grove
-# Way upgrades are automatically seeded to GW.HC so the current deployment does
-# not lose its organisation when moving to this multi-organisation build.
+#
+# IMPORTANT: This file intentionally does NOT use electron-builder's ${isUpdated}
+# macro. ${isUpdated} expands to StdUtils::TestParameter and, in electron-builder
+# 25.x, a custom include can be parsed before the StdUtils plugin directory is
+# available. That causes makensis to fail at package time. We instead detect an
+# existing RecordsWeb installation from electron-builder's own registry key.
+
+!macro customInit
+  StrCpy $RWExistingInstall "0"
+  StrCpy $RWOrganisationCode ""
+
+  # Recover a namespace already stored by a previous multi-organisation build.
+  ReadRegStr $RWOrganisationCode HKCU "Software\RecordsWeb" "OrganisationCode"
+  ${If} $RWOrganisationCode == ""
+    ReadRegStr $RWOrganisationCode HKLM "Software\RecordsWeb" "OrganisationCode"
+  ${EndIf}
+
+  # Detect an existing installation using the stable electron-builder app GUID
+  # registry key. Check both contexts so this survives changes between per-user
+  # and per-machine packaging and works for the legacy RecordsWeb install.
+  ReadRegStr $0 HKCU "${INSTALL_REGISTRY_KEY}" "InstallLocation"
+  ${If} $0 != ""
+    StrCpy $RWExistingInstall "1"
+  ${EndIf}
+
+  ReadRegStr $1 HKLM "${INSTALL_REGISTRY_KEY}" "InstallLocation"
+  ${If} $1 != ""
+    StrCpy $RWExistingInstall "1"
+  ${EndIf}
+
+  # v3.1.9 and older were Grove-Way-only and therefore did not store an
+  # OrganisationCode value. When such an install is upgraded, seed GW.HC so an
+  # automatic update never stops to ask an interactive installer question.
+  ${If} $RWExistingInstall == "1"
+    ${If} $RWOrganisationCode == ""
+      StrCpy $RWOrganisationCode "GW.HC"
+    ${EndIf}
+  ${EndIf}
+!macroend
+
 !macro customPageAfterChangeDir
   Page custom RWOrganisationPage RWOrganisationPageLeave
 !macroend
 
 Function RWOrganisationPage
-  ${If} ${isUpdated}
+  # Existing installs/upgrades keep their stored namespace and skip this page.
+  # This check is based only on registry state and therefore needs no StdUtils.
+  ${If} $RWExistingInstall == "1"
     Abort
   ${EndIf}
 
-  # A true fresh install always shows this page. If a previous uninstall left
-  # the per-user registry value behind, use it only as a convenient default so
-  # the operator can still replace it for a repurposed workstation.
-  ReadRegStr $RWOrganisationCode HKCU "Software\RecordsWeb" "OrganisationCode"
+  # A fresh install always shows this page. If a previous uninstall deliberately
+  # left the RecordsWeb namespace value behind, use it as a convenient default;
+  # the operator can still replace it before continuing.
+  ${If} $RWOrganisationCode == ""
+    ReadRegStr $RWOrganisationCode HKCU "Software\RecordsWeb" "OrganisationCode"
+  ${EndIf}
 
   !insertmacro MUI_HEADER_TEXT "RecordsWeb organisation" "Connect this installation to its organisation"
 
@@ -156,23 +200,21 @@ rw_letter_done:
 FunctionEnd
 
 !macro customInstall
-  # Updater-driven installs preserve the existing organisation without showing
-  # an interactive page. The first multi-organisation upgrade from the old
-  # Grove-Way-only build is seeded to GW.HC when no registry value exists.
-  ${If} ${isUpdated}
-    ReadRegStr $0 HKCU "Software\RecordsWeb" "OrganisationCode"
-    ${If} $0 != ""
-      StrCpy $RWOrganisationCode "$0"
-    ${Else}
-      StrCpy $RWOrganisationCode "GW.HC"
-    ${EndIf}
-  ${EndIf}
-
+  # customInit has already loaded/preserved the organisation code for upgrades,
+  # while a fresh interactive installation gets it from the custom page.
   ${If} $RWOrganisationCode != ""
     CreateDirectory "$APPDATA\RecordsWeb"
     FileOpen $0 "$APPDATA\RecordsWeb\install-config.json" w
     FileWrite $0 '{$\"organisationCode$\":$\"$RWOrganisationCode$\"}'
     FileClose $0
+
+    # HKCU is the primary runtime fallback. HKLM is attempted too so a build
+    # configured for all-users installation can preserve the same namespace.
     WriteRegStr HKCU "Software\RecordsWeb" "OrganisationCode" "$RWOrganisationCode"
+    ClearErrors
+    WriteRegStr HKLM "Software\RecordsWeb" "OrganisationCode" "$RWOrganisationCode"
+    ClearErrors
   ${EndIf}
 !macroend
+
+!endif ; BUILD_UNINSTALLER

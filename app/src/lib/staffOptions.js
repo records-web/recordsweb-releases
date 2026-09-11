@@ -37,15 +37,33 @@ export const SECONDARY_CARE_STAFF_ROLES = [
   'Staff Nurse',
 ]
 
+
+export const AMBULANCE_STAFF_ROLES = [
+  'PHEM Consultant',
+  'PHEM Doctor',
+  'Critical Care Paramedic',
+  'Advanced Paramedic',
+  'Paramedic',
+  'Emergency Medical Technician',
+  'Emergency Care Assistant',
+  'Dispatcher',
+  'Clinical Team Leader',
+  'Operations Manager',
+]
+
 export const STAFF_ROLES = PRIMARY_CARE_STAFF_ROLES
-export const ALL_STAFF_ROLES = [...new Set([...PRIMARY_CARE_STAFF_ROLES, ...SECONDARY_CARE_STAFF_ROLES])]
+export const ALL_STAFF_ROLES = [...new Set([...PRIMARY_CARE_STAFF_ROLES, ...SECONDARY_CARE_STAFF_ROLES, ...AMBULANCE_STAFF_ROLES])]
 
 export function getStaffRoles(systemMode = 'general_practice') {
-  return systemMode === 'hospital' ? SECONDARY_CARE_STAFF_ROLES : PRIMARY_CARE_STAFF_ROLES
+  if (systemMode === 'hospital') return SECONDARY_CARE_STAFF_ROLES
+  if (systemMode === 'ambulance') return AMBULANCE_STAFF_ROLES
+  return PRIMARY_CARE_STAFF_ROLES
 }
 
 export function getDefaultStaffRole(systemMode = 'general_practice') {
-  return systemMode === 'hospital' ? 'Consultant' : 'Patient Coordinator'
+  if (systemMode === 'hospital') return 'Consultant'
+  if (systemMode === 'ambulance') return 'Paramedic'
+  return 'Patient Coordinator'
 }
 
 export function buildStaffDisplayName({ title = '', first_name = '', last_name = '' }) {
