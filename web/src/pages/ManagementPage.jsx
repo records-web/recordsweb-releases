@@ -219,15 +219,15 @@ export default function ManagementPage() {
           forceDiscord={passwordDelivery === 'discord'}
           onClose={() => setPasswordUser(null)}
           onSave={async (password, options = {}) => {
-            await resetAccountPassword(passwordUser.id, password)
-            let discordWarning = ''
             if (options.sendDiscord) {
-              try { await sendDiscordLoginDetails({ userId: passwordUser.id, temporaryPassword: password }) }
-              catch (err) { discordWarning = err.message || 'Discord login DM could not be sent.' }
+              // Password reset + Discord delivery happen in one already-authorised
+              // server request. This also works when Management resets its own account.
+              await sendDiscordLoginDetails({ userId: passwordUser.id, temporaryPassword: password, resetPassword: true })
+            } else {
+              await resetAccountPassword(passwordUser.id, password)
             }
             setPasswordUser(null)
             await load()
-            if (discordWarning) setError(`Password was reset, but the Discord DM failed: ${discordWarning}`)
           }}
         />
       )}

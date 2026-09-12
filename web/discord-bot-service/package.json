@@ -1,0 +1,17 @@
+{
+  "name": "recordsweb-discord-bot-service",
+  "version": "3.4.1",
+  "private": true,
+  "type": "module",
+  "description": "RecordsWeb Discord Bot canvas renderer and DM delivery service",
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node --watch server.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^0.1.80"
+  }
+}

@@ -181,7 +181,7 @@ export default function DiscordIntegrationPanel() {
           {connected && <button className="secondary-button discord-disconnect" type="button" onClick={disconnect} disabled={busy}><Unplug size={13}/> Disconnect</button>}
         </div>
 
-        <div className="discord-security-note"><strong>Credential safety</strong><span>RecordsWeb never stores a staff password in the Discord integration. Login DMs are sent only after Management creates or resets a temporary password, and the user is required to change it at next sign-in.</span></div>
+        <div className="discord-security-note"><strong>Credential safety</strong><span>RecordsWeb never stores a staff password in the Discord integration. Login DMs are rendered as a branded RecordsWeb Canvas image after Management creates or resets a temporary password, and the user is required to change it at next sign-in.</span></div>
       </div>
     </section>
   )

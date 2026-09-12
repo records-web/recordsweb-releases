@@ -46,11 +46,12 @@ export async function sendDiscordTest() {
   return invokeDiscord({ action: 'send-test' })
 }
 
-export async function sendDiscordLoginDetails({ userId, temporaryPassword }) {
+export async function sendDiscordLoginDetails({ userId, temporaryPassword, resetPassword = false }) {
   return invokeDiscord({
     action: 'send-login-dm',
     user_id: String(userId || '').trim(),
     temporary_password: String(temporaryPassword || ''),
+    reset_password: Boolean(resetPassword),
   })
 }
 

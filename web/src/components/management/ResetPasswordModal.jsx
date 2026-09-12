@@ -42,7 +42,7 @@ export default function ResetPasswordModal({ user, forceDiscord = false, onClose
           <button onClick={onClose}><X size={18}/></button>
         </header>
         <div className="records-form-grid one-col">
-          {discordMode && <div className="discord-login-modal-intro"><Send size={16}/><span>RecordsWeb will set a new temporary password, then the official RecordsWeb Bot will DM the username and temporary password to Discord user <strong>{user.discord_user_id || 'not linked'}</strong>.</span></div>}
+          {discordMode && <div className="discord-login-modal-intro"><Send size={16}/><span>RecordsWeb will set a new temporary password and the official RecordsWeb Bot will DM a branded login image containing the username and temporary password to Discord user <strong>{user.discord_user_id || 'not linked'}</strong>.</span></div>}
           <label>New temporary password<input type="password" value={password} onChange={(event) => setPassword(event.target.value)} autoComplete="new-password" /></label>
           <small>This temporary password must contain at least 10 characters, including a letter and a number. The user will be forced to change it at next sign-in.</small>
           <label>Confirm password<input type="password" value={confirm} onChange={(event) => setConfirm(event.target.value)} autoComplete="new-password" /></label>

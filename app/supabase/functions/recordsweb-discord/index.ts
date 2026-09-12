@@ -33,6 +33,38 @@ function cleanText(value: unknown, max = 500) {
   return String(value ?? '').trim().slice(0, max)
 }
 
+const COMMON_PASSWORDS = new Set(['password123','password1','qwerty123','letmein123','welcome123','recordsweb1','groveway123','changeme123','admin12345','1234567890'])
+
+function validatePassword(password: string, username = '') {
+  if (password.length < 10) return 'Password must contain at least 10 characters.'
+  if (!/[A-Za-z]/.test(password) || !/[0-9]/.test(password)) return 'Password must contain at least one letter and one number.'
+  if (COMMON_PASSWORDS.has(password.toLowerCase())) return 'Choose a less common password.'
+  const local = String(username || '').split('@')[0].replace(/[^a-z0-9]/gi, '').toLowerCase()
+  if (local.length >= 5 && password.replace(/[^a-z0-9]/gi, '').toLowerCase().includes(local)) return 'Password must not contain the RecordsWeb username.'
+  return ''
+}
+
+async function sendCanvasLoginDm(payload: Record<string, unknown>) {
+  const rendererUrl = String(Deno.env.get('RECORDSWEB_DISCORD_RENDERER_URL') || '').trim().replace(/\/$/, '')
+  const rendererSecret = String(Deno.env.get('RECORDSWEB_DISCORD_RENDERER_SECRET') || '').trim()
+  if (!rendererUrl || !rendererSecret) return null
+  const response = await fetch(`${rendererUrl}/send-login-card`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-recordsweb-secret': rendererSecret },
+    body: JSON.stringify(payload),
+  })
+  const raw = await response.text()
+  let data: any = null
+  try { data = raw ? JSON.parse(raw) : null } catch { data = raw }
+  if (!response.ok || data?.error) {
+    const detail = data?.error || data?.message || (typeof data === 'string' ? data : '') || `RecordsWeb Discord Canvas service returned HTTP ${response.status}.`
+    const error = new Error(detail) as Error & { status?: number }
+    error.status = response.status >= 400 ? response.status : 502
+    throw error
+  }
+  return data || { ok: true }
+}
+
 function formatDiscordDate(value: unknown) {
   if (!value) return 'Not specified'
   const date = new Date(String(value))
@@ -358,6 +390,7 @@ Deno.serve(async (req) => {
       if (!integration?.login_dm_enabled) return json({ error: 'Staff login DMs are disabled for this community.' }, 403)
       const userId = cleanText(body.user_id, 80)
       const temporaryPassword = String(body.temporary_password || '')
+      const resetPassword = body.reset_password === true
       if (!userId) return json({ error: 'Staff account is required.' }, 400)
       if (temporaryPassword.length < 10) return json({ error: 'A valid temporary password is required before sending login details.' }, 400)
       const { data: target, error: targetError } = await admin.from('profiles').select('id,organisation_id,username,display_name,discord_user_id,active,must_change_password').eq('id', userId).maybeSingle()
@@ -365,25 +398,58 @@ Deno.serve(async (req) => {
       if (!target.active) return json({ error: 'This RecordsWeb staff account is disabled.' }, 400)
       const discordUserId = snowflake(target.discord_user_id, 'Staff Discord User ID')
       const publicUrl = String(Deno.env.get('RECORDSWEB_PUBLIC_URL') || 'https://www.recordsweb.org').replace(/\/$/, '')
-      const dm = await discordRequest('/users/@me/channels', { method: 'POST', body: JSON.stringify({ recipient_id: discordUserId }) })
-      await sendMessage(String(dm.id), {
-        embeds: [{
-          title: 'Your RecordsWeb login details',
-          description: `Management at **${context.organisation.name}** has issued RecordsWeb login details for your staff account.`,
-          color: 0x0F6FBD,
-          fields: [
-            { name: 'Community', value: `${context.organisation.name} (@${context.organisation.org_code})`, inline: false },
-            { name: 'Username', value: `\`${target.username}\``, inline: false },
-            { name: 'Temporary password', value: `\`${temporaryPassword.replace(/`/g, 'ˋ')}\``, inline: false },
-            { name: 'Sign in', value: `[Open RecordsWeb staff sign-in](${publicUrl})`, inline: false },
-            { name: 'Next step', value: 'You will be required to choose a new password at your next sign-in.', inline: false },
-          ],
-          footer: { text: 'Keep these details private. RecordsWeb will never ask you to send your password back by Discord.' },
-          timestamp: new Date().toISOString(),
-        }],
+
+      // When Management selects "Set password & send DM", do both operations in this
+      // already-authorised server request. This prevents a self-password reset from
+      // invalidating the browser session before the Discord delivery call is made.
+      if (resetPassword) {
+        const policy = validatePassword(temporaryPassword, target.username)
+        if (policy) return json({ error: policy }, 400)
+        const { data: recent, error: recentError } = await admin.rpc('recordsweb_service_password_recently_used', { p_user_id: target.id, p_password: temporaryPassword })
+        if (recentError) return json({ error: recentError.message || 'Unable to check password history.' }, 500)
+        if (recent) return json({ error: 'Choose a temporary password this user has not used recently.' }, 400)
+        const { error: resetError } = await admin.auth.admin.updateUserById(target.id, { password: temporaryPassword })
+        if (resetError) return json({ error: resetError.message }, 400)
+        const { error: historyError } = await admin.rpc('recordsweb_service_record_password', { p_user_id: target.id, p_password: temporaryPassword })
+        if (historyError) return json({ error: 'Password changed, but password history could not be recorded. Contact the RecordsWeb administrator.' }, 500)
+        await admin.from('profiles').update({ must_change_password: true, updated_at: new Date().toISOString() }).eq('id', target.id)
+        await writeAudit(admin, context.profile, 'account.password.reset_by_management', 'profile', target.id, `Reset password for ${target.username}; password change required at next sign-in.`, { delivery: 'discord' })
+      }
+
+      let deliveryFormat = 'canvas'
+      const canvasResult = await sendCanvasLoginDm({
+        discord_user_id: discordUserId,
+        username: target.username,
+        temporary_password: temporaryPassword,
+        organisation_name: context.organisation.name,
+        organisation_code: context.organisation.org_code,
+        public_url: publicUrl,
+        version: String(Deno.env.get('RECORDSWEB_VERSION') || '3.4.1'),
       })
-      await writeAudit(admin, context.profile, 'account.discord_login_dm.sent', 'profile', target.id, `Sent RecordsWeb login details by Discord DM to ${target.display_name}.`, { discord_user_id: discordUserId })
-      return json({ ok: true, recipient_id: discordUserId })
+
+      if (!canvasResult) {
+        deliveryFormat = 'embed-fallback'
+        const dm = await discordRequest('/users/@me/channels', { method: 'POST', body: JSON.stringify({ recipient_id: discordUserId }) })
+        await sendMessage(String(dm.id), {
+          embeds: [{
+            title: 'Your RecordsWeb login details',
+            description: `Management at **${context.organisation.name}** has issued RecordsWeb login details for your staff account.`,
+            color: 0x0F6FBD,
+            fields: [
+              { name: 'Community', value: `${context.organisation.name} (@${context.organisation.org_code})`, inline: false },
+              { name: 'Username', value: `\`${target.username}\``, inline: false },
+              { name: 'Temporary password', value: `\`${temporaryPassword.replace(/`/g, 'ˋ')}\``, inline: false },
+              { name: 'Sign in', value: `[Open RecordsWeb staff sign-in](${publicUrl})`, inline: false },
+              { name: 'Next step', value: 'You will be required to choose a new password at your next sign-in.', inline: false },
+            ],
+            footer: { text: 'Keep these details private. RecordsWeb will never ask you to send your password back by Discord.' },
+            timestamp: new Date().toISOString(),
+          }],
+        })
+      }
+
+      await writeAudit(admin, context.profile, 'account.discord_login_dm.sent', 'profile', target.id, `Sent RecordsWeb login details by Discord DM to ${target.display_name}.`, { discord_user_id: discordUserId, delivery_format: deliveryFormat, password_reset: resetPassword })
+      return json({ ok: true, recipient_id: discordUserId, delivery_format: deliveryFormat, password_reset: resetPassword })
     }
 
     return json({ error: 'Unknown action.' }, 400)
