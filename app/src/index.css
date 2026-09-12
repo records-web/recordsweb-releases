@@ -4547,3 +4547,59 @@ html.rw-dark-mode .discord-security-note strong { color:#c6e1ef; }
 html.rw-dark-mode .discord-security-note span { color:#98adb8; }
 @media (max-width:980px) { .discord-setup-grid,.discord-connection-details { grid-template-columns:1fr; } }
 @media (min-width:1180px) { .staff-profile-stat-grid { grid-template-columns:repeat(5,minmax(0,1fr)); } }
+
+
+/* RecordsWeb 3.4.3 — dense EMIS-style Problems record */
+.problems-record-page { padding-top:6px; }
+.emis-problem-record { border:1px solid #9cb4c3; background:#f7f8f5; color:#1d2529; min-height:260px; overflow:hidden; }
+.emis-problem-record-title { min-height:26px; display:flex; align-items:center; padding:0 42px; border-bottom:1px solid #9cb4c3; background:#eef0eb; color:#354149; font-size:10px; font-weight:700; }
+.emis-problem-section { border-bottom:1px solid #9cb4c3; }
+.emis-problem-section:last-child { border-bottom:0; }
+.emis-problem-section-header { min-height:30px; display:flex; align-items:center; gap:7px; padding:0 42px; background:#e5eee7; color:#2e6290; border-bottom:1px solid #b8c7bf; }
+.emis-problem-section-header strong { font:700 13px "Segoe UI",Arial,sans-serif; }
+.emis-problem-section-header span { min-width:18px; height:18px; padding:0 5px; display:inline-grid; place-items:center; border-radius:10px; background:#d3e1e8; color:#486b7e; font-size:8px; }
+.emis-problem-list { display:flex; flex-direction:column; }
+.emis-problem-row { width:100%; min-height:27px; display:grid; grid-template-columns:42px max-content minmax(120px,1fr); align-items:center; border:0; border-bottom:1px solid rgba(157,174,168,.42); background:#f7f8f5; color:#171d20; padding:0; text-align:left; cursor:pointer; font-family:"Segoe UI",Arial,sans-serif; }
+.emis-problem-row:last-child { border-bottom:0; }
+.emis-problem-row:hover, .emis-problem-row:focus-visible { background:#e8f4fb; outline:none; }
+.emis-problem-index { height:100%; min-height:27px; display:flex; align-items:center; justify-content:center; border-right:1px solid #bdc9c4; color:#3c474c; font-size:10px; font-weight:500; }
+.emis-problem-name { padding:3px 7px 3px 10px; font-size:12px; line-height:1.25; font-weight:700; color:inherit; }
+.emis-problem-significance { padding:3px 10px 3px 0; font-size:11px; line-height:1.25; color:#26343b; white-space:nowrap; }
+.emis-problem-significance.significance-significant,
+.emis-problem-significance.significance-severe { color:#15242b; }
+.emis-problem-significance.significance-minor,
+.emis-problem-significance.significance-low { color:#3f535d; }
+.emis-problem-empty { min-height:34px; display:flex; align-items:center; padding:0 52px; color:#67777e; font-size:10px; font-style:italic; background:#f7f8f5; }
+.problems-summary-list { display:flex; flex-direction:column; margin:-1px 0 0; }
+.problems-summary-row { width:100%; min-height:27px; display:grid; grid-template-columns:28px minmax(0,1fr) auto; align-items:center; padding:0; border:0; border-bottom:1px solid #d5e0e5; background:transparent; color:#233b49; text-align:left; cursor:pointer; font-family:"Segoe UI",Arial,sans-serif; }
+.problems-summary-row:last-child { border-bottom:0; }
+.problems-summary-row:hover, .problems-summary-row:focus-visible { background:#eef7fc; outline:none; }
+.problems-summary-row .problems-summary-index { align-self:stretch; display:grid; place-items:center; border-right:1px solid #d5e0e5; color:#617680; font-size:8px; }
+.problems-summary-row strong { padding:4px 7px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:9px; }
+.problems-summary-row em { padding:4px 7px 4px 0; color:#60727c; font-size:8px; white-space:nowrap; }
+
+html.rw-dark-mode .emis-problem-record { background:#111a20 !important; border-color:#38515f !important; color:#dce8ee !important; }
+html.rw-dark-mode .emis-problem-record-title { background:#17232a !important; border-color:#38515f !important; color:#b8cad4 !important; }
+html.rw-dark-mode .emis-problem-section { border-color:#38515f !important; }
+html.rw-dark-mode .emis-problem-section-header { background:#1a2b32 !important; color:#67b7e5 !important; border-color:#38515f !important; }
+html.rw-dark-mode .emis-problem-section-header span { background:#203943 !important; color:#acd5e9 !important; }
+html.rw-dark-mode .emis-problem-row { background:#111a20 !important; color:#e5edf1 !important; border-color:#243944 !important; }
+html.rw-dark-mode .emis-problem-row:hover,
+html.rw-dark-mode .emis-problem-row:focus-visible { background:#19313d !important; }
+html.rw-dark-mode .emis-problem-index { border-color:#344c58 !important; color:#9db3be !important; }
+html.rw-dark-mode .emis-problem-significance { color:#c0d0d7 !important; }
+html.rw-dark-mode .emis-problem-significance.significance-significant,
+html.rw-dark-mode .emis-problem-significance.significance-severe { color:#e9f4f8 !important; }
+html.rw-dark-mode .emis-problem-empty { background:#111a20 !important; color:#849aa5 !important; }
+html.rw-dark-mode .problems-summary-row { color:#dbe8ee !important; border-color:#2f4652 !important; background:transparent !important; }
+html.rw-dark-mode .problems-summary-row:hover,
+html.rw-dark-mode .problems-summary-row:focus-visible { background:#19313d !important; }
+html.rw-dark-mode .problems-summary-row .problems-summary-index { border-color:#2f4652 !important; color:#8fa7b2 !important; }
+html.rw-dark-mode .problems-summary-row em { color:#a9bdc6 !important; }
+
+@media (max-width:780px) {
+  .emis-problem-record-title, .emis-problem-section-header { padding-left:34px; }
+  .emis-problem-row { grid-template-columns:34px minmax(0,1fr) auto; }
+  .emis-problem-name { white-space:normal; }
+  .emis-problem-significance { font-size:9px; }
+}

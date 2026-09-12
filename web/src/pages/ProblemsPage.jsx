@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import ClinicalToolbar from '../components/ClinicalToolbar'
-import Panel from '../components/Panel'
 import PatientHeader from '../components/PatientHeader'
 import ProblemEditorModal from '../components/ProblemEditorModal'
 import { createForPatient, getPatient, listForPatient, updateForPatient } from '../lib/dataService'
@@ -11,6 +10,49 @@ function isPastProblem(problem = {}) {
   return status === 'past' || status === 'resolved' || status === 'inactive'
 }
 
+function problemIndexLabel(index) {
+  if (index < 26) return String.fromCharCode(65 + index)
+  return String(index - 25)
+}
+
+function significanceText(problem = {}) {
+  const value = String(problem.significance || '').trim()
+  return value || 'Minor'
+}
+
+function ProblemSection({ title, problems, indexOffset = 0, emptyText, onEdit }) {
+  return (
+    <section className="emis-problem-section">
+      <header className="emis-problem-section-header">
+        <strong>{title}</strong>
+        <span>{problems.length}</span>
+      </header>
+      {problems.length === 0 ? (
+        <div className="emis-problem-empty">{emptyText}</div>
+      ) : (
+        <div className="emis-problem-list" role="list">
+          {problems.map((problem, index) => (
+            <button
+              type="button"
+              className="emis-problem-row"
+              key={problem.id}
+              onClick={() => onEdit(problem)}
+              role="listitem"
+              title="Open problem details"
+            >
+              <span className="emis-problem-index" aria-hidden="true">{problemIndexLabel(indexOffset + index)}</span>
+              <span className="emis-problem-name">{problem.name}</span>
+              <em className={`emis-problem-significance significance-${String(significanceText(problem)).toLowerCase().replace(/[^a-z0-9]+/g, '-')}`}>
+                ({significanceText(problem)})
+              </em>
+            </button>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
 export default function ProblemsPage() {
   const { patientId } = useParams()
   const [patient, setPatient] = useState(null)
@@ -18,7 +60,6 @@ export default function ProblemsPage() {
   const [filter, setFilter] = useState('')
   const [showFilter, setShowFilter] = useState(false)
   const [editing, setEditing] = useState(null)
-  const [tab, setTab] = useState('active')
   const [error, setError] = useState('')
 
   async function load() {
@@ -45,7 +86,6 @@ export default function ProblemsPage() {
 
   const activeProblems = useMemo(() => searched.filter((problem) => !isPastProblem(problem)), [searched])
   const pastProblems = useMemo(() => searched.filter(isPastProblem), [searched])
-  const visibleProblems = tab === 'past' ? pastProblems : activeProblems
 
   return (
     <div>
@@ -56,27 +96,28 @@ export default function ProblemsPage() {
         { label: 'Search', icon: 'search', onClick: () => setShowFilter(true) },
       ]} />
       <PatientHeader patient={patient} />
-      <div className="page-pad compact-pad">
+      <div className="page-pad compact-pad problems-record-page">
         {error && <div className="form-error">{error}</div>}
-        {showFilter && <div className="record-filter-bar"><strong>Filter Problems</strong><input autoFocus value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Search problems…" /><button onClick={() => { setFilter(''); setShowFilter(false) }}>Clear</button></div>}
+        {showFilter && <div className="record-filter-bar"><strong>Filter Problems</strong><input autoFocus value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Search active and past problems…" /><button onClick={() => { setFilter(''); setShowFilter(false) }}>Clear</button></div>}
 
-        <div className="problem-status-tabs" role="tablist" aria-label="Problem status">
-          <button type="button" role="tab" aria-selected={tab === 'active'} className={tab === 'active' ? 'active' : ''} onClick={() => setTab('active')}>Active Problems <span>{activeProblems.length}</span></button>
-          <button type="button" role="tab" aria-selected={tab === 'past'} className={tab === 'past' ? 'active' : ''} onClick={() => setTab('past')}>Past Problems <span>{pastProblems.length}</span></button>
+        <div className="emis-problem-record" aria-label="Patient problems">
+          <div className="emis-problem-record-title">Problem</div>
+          <ProblemSection
+            title="Active Problems"
+            problems={activeProblems}
+            emptyText="No active problems recorded."
+            onEdit={setEditing}
+          />
+          <ProblemSection
+            title="Significant Past Problems"
+            problems={pastProblems}
+            indexOffset={activeProblems.length}
+            emptyText="No past problems recorded."
+            onEdit={setEditing}
+          />
         </div>
-
-        <Panel title={tab === 'past' ? 'Past Problems' : 'Active Problems'} count={visibleProblems.length}>
-          {visibleProblems.length === 0 ? <div className="empty-state">{tab === 'past' ? 'No past problems found.' : 'No active problems found.'}</div> : <div className="generic-table problems-table">
-            <div className="generic-row generic-head problems-row"><span>Problem</span><span>Status</span><span>Significance</span><span>Start date</span><span>End date</span></div>
-            {visibleProblems.map((problem) => <button type="button" className="generic-row generic-data-row problems-row" key={problem.id} onClick={() => setEditing(problem)}><span>{problem.name}</span><span>{problem.status || '—'}</span><span>{problem.significance || '—'}</span><span>{formatDate(problem.onset_date)}</span><span>{formatDate(problem.end_date)}</span></button>)}
-          </div>}
-        </Panel>
       </div>
       {editing !== null && <ProblemEditorModal record={editing} onClose={() => setEditing(null)} onSave={async (payload) => { if (editing.id) await updateForPatient('problems', editing.id, payload); else await createForPatient('problems', patientId, payload); setEditing(null); await load() }} />}
     </div>
   )
-}
-
-function formatDate(value) {
-  return value ? new Date(`${String(value).slice(0, 10)}T12:00:00`).toLocaleDateString('en-GB') : '—'
 }

@@ -31,6 +31,14 @@ function cleanText(value: unknown, fallback = '') {
   return String(value ?? fallback).trim()
 }
 
+function normaliseSystemMode(value: unknown, fallback = 'general_practice') {
+  const raw = String(value ?? fallback).trim().toLowerCase()
+  if (['general_practice', 'general practice', 'gp', 'primary care', 'primary_care'].includes(raw)) return 'general_practice'
+  if (['hospital', 'secondary care', 'secondary_care'].includes(raw)) return 'hospital'
+  if (['ambulance', 'ambulance / phem', 'ambulance/phem', 'phem', 'ambulance_phem'].includes(raw)) return 'ambulance'
+  return raw
+}
+
 function stripeEnvironment(secretKey: string) {
   return secretKey.startsWith('sk_test_') ? 'sandbox' : 'live'
 }
@@ -52,7 +60,7 @@ function validatePassword(password: string, username = '') {
 function validateCommunityDetails(communityName: string, systemMode: string, defaultLocation: string) {
   if (!communityName) return 'Community name is required.'
   if (communityName.length > 120) return 'Community name must be 120 characters or fewer.'
-  if (!['general_practice', 'hospital', 'ambulance'].includes(systemMode)) return 'RecordsWeb mode must be General Practitioner, Hospital or Ambulance / PHEM.'
+  if (!['general_practice', 'hospital', 'ambulance'].includes(systemMode)) return 'RecordsWeb mode must be Primary Care (GP), Secondary Care (Hospital) or Ambulance / PHEM.'
   if (!defaultLocation) return 'Default location is required.'
   if (defaultLocation.length > 120) return 'Default location must be 120 characters or fewer.'
   return ''
@@ -265,7 +273,7 @@ Deno.serve(async (req) => {
     if (action === 'create-community') {
       const organisationCode = normaliseOrganisationCode(body.organisation_code)
       const communityName = cleanText(body.community_name)
-      const systemMode = cleanText(body.system_mode, 'general_practice').toLowerCase()
+      const systemMode = normaliseSystemMode(body.system_mode, 'general_practice')
       const defaultLocation = cleanText(body.default_location, 'Main Site')
       const password = String(body.password || '')
 
@@ -401,7 +409,7 @@ Deno.serve(async (req) => {
     if (action === 'update-community') {
       const organisationId = cleanText(body.organisation_id)
       const communityName = cleanText(body.community_name)
-      const systemMode = cleanText(body.system_mode, 'general_practice').toLowerCase()
+      const systemMode = normaliseSystemMode(body.system_mode, 'general_practice')
       const defaultLocation = cleanText(body.default_location, 'Main Site')
       const detailsError = validateCommunityDetails(communityName, systemMode, defaultLocation)
       if (detailsError) return json({ error: detailsError }, 400)

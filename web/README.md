@@ -1,8 +1,8 @@
 # RecordsWeb
 
-## RecordsWeb 3.4.2 — image-only Discord login DMs
+## RecordsWeb 3.4.3 — dense Problems record + image-only Discord login DMs
 
-### 3.4.2 login-DM change
+### 3.4.3 Problems layout and 3.4.2 login-DM change
 
 Staff login DMs now contain **only the generated RecordsWeb PNG attachment**. There is no Discord embed, no credential text message, and no embed fallback. The card is styled to match the RecordsWeb desktop Login UI and loads the official logo from `https://cdn.recordsweb.org/RW-Logo.png`.
 
@@ -47,7 +47,7 @@ Staff login DMs now contain **only the generated RecordsWeb PNG attachment**. Th
 
 # RecordsWeb Web
 
-**Version:** 3.4.2  
+**Version:** 3.4.3  
 **Runtime:** Browser / Vite / React  
 **Deployment:** Multi-organisation
 
