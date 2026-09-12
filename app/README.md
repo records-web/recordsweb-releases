@@ -1,6 +1,6 @@
 # RecordsWeb
 
-## RecordsWeb 3.4.0 — Discord Bot integration
+## RecordsWeb 3.4.1 — Discord Bot + graphical login DMs
 
 - Adds one platform-owned **RecordsWeb Bot** that communities can install into their own Discord server.
 - Community Management can allocate a maintenance channel, verify the bot connection and send a test message.
