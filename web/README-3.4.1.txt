@@ -1,13 +1,13 @@
-RecordsWeb 3.4.1 Full Source Bundle
-==================================
+RecordsWeb 3.4.1 Web Source
+===========================
 
-Folders:
-- app/                  Desktop/Electron + React source
-- website/              RecordsWeb web source
-- discord-bot-service/  Node Canvas service for branded Discord login DMs
+Includes:
+- Web / Vite source
+- Supabase SQL / Edge Function source
+- supabase/functions/recordsweb-discord/  Supabase-only Discord bot + branded login-image renderer
 
 Main change in 3.4.1:
-The official RecordsWeb Bot now supports branded Canvas-generated login-detail images and password-reset + DM delivery can run in one authorised server request.
+The official RecordsWeb Bot generates branded login-detail PNGs directly inside the Supabase Edge Function and sends them to staff by Discord DM. No separate Vercel/Node renderer service is required. Password-reset + DM delivery runs in one authorised server request.
 
 Read:
 RECORDSWEB-3.4.1-DISCORD-CANVAS-DMS.md

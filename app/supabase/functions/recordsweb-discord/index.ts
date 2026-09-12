@@ -1,4 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
+import React from 'npm:react@^19'
+import { ImageResponse } from 'npm:@vercel/og@^0'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -44,25 +46,320 @@ function validatePassword(password: string, username = '') {
   return ''
 }
 
-async function sendCanvasLoginDm(payload: Record<string, unknown>) {
-  const rendererUrl = String(Deno.env.get('RECORDSWEB_DISCORD_RENDERER_URL') || '').trim().replace(/\/$/, '')
-  const rendererSecret = String(Deno.env.get('RECORDSWEB_DISCORD_RENDERER_SECRET') || '').trim()
-  if (!rendererUrl || !rendererSecret) return null
-  const response = await fetch(`${rendererUrl}/send-login-card`, {
+const h = React.createElement
+
+function loginField(label: string, value: string, mono = false) {
+  return h('div', {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 8,
+      width: '100%',
+    },
+  },
+    h('div', {
+      style: {
+        color: '#9ab5c8',
+        fontSize: 20,
+        fontWeight: 600,
+        letterSpacing: 0.3,
+      },
+    }, label),
+    h('div', {
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        width: '100%',
+        minHeight: 58,
+        padding: '0 18px',
+        borderRadius: 8,
+        border: '1px solid #31556f',
+        background: '#0b1d29',
+        color: '#f5fbff',
+        fontSize: mono ? 22 : 21,
+        fontWeight: mono ? 700 : 600,
+        fontFamily: mono ? 'monospace' : 'sans-serif',
+        letterSpacing: mono ? 0.4 : 0.1,
+      },
+    }, value || '—'),
+  )
+}
+
+function securityRow(text: string) {
+  return h('div', {
+    style: {
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12,
+      color: '#dcebf5',
+      fontSize: 19,
+      lineHeight: 1.35,
+    },
+  },
+    h('div', {
+      style: {
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        width: 24,
+        height: 24,
+        borderRadius: 12,
+        background: '#0f6fbd',
+        color: '#ffffff',
+        fontSize: 16,
+        fontWeight: 900,
+      },
+    }, '✓'),
+    h('div', null, text),
+  )
+}
+
+async function renderRecordsWebLoginCard(payload: {
+  username: string
+  temporaryPassword: string
+  organisationName: string
+  organisationCode: string
+  publicUrl: string
+  version: string
+}) {
+  const { username, temporaryPassword, organisationName, organisationCode, publicUrl, version } = payload
+  const generatedAt = new Intl.DateTimeFormat('en-GB', {
+    day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false,
+    timeZone: 'UTC',
+  }).format(new Date()) + ' UTC'
+
+  const element = h('div', {
+    style: {
+      width: '100%',
+      height: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      padding: 28,
+      background: '#06131d',
+      color: '#ffffff',
+      fontFamily: 'sans-serif',
+    },
+  },
+    h('div', {
+      style: {
+        display: 'flex',
+        flexDirection: 'column',
+        width: '100%',
+        height: '100%',
+        borderRadius: 18,
+        overflow: 'hidden',
+        border: '1px solid #173d58',
+        background: '#081923',
+      },
+    },
+      h('div', {
+        style: {
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          width: '100%',
+          height: 112,
+          padding: '0 34px',
+          borderBottom: '2px solid #0f6fbd',
+          background: '#0a1822',
+        },
+      },
+        h('div', { style: { display: 'flex', alignItems: 'center', gap: 18 } },
+          h('div', {
+            style: {
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 62,
+              height: 62,
+              borderRadius: 14,
+              border: '2px solid #1596ea',
+              background: '#08263a',
+              color: '#26a8ff',
+              fontSize: 25,
+              fontWeight: 900,
+            },
+          }, 'RW'),
+          h('div', { style: { display: 'flex', flexDirection: 'column', gap: 3 } },
+            h('div', { style: { color: '#25a8ff', fontSize: 39, fontWeight: 800, letterSpacing: -1 } }, 'RecordsWeb'),
+            h('div', { style: { color: '#7598ae', fontSize: 14, letterSpacing: 2.2, fontWeight: 700 } }, 'CLINICAL RECORDS PLATFORM'),
+          ),
+        ),
+        h('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, maxWidth: 450 } },
+          h('div', { style: { color: '#f4f9fc', fontSize: 27, fontWeight: 700, textAlign: 'right' } }, organisationName),
+          h('div', { style: { color: '#7fa5bd', fontSize: 17, textAlign: 'right' } }, `Organisation @${organisationCode}`),
+        ),
+      ),
+
+      h('div', {
+        style: {
+          display: 'flex',
+          flexDirection: 'column',
+          flex: 1,
+          padding: '34px 38px 30px',
+          gap: 26,
+        },
+      },
+        h('div', { style: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 24 } },
+          h('div', { style: { display: 'flex', flexDirection: 'column', gap: 7 } },
+            h('div', { style: { color: '#ffffff', fontSize: 37, fontWeight: 800, letterSpacing: -0.6 } }, 'Your RecordsWeb Login Details'),
+            h('div', { style: { color: '#91aec1', fontSize: 19 } }, 'Generated securely by RecordsWeb Bot'),
+          ),
+          h('div', {
+            style: {
+              display: 'flex',
+              alignItems: 'center',
+              gap: 9,
+              padding: '10px 15px',
+              borderRadius: 999,
+              border: '1px solid #255170',
+              background: '#0a2231',
+              color: '#72c4ff',
+              fontSize: 15,
+              fontWeight: 800,
+              letterSpacing: 1.2,
+            },
+          }, 'CONFIDENTIAL'),
+        ),
+
+        h('div', { style: { display: 'flex', gap: 28, width: '100%' } },
+          h('div', { style: { display: 'flex', flexDirection: 'column', gap: 20, flex: 1.18 } },
+            loginField('Username', username, true),
+            loginField('Temporary password', temporaryPassword, true),
+            h('div', { style: { display: 'flex', gap: 18, width: '100%' } },
+              h('div', { style: { display: 'flex', flex: 1 } }, loginField('Organisation', `@${organisationCode}`)),
+              h('div', { style: { display: 'flex', flex: 1.35 } }, loginField('Staff area', publicUrl.replace(/^https?:\/\//i, ''))),
+            ),
+          ),
+
+          h('div', {
+            style: {
+              display: 'flex',
+              flexDirection: 'column',
+              width: 410,
+              padding: 26,
+              gap: 18,
+              borderRadius: 13,
+              border: '1px solid #234a65',
+              background: '#0a1d2a',
+            },
+          },
+            h('div', { style: { display: 'flex', alignItems: 'center', gap: 13 } },
+              h('div', {
+                style: {
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: 44,
+                  height: 44,
+                  borderRadius: 12,
+                  background: '#0f6fbd',
+                  color: '#ffffff',
+                  fontSize: 25,
+                  fontWeight: 900,
+                },
+              }, '✓'),
+              h('div', { style: { color: '#ffffff', fontSize: 24, fontWeight: 800 } }, 'Keep your account secure'),
+            ),
+            securityRow('Use this temporary password to sign in.'),
+            securityRow('Change your password after your first login.'),
+            securityRow('Do not share this image or your credentials.'),
+            h('div', { style: { width: '100%', height: 1, background: '#23465d', marginTop: 2 } }),
+            h('div', { style: { color: '#86a5b9', fontSize: 15, lineHeight: 1.45 } }, 'RecordsWeb will never ask you to send your password back by Discord. If you did not expect these details, contact your community management team.'),
+          ),
+        ),
+
+        h('div', {
+          style: {
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            width: '100%',
+            paddingTop: 20,
+            borderTop: '1px solid #203d50',
+          },
+        },
+          h('div', { style: { display: 'flex', flexDirection: 'column', gap: 5 } },
+            h('div', { style: { color: '#c7d9e5', fontSize: 16, fontWeight: 700 } }, `RecordsWeb ${version} · ${organisationName}`),
+            h('div', { style: { color: '#69899e', fontSize: 14 } }, `Generated ${generatedAt}`),
+          ),
+          h('div', {
+            style: {
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '13px 22px',
+              borderRadius: 8,
+              background: '#0f6fbd',
+              color: '#ffffff',
+              fontSize: 18,
+              fontWeight: 800,
+            },
+          }, 'OPEN RECORDSWEB STAFF AREA'),
+        ),
+      ),
+    ),
+  )
+
+  const response = new ImageResponse(element as any, { width: 1200, height: 800 })
+  if (!response.ok) throw Object.assign(new Error(`Unable to generate RecordsWeb login image (HTTP ${response.status}).`), { status: 502 })
+  return new Uint8Array(await response.arrayBuffer())
+}
+
+async function discordMultipartRequest(path: string, payload: Record<string, unknown>, imageBytes: Uint8Array, filename: string) {
+  const token = requiredEnv('RECORDSWEB_DISCORD_BOT_TOKEN')
+  const form = new FormData()
+  form.append('payload_json', JSON.stringify({ ...payload, allowed_mentions: { parse: [] } }))
+  form.append('files[0]', new Blob([imageBytes], { type: 'image/png' }), filename)
+  const response = await fetch(`${DISCORD_API}${path}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-recordsweb-secret': rendererSecret },
-    body: JSON.stringify(payload),
+    headers: { Authorization: `Bot ${token}` },
+    body: form,
   })
   const raw = await response.text()
   let data: any = null
   try { data = raw ? JSON.parse(raw) : null } catch { data = raw }
-  if (!response.ok || data?.error) {
-    const detail = data?.error || data?.message || (typeof data === 'string' ? data : '') || `RecordsWeb Discord Canvas service returned HTTP ${response.status}.`
-    const error = new Error(detail) as Error & { status?: number }
-    error.status = response.status >= 400 ? response.status : 502
+  if (!response.ok) {
+    const detail = data?.message || (typeof data === 'string' ? data : '') || `Discord returned HTTP ${response.status}.`
+    const error = new Error(detail) as Error & { status?: number, code?: unknown }
+    error.status = response.status
+    error.code = data?.code
     throw error
   }
-  return data || { ok: true }
+  return data
+}
+
+async function sendRecordsWebLoginImageDm(payload: {
+  discordUserId: string
+  username: string
+  temporaryPassword: string
+  organisationName: string
+  organisationCode: string
+  publicUrl: string
+  version: string
+}) {
+  const dm = await discordRequest('/users/@me/channels', {
+    method: 'POST',
+    body: JSON.stringify({ recipient_id: payload.discordUserId }),
+  })
+  const image = await renderRecordsWebLoginCard(payload)
+  const filename = 'recordsweb-login-details.png'
+  return discordMultipartRequest(`/channels/${String(dm.id)}/messages`, {
+    content: '**RecordsWeb staff access**\nYour temporary sign-in details are shown in the secure RecordsWeb card below. Keep this DM private.',
+    embeds: [{
+      title: 'RecordsWeb login details',
+      description: `Login details issued by **${payload.organisationName}**. The attached card contains your temporary password.`,
+      color: 0x0F6FBD,
+      image: { url: `attachment://${filename}` },
+      fields: [
+        { name: 'Staff sign-in', value: `[Open RecordsWeb](${payload.publicUrl})`, inline: true },
+        { name: 'Organisation', value: `@${payload.organisationCode}`, inline: true },
+        { name: 'Next step', value: 'Sign in using the temporary password, then choose a new password when prompted.', inline: false },
+      ],
+      footer: { text: 'RecordsWeb Bot · Keep your credentials private' },
+      timestamp: new Date().toISOString(),
+    }],
+  }, image, filename)
 }
 
 function formatDiscordDate(value: unknown) {
@@ -416,18 +713,19 @@ Deno.serve(async (req) => {
         await writeAudit(admin, context.profile, 'account.password.reset_by_management', 'profile', target.id, `Reset password for ${target.username}; password change required at next sign-in.`, { delivery: 'discord' })
       }
 
-      let deliveryFormat = 'canvas'
-      const canvasResult = await sendCanvasLoginDm({
-        discord_user_id: discordUserId,
-        username: target.username,
-        temporary_password: temporaryPassword,
-        organisation_name: context.organisation.name,
-        organisation_code: context.organisation.org_code,
-        public_url: publicUrl,
-        version: String(Deno.env.get('RECORDSWEB_VERSION') || '3.4.1'),
-      })
-
-      if (!canvasResult) {
+      let deliveryFormat = 'image'
+      try {
+        await sendRecordsWebLoginImageDm({
+          discordUserId,
+          username: target.username,
+          temporaryPassword,
+          organisationName: context.organisation.name,
+          organisationCode: context.organisation.org_code,
+          publicUrl,
+          version: String(Deno.env.get('RECORDSWEB_VERSION') || '3.4.1'),
+        })
+      } catch (imageError) {
+        console.warn('RecordsWeb login-card image delivery failed; using Discord embed fallback.', imageError)
         deliveryFormat = 'embed-fallback'
         const dm = await discordRequest('/users/@me/channels', { method: 'POST', body: JSON.stringify({ recipient_id: discordUserId }) })
         await sendMessage(String(dm.id), {
