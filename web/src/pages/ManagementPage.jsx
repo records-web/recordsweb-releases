@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Activity, CreditCard, Gamepad2, Handshake, KeyRound, MessageSquareText, Palette, RotateCcw, ServerCog, ShieldCheck, UsersRound } from 'lucide-react'
+import { Activity, Bot, CreditCard, Gamepad2, Handshake, KeyRound, MessageSquareText, Palette, RotateCcw, ServerCog, ShieldCheck, UsersRound } from 'lucide-react'
 import StaffAccountsPanel from '../components/management/StaffAccountsPanel'
 import StaffAccountModal from '../components/management/StaffAccountModal'
 import ResetPasswordModal from '../components/management/ResetPasswordModal'
@@ -14,10 +14,12 @@ import RobloxIntegrationPanel from '../components/management/RobloxIntegrationPa
 import BrandingPanel from '../components/management/BrandingPanel'
 import BillingPanel from '../components/management/BillingPanel'
 import SharedCarePanel from '../components/management/SharedCarePanel'
+import DiscordIntegrationPanel from '../components/management/DiscordIntegrationPanel'
 import { checkAdminService, createAccount, forceLogoutAccount, listAccounts, resetAccountPassword, setAccountActive, updateAccount } from '../lib/supabase'
 import { useAuth } from '../contexts/AuthContext'
 import { listStaffSessions, subscribeToStaffSessionChanges, summariseStaffSessions } from '../lib/staffSessions'
 import { getInstalledOrganisationCode, normaliseOrganisationCode } from '../lib/installation'
+import { sendDiscordLoginDetails } from '../lib/discordIntegrationService'
 
 export default function ManagementPage() {
   const { session, updateProfile } = useAuth()
@@ -28,6 +30,7 @@ export default function ManagementPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [editUser, setEditUser] = useState(null)
   const [passwordUser, setPasswordUser] = useState(null)
+  const [passwordDelivery, setPasswordDelivery] = useState('manual')
   const [disableUser, setDisableUser] = useState(null)
   const [logoutUser, setLogoutUser] = useState(null)
   const [profileUser, setProfileUser] = useState(null)
@@ -114,6 +117,7 @@ export default function ManagementPage() {
         <button className={section === 'branding' ? 'active' : ''} onClick={() => setSection('branding')}><Palette size={14}/> Community branding</button>
         <button className={section === 'billing' ? 'active' : ''} onClick={() => setSection('billing')}><CreditCard size={14}/> Subscription & billing</button>
         <button className={section === 'shared-care' ? 'active' : ''} onClick={() => setSection('shared-care')}><Handshake size={14}/> Shared Care</button>
+        <button className={section === 'discord' ? 'active' : ''} onClick={() => setSection('discord')}><Bot size={14}/> Discord bot</button>
         <button className={section === 'messages' ? 'active' : ''} onClick={() => setSection('messages')}><MessageSquareText size={14}/> Screen message logs</button>
         <button className={section === 'audit' ? 'active' : ''} onClick={() => setSection('audit')}><Activity size={14}/> Audit log</button>
         <button className={section === 'deleted' ? 'active' : ''} onClick={() => setSection('deleted')}><RotateCcw size={14}/> Deleted items</button>
@@ -127,7 +131,8 @@ export default function ManagementPage() {
           currentUserId={session?.user?.id}
           onCreate={() => setCreateOpen(true)}
           onEdit={setEditUser}
-          onPassword={setPasswordUser}
+          onPassword={(user) => { setPasswordDelivery('manual'); setPasswordUser(user) }}
+          onDiscordLogin={(user) => { setPasswordDelivery('discord'); setPasswordUser(user) }}
           onToggle={toggle}
           onForceLogout={setLogoutUser}
           onViewProfile={setProfileUser}
@@ -138,6 +143,7 @@ export default function ManagementPage() {
       {section === 'branding' && <BrandingPanel />}
       {section === 'billing' && <BillingPanel />}
       {section === 'shared-care' && <SharedCarePanel />}
+      {section === 'discord' && <DiscordIntegrationPanel />}
       {section === 'messages' && <ScreenMessageAuditPanel staff={rows} />}
       {section === 'audit' && <AuditLogPanel />}
       {section === 'deleted' && <DeletedItemsPanel />}
@@ -160,9 +166,16 @@ export default function ManagementPage() {
           organisationMode={session?.profile?.organisation_mode || 'general_practice'}
           onClose={() => setCreateOpen(false)}
           onSave={async (payload) => {
-            await createAccount({ ...payload, organisation_code: organisationCode })
+            const { send_discord_login: sendDiscordLogin, ...accountPayload } = payload
+            const created = await createAccount({ ...accountPayload, organisation_code: organisationCode })
+            let discordWarning = ''
+            if (sendDiscordLogin && created?.discord_user_id) {
+              try { await sendDiscordLoginDetails({ userId: created.id, temporaryPassword: accountPayload.password }) }
+              catch (err) { discordWarning = err.message || 'Discord login DM could not be sent.' }
+            }
             setCreateOpen(false)
             await load()
+            if (discordWarning) setError(`Account created, but the Discord DM failed: ${discordWarning}`)
           }}
         />
       )}
@@ -203,10 +216,18 @@ export default function ManagementPage() {
       {passwordUser && (
         <ResetPasswordModal
           user={passwordUser}
+          forceDiscord={passwordDelivery === 'discord'}
           onClose={() => setPasswordUser(null)}
-          onSave={async (password) => {
+          onSave={async (password, options = {}) => {
             await resetAccountPassword(passwordUser.id, password)
+            let discordWarning = ''
+            if (options.sendDiscord) {
+              try { await sendDiscordLoginDetails({ userId: passwordUser.id, temporaryPassword: password }) }
+              catch (err) { discordWarning = err.message || 'Discord login DM could not be sent.' }
+            }
             setPasswordUser(null)
+            await load()
+            if (discordWarning) setError(`Password was reset, but the Discord DM failed: ${discordWarning}`)
           }}
         />
       )}

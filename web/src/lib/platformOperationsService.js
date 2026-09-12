@@ -1,4 +1,5 @@
 import { supabase, supabaseConfigured } from './supabase'
+import { broadcastDiscordMaintenance } from './discordIntegrationService'
 
 export const PLATFORM_OPERATOR_EMAIL_FORMAT = 'gus.farnsworth@XX.XX or alfie.james@XX.XX'
 export const PLATFORM_OPERATOR_EMAIL_PATTERN = /^(?:gus\.farnsworth|alfie\.james)@[a-z]{2}\.[a-z]{2}$/i
@@ -86,7 +87,7 @@ export async function getPlatformMaintenanceState() {
   return normalisePlatformState(Array.isArray(data) ? data[0] : data)
 }
 
-export async function setPlatformMaintenance({ enabled, message, estimatedEndAt = null }) {
+export async function setPlatformMaintenance({ enabled, message, estimatedEndAt = null, notifyDiscord = true }) {
   if (!supabaseConfigured || !supabase) throw new Error('Supabase is not configured.')
   const { data, error } = await supabase.rpc('recordsweb_set_platform_maintenance', {
     p_enabled: Boolean(enabled),
@@ -99,7 +100,20 @@ export async function setPlatformMaintenance({ enabled, message, estimatedEndAt 
     }
     throw new Error(error.message || 'Unable to update RecordsWeb platform maintenance.')
   }
-  return normalisePlatformState(Array.isArray(data) ? data[0] : data)
+  const state = normalisePlatformState(Array.isArray(data) ? data[0] : data)
+  if (!notifyDiscord) return state
+
+  try {
+    const discordNotification = await broadcastDiscordMaintenance({
+      enabled: state.enabled,
+      message: state.message,
+      estimatedEndAt: state.estimated_end_at,
+      enabledByName: state.enabled_by_name,
+    })
+    return { ...state, discord_notification: discordNotification }
+  } catch (err) {
+    return { ...state, discord_notification: { ok: false, sent: 0, failed: 0, error: err.message || 'Discord maintenance notification failed.' } }
+  }
 }
 
 export async function listPlatformReleases() {

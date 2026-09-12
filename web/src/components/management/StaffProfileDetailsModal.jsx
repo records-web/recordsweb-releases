@@ -85,6 +85,7 @@ export default function StaffProfileDetailsModal({ user, sessionSummary, onClose
               <div><small>Last login</small><strong>{fmt(user.last_login_at)}</strong><span>{latest ? `Most recent session ${fmt(latest.started_at)}` : 'No session history recorded'}</span></div>
               <div><small>Account</small><strong>{user.active ? 'Active' : 'Disabled'}</strong><span>{user.active ? (user.is_management ? 'Management access' : 'Standard staff access') : (user.disabled_reason || 'No disable reason recorded')}</span></div>
               <div><small>Password changed</small><strong>{fmt(user.password_changed_at)}</strong><span>{user.must_change_password ? 'Password change required' : 'No forced change pending'}</span></div>
+              <div><small>Discord</small><strong>{user.discord_user_id ? 'Linked' : 'Not linked'}</strong><span>{user.discord_user_id || 'No Discord User ID saved'}</span></div>
             </div>
 
             <section className="staff-profile-section">

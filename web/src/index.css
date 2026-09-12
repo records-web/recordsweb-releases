@@ -4565,3 +4565,82 @@ html.rw-dark-mode .shared-care-loading { background:#142630; border-color:#35566
 }
 body[data-theme='light'] .patient-shared-care-badge { color: #fff; }
 @media print { .patient-shared-care-badge { color: #000; border-color: #777; background: transparent; } }
+
+/* RecordsWeb 3.4.0 — Discord community integration */
+.account-row { grid-template-columns: 1.02fr 1.02fr 1.28fr 74px 76px 112px 86px 150px 310px; min-width: 1540px; }
+.discord-account-cell { display:flex; flex-direction:column; align-items:flex-start; gap:3px; }
+.discord-account-cell small { color:#7a8d98; font-size:7px; white-space:nowrap; }
+.status-pill.discord-linked { background:#e7f4ff; border-color:#82b8da; color:#17618e; }
+.discord-login-send-check,.discord-reset-send-check { border:1px solid #a8c8d9; background:#f2f8fc; padding:7px!important; }
+.discord-login-modal-intro { display:flex; gap:8px; align-items:flex-start; padding:8px; border:1px solid #9fc4da; background:#eef8fd; color:#355f77; font-size:9px; line-height:1.45; }
+.discord-login-modal-intro svg { flex:0 0 auto; margin-top:1px; color:#1674ae; }
+.discord-integration-panel { overflow:hidden; }
+.discord-integration-panel > header { gap:7px; }
+.discord-panel-subtitle { color:#698596; font-size:8px; font-weight:400; }
+.discord-panel-loading { min-height:120px; display:grid; place-items:center; color:#6f8794; font-size:9px; }
+.discord-integration-body { padding:11px; display:grid; gap:10px; }
+.discord-status-card { display:grid; grid-template-columns:42px minmax(0,1fr) auto; align-items:center; gap:10px; min-height:66px; padding:10px; border:1px solid #a9c4d4; background:linear-gradient(180deg,#fbfdff,#f1f7fb); }
+.discord-status-card.connected { border-color:#86b7d4; box-shadow:inset 3px 0 0 #1684c5; }
+.discord-bot-mark { width:38px; height:38px; display:grid; place-items:center; background:#146fa9; color:#fff; border-radius:8px; }
+.discord-status-card > div:nth-child(2) { min-width:0; display:flex; flex-direction:column; gap:3px; }
+.discord-status-card strong { color:#244f69; font-size:11px; }
+.discord-status-card span { color:#718895; font-size:8px; }
+.discord-status-pill { display:inline-flex!important; flex-direction:row!important; align-items:center; gap:5px!important; padding:4px 7px; border:1px solid #b5c8d3; background:#fff; color:#607b8a; font-size:8px; font-weight:700; white-space:nowrap; }
+.discord-status-card.connected .discord-status-pill { border-color:#8ac49a; color:#2a7444; background:#edf8f0; }
+.discord-service-warning { display:flex; gap:8px; align-items:flex-start; padding:9px; border:1px solid #d6b86c; background:#fff9e7; color:#745b1c; }
+.discord-service-warning > div { display:flex; flex-direction:column; gap:2px; }
+.discord-service-warning strong { font-size:9px; }
+.discord-service-warning span { font-size:8px; line-height:1.45; }
+.discord-service-warning code { font-family:Consolas,monospace; }
+.discord-setup-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+.discord-setup-card { min-height:180px; padding:10px; border:1px solid #b4cad7; background:#fff; display:flex; flex-direction:column; gap:8px; }
+.discord-step-title { display:grid; grid-template-columns:24px minmax(0,1fr); gap:7px; align-items:start; }
+.discord-step-title > span { width:22px; height:22px; display:grid; place-items:center; border-radius:50%; background:#147db9; color:#fff; font-size:9px; font-weight:700; }
+.discord-step-title > div { display:flex; flex-direction:column; gap:2px; }
+.discord-step-title strong { color:#28566f; font-size:10px; }
+.discord-step-title small,.discord-setup-card p,.discord-help { color:#718792; font-size:8px; line-height:1.45; }
+.discord-setup-card p { margin:0; flex:1; }
+.discord-field { display:flex; flex-direction:column; gap:4px; color:#42667a; font-size:8px; font-weight:700; }
+.discord-field > span { display:flex; align-items:center; gap:4px; }
+.discord-field input,.discord-field select { width:100%; min-height:31px; border:1px solid #a9c2d1; background:#fff; color:#284c60; padding:5px 7px; font-size:9px; }
+.discord-inline-input { display:grid; grid-template-columns:minmax(0,1fr) auto; }
+.discord-inline-input button { border:1px solid #9bb9ca; border-left:0; background:#edf6fb; color:#315f78; padding:0 8px; font-size:8px; cursor:pointer; }
+.discord-inline-input button:disabled { opacity:.45; cursor:default; }
+.discord-options-card { padding:10px; border:1px solid #abc4d3; background:#f7fbfd; display:grid; gap:8px; }
+.discord-options-card > div { display:flex; flex-direction:column; gap:2px; }
+.discord-options-card > div strong { color:#2b576f; font-size:10px; }
+.discord-options-card > div span { color:#748a96; font-size:8px; }
+.discord-options-card label { display:grid; grid-template-columns:18px minmax(0,1fr); gap:7px; align-items:start; padding:7px; border:1px solid #d0dee6; background:#fff; cursor:pointer; }
+.discord-options-card label input { margin-top:2px; }
+.discord-options-card label span { display:flex; flex-direction:column; gap:2px; }
+.discord-options-card label strong { color:#345f77; font-size:9px; }
+.discord-options-card label small { color:#748a96; font-size:8px; line-height:1.4; }
+.discord-connection-details { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px; }
+.discord-connection-details > div { padding:8px; border:1px solid #b8ccd8; background:#fff; display:flex; flex-direction:column; gap:2px; min-width:0; }
+.discord-connection-details span { color:#76909e; font-size:7px; text-transform:uppercase; letter-spacing:.04em; }
+.discord-connection-details strong { color:#2f586e; font-size:9px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.discord-connection-details small { color:#81939d; font-size:7px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.discord-actions { display:flex; align-items:center; gap:7px; padding-top:3px; flex-wrap:wrap; }
+.discord-disconnect { margin-left:auto; color:#933535!important; border-color:#d2aaaa!important; }
+.discord-security-note { display:grid; gap:2px; padding:8px; border-left:3px solid #4d8db4; background:#eef6fa; }
+.discord-security-note strong { color:#315f78; font-size:8px; }
+.discord-security-note span { color:#6f8490; font-size:8px; line-height:1.45; }
+html.rw-dark-mode .discord-account-cell small { color:#8fa8b5; }
+html.rw-dark-mode .status-pill.discord-linked { background:#183449; border-color:#376b89; color:#9cd4f1; }
+html.rw-dark-mode .discord-login-send-check,html.rw-dark-mode .discord-reset-send-check,html.rw-dark-mode .discord-login-modal-intro { background:#162a35; border-color:#3a6074; color:#bdd7e4; }
+html.rw-dark-mode .discord-status-card,html.rw-dark-mode .discord-setup-card,html.rw-dark-mode .discord-options-card,html.rw-dark-mode .discord-connection-details > div { background:#111f27; border-color:#365668; }
+html.rw-dark-mode .discord-status-card.connected { border-color:#3e7898; }
+html.rw-dark-mode .discord-status-card strong,html.rw-dark-mode .discord-step-title strong,html.rw-dark-mode .discord-options-card > div strong,html.rw-dark-mode .discord-options-card label strong,html.rw-dark-mode .discord-connection-details strong { color:#cfe5ef; }
+html.rw-dark-mode .discord-status-card span,html.rw-dark-mode .discord-step-title small,html.rw-dark-mode .discord-setup-card p,html.rw-dark-mode .discord-help,html.rw-dark-mode .discord-options-card > div span,html.rw-dark-mode .discord-options-card label small,html.rw-dark-mode .discord-connection-details small { color:#94aab5; }
+html.rw-dark-mode .discord-status-pill { background:#14252f; border-color:#365667; color:#a9bdc7; }
+html.rw-dark-mode .discord-status-card.connected .discord-status-pill { background:#173326; border-color:#356b4d; color:#9fd3ae; }
+html.rw-dark-mode .discord-service-warning { background:#2e2819; border-color:#74602f; color:#e1d29e; }
+html.rw-dark-mode .discord-field { color:#b9ced9; }
+html.rw-dark-mode .discord-field input,html.rw-dark-mode .discord-field select { background:#0e1a21; border-color:#3e6072; color:#d8e7ee; }
+html.rw-dark-mode .discord-inline-input button { background:#17303d; border-color:#416476; color:#bbd9e8; }
+html.rw-dark-mode .discord-options-card label { background:#13242d; border-color:#2e4b5a; }
+html.rw-dark-mode .discord-security-note { background:#162832; border-color:#467f9f; }
+html.rw-dark-mode .discord-security-note strong { color:#c6e1ef; }
+html.rw-dark-mode .discord-security-note span { color:#98adb8; }
+@media (max-width:980px) { .discord-setup-grid,.discord-connection-details { grid-template-columns:1fr; } }
+@media (min-width:1180px) { .staff-profile-stat-grid { grid-template-columns:repeat(5,minmax(0,1fr)); } }

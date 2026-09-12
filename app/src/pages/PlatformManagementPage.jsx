@@ -151,11 +151,18 @@ function MaintenancePanel() {
         enabled,
         message,
         estimatedEndAt: estimatedEnd ? new Date(estimatedEnd).toISOString() : null,
+        notifyDiscord: isStateChange,
       })
       setState(next)
       setMessage(next.message || '')
       setEstimatedEnd(toLocalInput(next.estimated_end_at))
-      setNotice(isStateChange ? (enabled ? 'Platform maintenance enabled.' : 'Platform maintenance ended.') : 'Maintenance details saved.')
+      let nextNotice = isStateChange ? (enabled ? 'Platform maintenance enabled.' : 'Platform maintenance ended.') : 'Maintenance details saved.'
+      if (isStateChange && next.discord_notification) {
+        const discord = next.discord_notification
+        if (discord.error && !discord.sent) nextNotice += ` Discord notification warning: ${discord.error}`
+        else nextNotice += ` RecordsWeb Bot notified ${Number(discord.sent || 0)} configured Discord channel${Number(discord.sent || 0) === 1 ? '' : 's'}${discord.failed ? `; ${discord.failed} failed` : ''}.`
+      }
+      setNotice(nextNotice)
     } catch (err) {
       setError(err?.message || 'Unable to update platform maintenance.')
     } finally {

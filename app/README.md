@@ -1,5 +1,15 @@
 # RecordsWeb
 
+## RecordsWeb 3.4.0 — Discord Bot integration
+
+- Adds one platform-owned **RecordsWeb Bot** that communities can install into their own Discord server.
+- Community Management can allocate a maintenance channel, verify the bot connection and send a test message.
+- Platform maintenance start/end changes automatically notify every connected community channel that has notifications enabled.
+- Staff accounts can store a Discord User ID. Management can send newly-created or reset temporary login details by explicit Discord DM.
+- Existing passwords are never retrieved or stored by the Discord integration; DM login sends only a newly-set temporary password and the user must change it at next sign-in.
+- Run `supabase/recordsweb-3.4.0-discord-integration.sql`, deploy `recordsweb-discord`, and redeploy `recordsweb-admin`.
+- Full setup is in `docs/RECORDSWEB-3.4.0-DISCORD-INTEGRATION.md`.
+
 ## RecordsWeb 3.3.9 — Shared Care + request confirmation mail
 
 - Version aligned at **3.3.9**.

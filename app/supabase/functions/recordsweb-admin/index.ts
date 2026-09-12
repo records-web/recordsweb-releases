@@ -30,6 +30,7 @@ function cleanRoles(value: unknown, fallback = 'Patient Coordinator', systemMode
   return clean.length ? clean : [safeFallback]
 }
 function cleanTitle(value: unknown) { const title=String(value||'').trim(); return ALLOWED_TITLES.includes(title as typeof ALLOWED_TITLES[number]) ? title : '' }
+function cleanDiscordUserId(value: unknown) { const id=String(value||'').trim(); if(!id) return ''; if(!/^\d{17,20}$/.test(id)) throw new Error('Discord User ID must be a 17–20 digit Discord ID.'); return id }
 function buildDisplayName(title:string, firstName:string, lastName:string){ return [title,firstName,lastName].map(v=>v.trim()).filter(Boolean).join(' ') }
 function requiredEnv(name:string){ const value=Deno.env.get(name); if(!value) throw new Error(`Server configuration error: ${name} is unavailable.`); return value }
 function normaliseOrganisationCode(value:unknown){ const clean=String(value||'').trim().replace(/^@+/,'').replace(/\s+/g,'').toUpperCase(); return /^[A-Z]{2}\.[A-Z]{2}$/.test(clean)?clean:'' }
@@ -126,14 +127,14 @@ Deno.serve(async (req) => {
 
     if(body.action==='create'){
       const organisationCode=normaliseOrganisationCode(callerOrganisation?.org_code), requestedOrganisationCode=normaliseOrganisationCode(body.organisation_code), username=normaliseUsername(body.username,organisationCode), authUsername=username.toLowerCase(), password=String(body.password||''), title=cleanTitle(body.title), firstName=String(body.first_name||'').trim(), lastName=String(body.last_name||'').trim()
-      const roles=cleanRoles(body.roles,String(body.role||'Patient Coordinator'),String(callerOrganisation?.system_mode||'general_practice')), requestedPrimary=String(body.role||'').trim(), role=roles.includes(requestedPrimary)?requestedPrimary:roles[0], displayName=buildDisplayName(title,firstName,lastName)
+      const roles=cleanRoles(body.roles,String(body.role||'Patient Coordinator'),String(callerOrganisation?.system_mode||'general_practice')), requestedPrimary=String(body.role||'').trim(), role=roles.includes(requestedPrimary)?requestedPrimary:roles[0], displayName=buildDisplayName(title,firstName,lastName), discordUserId=cleanDiscordUserId(body.discord_user_id)
       if(requestedOrganisationCode && requestedOrganisationCode!==organisationCode) return json({error:`Your signed-in Management account belongs to @${organisationCode||'XX.XX'}. Refresh RecordsWeb or change organisation before creating this account.`},400)
       if(!organisationCode || !authUsername.endsWith(`@${organisationCode.toLowerCase()}`)) return json({error:`Username must end in @${organisationCode||'XX.XX'}.`},400)
       if(!firstName||!lastName) return json({error:'First and last name are required.'},400)
       const policy=validatePassword(password,username); if(policy) return json({error:policy},400)
       const {data:created,error:createError}=await admin.auth.admin.createUser({email:authUsername,password,email_confirm:true,user_metadata:{recordsweb:true,display_name:displayName}})
       if(createError||!created.user) return json({error:createError?.message||'Unable to create authentication user.'},400)
-      const {data:profile,error:insertError}=await admin.from('profiles').insert({id:created.user.id,organisation_id:callerProfile.organisation_id,username,title,first_name:firstName,last_name:lastName,display_name:displayName,role,roles,is_management:Boolean(body.is_management),active:true,must_change_password:true}).select('*').single()
+      const {data:profile,error:insertError}=await admin.from('profiles').insert({id:created.user.id,organisation_id:callerProfile.organisation_id,username,title,first_name:firstName,last_name:lastName,display_name:displayName,role,roles,is_management:Boolean(body.is_management),discord_user_id:discordUserId||null,active:true,must_change_password:true}).select('*').single()
       if(insertError){await admin.auth.admin.deleteUser(created.user.id);return json({error:`Authentication user was rolled back because the staff profile could not be created: ${insertError.message}`},400)}
       const {error:historyError}=await admin.rpc('recordsweb_service_record_password',{p_user_id:created.user.id,p_password:password})
       if(historyError){await admin.auth.admin.deleteUser(created.user.id);return json({error:'Authentication user was rolled back because password history could not be initialised. Run the RecordsWeb 2.7.0 Supabase migration.'},500)}
@@ -142,15 +143,15 @@ Deno.serve(async (req) => {
     }
 
     const targetId=String(body.user_id||''); if(!targetId) return json({error:'user_id is required.'},400)
-    const {data:target,error:targetError}=await admin.from('profiles').select('id,organisation_id,is_management,username,active,disabled_reason').eq('id',targetId).single()
+    const {data:target,error:targetError}=await admin.from('profiles').select('id,organisation_id,is_management,username,active,disabled_reason,discord_user_id').eq('id',targetId).single()
     if(targetError||!target||target.organisation_id!==callerProfile.organisation_id) return json({error:'Account not found.'},404)
 
     if(body.action==='update-profile'){
-      const title=cleanTitle(body.title),firstName=String(body.first_name||'').trim(),lastName=String(body.last_name||'').trim(),roles=cleanRoles(body.roles,String(body.role||'Patient Coordinator'),String(callerOrganisation?.system_mode||'general_practice')),requestedPrimary=String(body.role||'').trim(),role=roles.includes(requestedPrimary)?requestedPrimary:roles[0],isManagement=Boolean(body.is_management)
+      const title=cleanTitle(body.title),firstName=String(body.first_name||'').trim(),lastName=String(body.last_name||'').trim(),roles=cleanRoles(body.roles,String(body.role||'Patient Coordinator'),String(callerOrganisation?.system_mode||'general_practice')),requestedPrimary=String(body.role||'').trim(),role=roles.includes(requestedPrimary)?requestedPrimary:roles[0],isManagement=Boolean(body.is_management),discordUserId=cleanDiscordUserId(body.discord_user_id)
       if(!firstName||!lastName) return json({error:'First and last name are required.'},400)
       if(targetId===callerData.user.id&&target.is_management&&!isManagement) return json({error:'You cannot remove your own Management access while signed in.'},400)
       const displayName=buildDisplayName(title,firstName,lastName)
-      const {data:profile,error}=await admin.from('profiles').update({title,first_name:firstName,last_name:lastName,display_name:displayName,role,roles,is_management:isManagement,updated_at:new Date().toISOString()}).eq('id',targetId).select('*').single()
+      const {data:profile,error}=await admin.from('profiles').update({title,first_name:firstName,last_name:lastName,display_name:displayName,role,roles,is_management:isManagement,discord_user_id:discordUserId||null,updated_at:new Date().toISOString()}).eq('id',targetId).select('*').single()
       if(error) return json({error:error.message},400)
       const {error:authUpdateError}=await admin.auth.admin.updateUserById(targetId,{user_metadata:{recordsweb:true,display_name:displayName}})
       if(authUpdateError) return json({error:`Profile updated, but Auth metadata could not be updated: ${authUpdateError.message}`},500)

@@ -46,6 +46,8 @@ export default function StaffAccountModal({ account = null, currentUserId, organ
     role: initialRoles.includes(account?.role) ? account.role : initialRoles[0],
     roles: initialRoles,
     is_management: Boolean(account?.is_management),
+    discord_user_id: account?.discord_user_id || '',
+    send_discord_login: false,
   })
   const [touchedUsername, setTouchedUsername] = useState(editing)
   const [saving, setSaving] = useState(false)
@@ -77,6 +79,11 @@ export default function StaffAccountModal({ account = null, currentUserId, organ
     }
     if (!form.roles.length) {
       setError('Select at least one staff role.')
+      return
+    }
+    const discordUserId = String(form.discord_user_id || '').trim()
+    if (discordUserId && !/^\d{17,20}$/.test(discordUserId)) {
+      setError('Discord User ID must be a 17–20 digit Discord ID.')
       return
     }
     if (isSelf && account?.is_management && !form.is_management) {
@@ -134,6 +141,12 @@ export default function StaffAccountModal({ account = null, currentUserId, organ
             onChange={(roles, role) => setForm((current) => ({ ...current, roles, role }))}
           />
 
+          <label className="span-two">
+            Discord User ID <em>Optional</em>
+            <input value={form.discord_user_id} onChange={(event) => set('discord_user_id', event.target.value.replace(/\D+/g, ''))} placeholder="123456789012345678" inputMode="numeric" />
+            <small>Used only by RecordsWeb Bot to deliver account details by DM. Enable Discord Developer Mode, right-click the user and choose Copy User ID.</small>
+          </label>
+
           <label className="check-label management-access-check span-two">
             <input
               type="checkbox"
@@ -146,6 +159,11 @@ export default function StaffAccountModal({ account = null, currentUserId, organ
               <small>Can create/edit staff accounts, manage branding and change organisation-wide settings.</small>
             </span>
           </label>
+
+          {!editing && form.discord_user_id && <label className="check-label management-access-check discord-login-send-check span-two">
+            <input type="checkbox" checked={form.send_discord_login} onChange={(event) => set('send_discord_login', event.target.checked)} />
+            <span><strong>Send login details by Discord DM after account creation</strong><small>RecordsWeb Bot will send this username and the temporary password immediately. The password is not stored by the Discord integration.</small></span>
+          </label>}
 
           {!editing && <>
             <label>Password<input type="password" value={form.password} onChange={(event) => set('password', event.target.value)} autoComplete="new-password" /></label>

@@ -3,3 +3,6 @@ verify_jwt = false
 
 [functions.recordsweb-game-api]
 verify_jwt = false
+
+[functions.recordsweb-discord]
+verify_jwt = true

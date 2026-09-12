@@ -260,6 +260,7 @@ export async function createAccount(payload) {
       role,
       roles,
       is_management: Boolean(payload.is_management),
+      discord_user_id: String(payload.discord_user_id || '').trim() || null,
       active: true,
       must_change_password: true,
       organisation_id: ORGANISATION.id,
@@ -286,6 +287,7 @@ export async function updateAccount(userId, payload) {
     role,
     roles,
     is_management: Boolean(payload.is_management),
+    discord_user_id: String(payload.discord_user_id || '').trim() || null,
   }
   patch.display_name = buildStaffDisplayName(patch)
 
