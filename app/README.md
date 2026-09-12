@@ -1,6 +1,10 @@
 # RecordsWeb
 
-## RecordsWeb 3.4.1 — Discord Bot + graphical login DMs
+## RecordsWeb 3.4.2 — image-only Discord login DMs
+
+### 3.4.2 login-DM change
+
+Staff login DMs now contain **only the generated RecordsWeb PNG attachment**. There is no Discord embed, no credential text message, and no embed fallback. The card is styled to match the RecordsWeb desktop Login UI and loads the official logo from `https://cdn.recordsweb.org/RW-Logo.png`.
 
 - Adds one platform-owned **RecordsWeb Bot** that communities can install into their own Discord server.
 - Community Management can allocate a maintenance channel, verify the bot connection and send a test message.

@@ -52,66 +52,55 @@ function loginField(label: string, value: string, mono = false) {
   return h('div', {
     style: {
       display: 'flex',
-      flexDirection: 'column',
-      gap: 8,
+      alignItems: 'center',
       width: '100%',
+      marginBottom: 22,
     },
   },
     h('div', {
       style: {
-        color: '#9ab5c8',
-        fontSize: 20,
+        display: 'flex',
+        width: 205,
+        color: '#f0f7fb',
+        fontSize: 22,
         fontWeight: 600,
-        letterSpacing: 0.3,
       },
     }, label),
     h('div', {
       style: {
         display: 'flex',
         alignItems: 'center',
-        width: '100%',
-        minHeight: 58,
-        padding: '0 18px',
-        borderRadius: 8,
-        border: '1px solid #31556f',
-        background: '#0b1d29',
-        color: '#f5fbff',
-        fontSize: mono ? 22 : 21,
-        fontWeight: mono ? 700 : 600,
+        width: 650,
+        height: 64,
+        padding: '0 22px',
+        border: '1px solid #436274',
+        background: '#0d1b23',
+        color: '#dceaf2',
+        fontSize: 24,
+        fontWeight: mono ? 600 : 500,
         fontFamily: mono ? 'monospace' : 'sans-serif',
-        letterSpacing: mono ? 0.4 : 0.1,
       },
     }, value || '—'),
   )
 }
 
-function securityRow(text: string) {
-  return h('div', {
-    style: {
-      display: 'flex',
-      alignItems: 'center',
-      gap: 12,
-      color: '#dcebf5',
-      fontSize: 19,
-      lineHeight: 1.35,
-    },
-  },
-    h('div', {
-      style: {
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        width: 24,
-        height: 24,
-        borderRadius: 12,
-        background: '#0f6fbd',
-        color: '#ffffff',
-        fontSize: 16,
-        fontWeight: 900,
-      },
-    }, '✓'),
-    h('div', null, text),
-  )
+let recordsWebLogoDataUri: string | null = null
+
+async function getRecordsWebLogoDataUri() {
+  if (recordsWebLogoDataUri) return recordsWebLogoDataUri
+  const logoUrl = String(Deno.env.get('RECORDSWEB_LOGO_URL') || 'https://cdn.recordsweb.org/RW-Logo.png').trim()
+  const response = await fetch(logoUrl, { headers: { 'User-Agent': 'RecordsWeb-Bot/3.4.2' } })
+  if (!response.ok) {
+    throw Object.assign(new Error(`Unable to load the official RecordsWeb logo (HTTP ${response.status}).`), { status: 502 })
+  }
+  const bytes = new Uint8Array(await response.arrayBuffer())
+  let binary = ''
+  const chunkSize = 0x8000
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(offset, Math.min(offset + chunkSize, bytes.length)))
+  }
+  recordsWebLogoDataUri = `data:image/png;base64,${btoa(binary)}`
+  return recordsWebLogoDataUri
 }
 
 async function renderRecordsWebLoginCard(payload: {
@@ -123,19 +112,15 @@ async function renderRecordsWebLoginCard(payload: {
   version: string
 }) {
   const { username, temporaryPassword, organisationName, organisationCode, publicUrl, version } = payload
-  const generatedAt = new Intl.DateTimeFormat('en-GB', {
-    day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false,
-    timeZone: 'UTC',
-  }).format(new Date()) + ' UTC'
+  const logoDataUri = await getRecordsWebLogoDataUri()
+  const staffArea = publicUrl.replace(/^https?:\/\//i, '').replace(/\/$/, '')
 
   const element = h('div', {
     style: {
       width: '100%',
       height: '100%',
       display: 'flex',
-      flexDirection: 'column',
-      padding: 28,
-      background: '#06131d',
+      background: '#0d171d',
       color: '#ffffff',
       fontFamily: 'sans-serif',
     },
@@ -146,10 +131,8 @@ async function renderRecordsWebLoginCard(payload: {
         flexDirection: 'column',
         width: '100%',
         height: '100%',
-        borderRadius: 18,
         overflow: 'hidden',
-        border: '1px solid #173d58',
-        background: '#081923',
+        background: '#101c23',
       },
     },
       h('div', {
@@ -158,36 +141,111 @@ async function renderRecordsWebLoginCard(payload: {
           alignItems: 'center',
           justifyContent: 'space-between',
           width: '100%',
-          height: 112,
-          padding: '0 34px',
-          borderBottom: '2px solid #0f6fbd',
-          background: '#0a1822',
+          minHeight: 150,
+          padding: '24px 34px 18px',
+          background: '#101c23',
         },
       },
-        h('div', { style: { display: 'flex', alignItems: 'center', gap: 18 } },
+        h('img', {
+          src: logoDataUri,
+          width: 360,
+          height: 120,
+          style: {
+            objectFit: 'contain',
+            objectPosition: 'left center',
+          },
+        }),
+        h('div', {
+          style: {
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'flex-end',
+            justifyContent: 'center',
+            gap: 6,
+            maxWidth: 520,
+          },
+        },
+          h('div', { style: { color: '#73a8c7', fontSize: 15, textAlign: 'right' } }, `RecordsWeb ${version} · Desktop Clinical System`),
+          h('div', { style: { color: '#ffffff', fontSize: 29, fontWeight: 800, textAlign: 'right' } }, organisationName),
+          h('div', { style: { color: '#64a8d0', fontSize: 17, textAlign: 'right' } }, 'Health care records'),
+        ),
+      ),
+
+      h('div', { style: { display: 'flex', width: '100%', height: 4, background: '#078ce1' } }),
+
+      h('div', {
+        style: {
+          display: 'flex',
+          flexDirection: 'column',
+          flex: 1,
+          padding: '38px 58px 30px',
+          background: '#101c23',
+        },
+      },
+        h('div', {
+          style: {
+            display: 'flex',
+            color: '#ffffff',
+            fontSize: 27,
+            fontWeight: 800,
+            marginBottom: 34,
+          },
+        }, 'Your RecordsWeb login details'),
+
+        loginField('Username', username, true),
+        loginField('Temporary password', temporaryPassword, true),
+
+        h('div', {
+          style: {
+            display: 'flex',
+            alignItems: 'center',
+            marginLeft: 205,
+            gap: 18,
+            marginTop: 4,
+          },
+        },
           h('div', {
             style: {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              width: 62,
-              height: 62,
-              borderRadius: 14,
-              border: '2px solid #1596ea',
-              background: '#08263a',
-              color: '#26a8ff',
-              fontSize: 25,
-              fontWeight: 900,
+              width: 176,
+              height: 58,
+              border: '1px solid #5e8094',
+              background: '#1a3545',
+              color: '#ffffff',
+              fontSize: 21,
+              fontWeight: 700,
             },
-          }, 'RW'),
-          h('div', { style: { display: 'flex', flexDirection: 'column', gap: 3 } },
-            h('div', { style: { color: '#25a8ff', fontSize: 39, fontWeight: 800, letterSpacing: -1 } }, 'RecordsWeb'),
-            h('div', { style: { color: '#7598ae', fontSize: 14, letterSpacing: 2.2, fontWeight: 700 } }, 'CLINICAL RECORDS PLATFORM'),
-          ),
+          }, 'Sign in'),
+          h('div', {
+            style: {
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 176,
+              height: 58,
+              border: '1px solid #5e8094',
+              background: '#142832',
+              color: '#ffffff',
+              fontSize: 21,
+              fontWeight: 700,
+            },
+          }, 'Close'),
         ),
-        h('div', { style: { display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, maxWidth: 450 } },
-          h('div', { style: { color: '#f4f9fc', fontSize: 27, fontWeight: 700, textAlign: 'right' } }, organisationName),
-          h('div', { style: { color: '#7fa5bd', fontSize: 17, textAlign: 'right' } }, `Organisation @${organisationCode}`),
+
+        h('div', {
+          style: {
+            display: 'flex',
+            marginLeft: 205,
+            gap: 34,
+            marginTop: 25,
+            color: '#1b9bf0',
+            fontSize: 17,
+          },
+        },
+          h('div', null, `Staff area: ${staffArea}`),
+          h('div', null, 'Change password after sign-in'),
         ),
       ),
 
@@ -195,116 +253,49 @@ async function renderRecordsWebLoginCard(payload: {
         style: {
           display: 'flex',
           flexDirection: 'column',
-          flex: 1,
-          padding: '34px 38px 30px',
-          gap: 26,
+          width: '100%',
+          borderTop: '1px solid #355264',
+          background: '#10222c',
         },
       },
-        h('div', { style: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 24 } },
-          h('div', { style: { display: 'flex', flexDirection: 'column', gap: 7 } },
-            h('div', { style: { color: '#ffffff', fontSize: 37, fontWeight: 800, letterSpacing: -0.6 } }, 'Your RecordsWeb Login Details'),
-            h('div', { style: { color: '#91aec1', fontSize: 19 } }, 'Generated securely by RecordsWeb Bot'),
-          ),
-          h('div', {
-            style: {
-              display: 'flex',
-              alignItems: 'center',
-              gap: 9,
-              padding: '10px 15px',
-              borderRadius: 999,
-              border: '1px solid #255170',
-              background: '#0a2231',
-              color: '#72c4ff',
-              fontSize: 15,
-              fontWeight: 800,
-              letterSpacing: 1.2,
-            },
-          }, 'CONFIDENTIAL'),
-        ),
-
-        h('div', { style: { display: 'flex', gap: 28, width: '100%' } },
-          h('div', { style: { display: 'flex', flexDirection: 'column', gap: 20, flex: 1.18 } },
-            loginField('Username', username, true),
-            loginField('Temporary password', temporaryPassword, true),
-            h('div', { style: { display: 'flex', gap: 18, width: '100%' } },
-              h('div', { style: { display: 'flex', flex: 1 } }, loginField('Organisation', `@${organisationCode}`)),
-              h('div', { style: { display: 'flex', flex: 1.35 } }, loginField('Staff area', publicUrl.replace(/^https?:\/\//i, ''))),
-            ),
-          ),
-
-          h('div', {
-            style: {
-              display: 'flex',
-              flexDirection: 'column',
-              width: 410,
-              padding: 26,
-              gap: 18,
-              borderRadius: 13,
-              border: '1px solid #234a65',
-              background: '#0a1d2a',
-            },
-          },
-            h('div', { style: { display: 'flex', alignItems: 'center', gap: 13 } },
-              h('div', {
-                style: {
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  width: 44,
-                  height: 44,
-                  borderRadius: 12,
-                  background: '#0f6fbd',
-                  color: '#ffffff',
-                  fontSize: 25,
-                  fontWeight: 900,
-                },
-              }, '✓'),
-              h('div', { style: { color: '#ffffff', fontSize: 24, fontWeight: 800 } }, 'Keep your account secure'),
-            ),
-            securityRow('Use this temporary password to sign in.'),
-            securityRow('Change your password after your first login.'),
-            securityRow('Do not share this image or your credentials.'),
-            h('div', { style: { width: '100%', height: 1, background: '#23465d', marginTop: 2 } }),
-            h('div', { style: { color: '#86a5b9', fontSize: 15, lineHeight: 1.45 } }, 'RecordsWeb will never ask you to send your password back by Discord. If you did not expect these details, contact your community management team.'),
-          ),
-        ),
-
         h('div', {
           style: {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            width: '100%',
-            paddingTop: 20,
-            borderTop: '1px solid #203d50',
+            minHeight: 66,
+            padding: '0 30px',
+            borderBottom: '1px solid #355264',
+            color: '#a8cee5',
+            fontSize: 16,
           },
         },
-          h('div', { style: { display: 'flex', flexDirection: 'column', gap: 5 } },
-            h('div', { style: { color: '#c7d9e5', fontSize: 16, fontWeight: 700 } }, `RecordsWeb ${version} · ${organisationName}`),
-            h('div', { style: { color: '#69899e', fontSize: 14 } }, `Generated ${generatedAt}`),
+          h('div', null, 'Connection: RecordsWeb Supabase'),
+          h('div', { style: { display: 'flex', gap: 20 } },
+            h('div', null, `Organisation: ${organisationCode}`),
+            h('div', { style: { color: '#1b9bf0' } }, 'Keep credentials private'),
           ),
-          h('div', {
-            style: {
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              padding: '13px 22px',
-              borderRadius: 8,
-              background: '#0f6fbd',
-              color: '#ffffff',
-              fontSize: 18,
-              fontWeight: 800,
-            },
-          }, 'OPEN RECORDSWEB STAFF AREA'),
         ),
+        h('div', {
+          style: {
+            display: 'flex',
+            alignItems: 'center',
+            minHeight: 74,
+            padding: '0 30px',
+            color: '#7fa4ba',
+            fontSize: 14,
+            lineHeight: 1.4,
+          },
+        }, `${organisationName} · RecordsWeb temporary staff credentials. Sign in with the password above, then choose a new password when prompted. Do not share this image.`),
       ),
     ),
   )
 
-  const response = new ImageResponse(element as any, { width: 1200, height: 800 })
+  const response = new ImageResponse(element as any, { width: 1200, height: 900 })
   if (!response.ok) throw Object.assign(new Error(`Unable to generate RecordsWeb login image (HTTP ${response.status}).`), { status: 502 })
   return new Uint8Array(await response.arrayBuffer())
 }
+
 
 async function discordMultipartRequest(path: string, payload: Record<string, unknown>, imageBytes: Uint8Array, filename: string) {
   const token = requiredEnv('RECORDSWEB_DISCORD_BOT_TOKEN')
@@ -344,23 +335,14 @@ async function sendRecordsWebLoginImageDm(payload: {
   })
   const image = await renderRecordsWebLoginCard(payload)
   const filename = 'recordsweb-login-details.png'
+
+  // v3.4.2 deliberately sends ONLY the generated RecordsWeb image.
+  // No Discord content, embed, fields or fallback credential message is sent.
   return discordMultipartRequest(`/channels/${String(dm.id)}/messages`, {
-    content: '**RecordsWeb staff access**\nYour temporary sign-in details are shown in the secure RecordsWeb card below. Keep this DM private.',
-    embeds: [{
-      title: 'RecordsWeb login details',
-      description: `Login details issued by **${payload.organisationName}**. The attached card contains your temporary password.`,
-      color: 0x0F6FBD,
-      image: { url: `attachment://${filename}` },
-      fields: [
-        { name: 'Staff sign-in', value: `[Open RecordsWeb](${payload.publicUrl})`, inline: true },
-        { name: 'Organisation', value: `@${payload.organisationCode}`, inline: true },
-        { name: 'Next step', value: 'Sign in using the temporary password, then choose a new password when prompted.', inline: false },
-      ],
-      footer: { text: 'RecordsWeb Bot · Keep your credentials private' },
-      timestamp: new Date().toISOString(),
-    }],
+    attachments: [{ id: 0, filename, description: 'RecordsWeb temporary login details' }],
   }, image, filename)
 }
+
 
 function formatDiscordDate(value: unknown) {
   if (!value) return 'Not specified'
@@ -712,39 +694,16 @@ Deno.serve(async (req) => {
         await admin.from('profiles').update({ must_change_password: true, updated_at: new Date().toISOString() }).eq('id', target.id)
         await writeAudit(admin, context.profile, 'account.password.reset_by_management', 'profile', target.id, `Reset password for ${target.username}; password change required at next sign-in.`, { delivery: 'discord' })
       }
-
-      let deliveryFormat = 'image'
-      try {
-        await sendRecordsWebLoginImageDm({
-          discordUserId,
-          username: target.username,
-          temporaryPassword,
-          organisationName: context.organisation.name,
-          organisationCode: context.organisation.org_code,
-          publicUrl,
-          version: String(Deno.env.get('RECORDSWEB_VERSION') || '3.4.1'),
-        })
-      } catch (imageError) {
-        console.warn('RecordsWeb login-card image delivery failed; using Discord embed fallback.', imageError)
-        deliveryFormat = 'embed-fallback'
-        const dm = await discordRequest('/users/@me/channels', { method: 'POST', body: JSON.stringify({ recipient_id: discordUserId }) })
-        await sendMessage(String(dm.id), {
-          embeds: [{
-            title: 'Your RecordsWeb login details',
-            description: `Management at **${context.organisation.name}** has issued RecordsWeb login details for your staff account.`,
-            color: 0x0F6FBD,
-            fields: [
-              { name: 'Community', value: `${context.organisation.name} (@${context.organisation.org_code})`, inline: false },
-              { name: 'Username', value: `\`${target.username}\``, inline: false },
-              { name: 'Temporary password', value: `\`${temporaryPassword.replace(/`/g, 'ˋ')}\``, inline: false },
-              { name: 'Sign in', value: `[Open RecordsWeb staff sign-in](${publicUrl})`, inline: false },
-              { name: 'Next step', value: 'You will be required to choose a new password at your next sign-in.', inline: false },
-            ],
-            footer: { text: 'Keep these details private. RecordsWeb will never ask you to send your password back by Discord.' },
-            timestamp: new Date().toISOString(),
-          }],
-        })
-      }
+      const deliveryFormat = 'image-only'
+      await sendRecordsWebLoginImageDm({
+        discordUserId,
+        username: target.username,
+        temporaryPassword,
+        organisationName: context.organisation.name,
+        organisationCode: context.organisation.org_code,
+        publicUrl,
+        version: String(Deno.env.get('RECORDSWEB_VERSION') || '3.4.2'),
+      })
 
       await writeAudit(admin, context.profile, 'account.discord_login_dm.sent', 'profile', target.id, `Sent RecordsWeb login details by Discord DM to ${target.display_name}.`, { discord_user_id: discordUserId, delivery_format: deliveryFormat, password_reset: resetPassword })
       return json({ ok: true, recipient_id: discordUserId, delivery_format: deliveryFormat, password_reset: resetPassword })
