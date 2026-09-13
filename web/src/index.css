@@ -5321,3 +5321,106 @@ html.rw-dark-mode .recipient-group-list strong {
 html.rw-dark-mode .recipient-group-list > label:hover {
   background: #1d3441 !important;
 }
+
+/* RecordsWeb 3.8.0 — Platform Discord Operations */
+.platform-discord-operations { overflow:hidden; }
+.platform-discord-tabs { display:flex; flex-wrap:wrap; gap:0; border-bottom:1px solid #b8ceda; background:#f4f8fa; padding:0 10px; }
+.platform-discord-tabs button { min-height:34px; padding:0 12px; border:0; border-right:1px solid #c7d8e1; background:transparent; color:#42677b; font-size:9px; font-weight:600; cursor:pointer; }
+.platform-discord-tabs button.active,.platform-discord-tabs button:hover { background:#1479b8; color:#fff; }
+.platform-discord-overview,.platform-discord-composer,.platform-discord-server-list,.platform-discord-log-list,.platform-discord-health,.platform-discord-config { padding:16px; }
+.platform-discord-bot-card { display:flex; align-items:center; gap:12px; padding:15px; border:1px solid #b7cbd7; background:#f8fbfd; }
+.platform-discord-bot-card>div { flex:1; }
+.platform-discord-bot-card strong,.platform-discord-bot-card span { display:block; }
+.platform-discord-bot-card strong { color:#264f65; font-size:13px; }
+.platform-discord-bot-card span { margin-top:3px; color:#6c8695; font-size:9px; }
+.platform-discord-bot-card b { font-size:9px; letter-spacing:.08em; color:#187a45; }
+.platform-discord-bot-card.offline b { color:#b23d36; }
+.platform-discord-metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-top:12px; }
+.platform-discord-metrics>div { min-height:82px; display:grid; grid-template-columns:28px 1fr; grid-template-rows:1fr auto; align-items:center; padding:12px; border:1px solid #b7cbd7; background:#fff; }
+.platform-discord-metrics svg { grid-row:1/3; color:#1681c3; }
+.platform-discord-metrics strong { color:#234f68; font-size:21px; }
+.platform-discord-metrics span { color:#728996; font-size:9px; }
+.platform-discord-overview-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+.platform-discord-overview-actions button,.platform-discord-server-row button,.platform-discord-log-row button,.platform-discord-health-head button { min-height:31px; display:inline-flex; align-items:center; gap:6px; padding:0 11px; border:1px solid #98b6c7; background:#f5fafc; color:#315d74; cursor:pointer; }
+.platform-discord-composer-grid { display:grid; grid-template-columns:1fr 1fr; gap:11px; }
+.platform-discord-composer-grid label { display:flex; flex-direction:column; gap:5px; color:#496c7e; font-size:9px; font-weight:600; }
+.platform-discord-composer-grid label.wide { grid-column:1/-1; }
+.platform-discord-composer-grid input,.platform-discord-composer-grid select,.platform-discord-composer-grid textarea { width:100%; border:1px solid #9fb9c8; background:#fff; color:#284657; padding:7px 8px; font:10px "Segoe UI",Arial,sans-serif; }
+.platform-discord-composer-grid input,.platform-discord-composer-grid select { min-height:32px; }
+.platform-discord-composer-grid small { align-self:flex-end; color:#79909d; font-weight:400; }
+.platform-discord-targets,.platform-discord-services,.platform-discord-preview { margin-top:14px; border:1px solid #b8ccd7; background:#f8fbfd; padding:12px; }
+.platform-discord-targets>strong,.platform-discord-services>strong { display:block; margin-bottom:8px; color:#31596e; font-size:10px; }
+.platform-discord-services>strong span { color:#8398a3; font-weight:400; }
+.platform-discord-target-tabs { display:flex; flex-wrap:wrap; margin-bottom:9px; }
+.platform-discord-target-tabs button { min-height:28px; border:1px solid #aac1cf; margin-right:-1px; background:#fff; color:#3b667e; padding:0 10px; font-size:9px; }
+.platform-discord-target-tabs button.active { background:#1479b8; border-color:#1479b8; color:#fff; }
+.platform-discord-check-grid { display:flex; flex-wrap:wrap; gap:9px 18px; }
+.platform-discord-check-grid label { display:flex; align-items:center; gap:5px; color:#405f70; font-size:9px; }
+.platform-discord-community-picker { max-height:190px; overflow:auto; border:1px solid #b8ccd7; background:#fff; }
+.platform-discord-community-picker>label { min-height:38px; display:grid; grid-template-columns:22px 1fr; align-items:center; padding:4px 8px; border-bottom:1px solid #e1eaef; }
+.platform-discord-community-picker strong,.platform-discord-community-picker small { display:block; }
+.platform-discord-community-picker strong { color:#2e5367; font-size:9px; }
+.platform-discord-community-picker small { color:#78909d; font-size:8px; margin-top:2px; }
+.platform-discord-preview>div { display:flex; align-items:center; gap:7px; color:#245976; }
+.platform-discord-preview p { margin:8px 0; color:#334f60; white-space:pre-wrap; line-height:1.5; }
+.platform-discord-preview small { color:#728996; }
+.platform-discord-server-row,.platform-discord-log-row { display:grid; align-items:center; gap:10px; min-height:52px; padding:7px 9px; border:1px solid #c1d2dc; border-top:0; grid-template-columns:1.25fr 1.1fr 1fr 1.35fr 86px; background:#fff; }
+.platform-discord-server-row.head,.platform-discord-log-row.head { min-height:32px; border-top:1px solid #c1d2dc; background:#edf5f8; color:#466b7e; font-size:9px; }
+.platform-discord-server-row>div strong,.platform-discord-server-row>div span,.platform-discord-server-row>div small,.platform-discord-log-row>div strong,.platform-discord-log-row>div span,.platform-discord-log-row>div small { display:block; }
+.platform-discord-server-row strong,.platform-discord-log-row strong { color:#2b5369; font-size:9px; }
+.platform-discord-server-row span,.platform-discord-log-row span { color:#607c8b; font-size:8px; }
+.platform-discord-server-row small,.platform-discord-log-row small { margin-top:2px; color:#8399a5; font-size:8px; }
+.platform-discord-log-row { grid-template-columns:1.35fr 1.1fr 1fr 120px 120px; }
+.platform-discord-log-summary { display:flex; gap:8px; margin-bottom:9px; }
+.platform-discord-log-summary span { border:1px solid #b8ccd7; background:#f7fbfd; padding:5px 9px; color:#43687c; font-size:9px; }
+.platform-discord-delivery { display:inline-block !important; width:max-content; border-radius:10px; padding:2px 7px; text-transform:capitalize; }
+.platform-discord-delivery.sent { background:#e7f6ec; color:#297646; }
+.platform-discord-delivery.failed { background:#fdeaea; color:#a93831; }
+.platform-discord-delivery.skipped { background:#f4f1e7; color:#806b2c; }
+.platform-discord-health-head { display:flex; align-items:center; justify-content:space-between; gap:14px; border:1px solid #b8ccd7; background:#f8fbfd; padding:12px; }
+.platform-discord-health-head>div { display:grid; grid-template-columns:28px 1fr; }
+.platform-discord-health-head svg { grid-row:1/3; }
+.platform-discord-health-head strong,.platform-discord-health-head span { display:block; }
+.platform-discord-health-head span { color:#748c99; font-size:9px; }
+.platform-discord-health-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; margin-top:10px; }
+.platform-discord-health-grid>div { border:1px solid #b8ccd7; background:#fff; padding:11px; }
+.platform-discord-health-grid span,.platform-discord-health-grid strong { display:block; }
+.platform-discord-health-grid span { color:#758d99; font-size:8px; }
+.platform-discord-health-grid strong { color:#2e566b; font-size:12px; margin-top:3px; }
+.platform-discord-health-list { margin-top:10px; border:1px solid #b8ccd7; }
+.platform-discord-health-list>div { display:grid; grid-template-columns:25px 1fr; align-items:center; min-height:42px; padding:5px 8px; border-bottom:1px solid #e2ebef; background:#fff; }
+.platform-discord-health-list>div.good>span { color:#24814a; }
+.platform-discord-health-list>div.bad>span { color:#b43e35; }
+.platform-discord-health-list strong,.platform-discord-health-list small { display:block; }
+.platform-discord-health-list strong { color:#2c5267; font-size:9px; }
+.platform-discord-health-list small { color:#7a909b; font-size:8px; }
+.platform-discord-config { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:11px; }
+.platform-discord-config>div { min-height:112px; display:grid; grid-template-columns:32px 1fr; align-content:start; gap:3px 9px; padding:15px; border:1px solid #b8ccd7; background:#f8fbfd; }
+.platform-discord-config svg { grid-row:1/3; color:#1479b8; }
+.platform-discord-config strong { color:#2c5267; font-size:11px; }
+.platform-discord-config span { color:#718995; font-size:9px; line-height:1.5; }
+
+html.rw-dark-mode .platform-discord-tabs { background:#16262f; border-color:#355668; }
+html.rw-dark-mode .platform-discord-tabs button { border-color:#355668; color:#b9cfd9; }
+html.rw-dark-mode .platform-discord-tabs button.active,html.rw-dark-mode .platform-discord-tabs button:hover { background:#1479b8; color:#fff; }
+html.rw-dark-mode .platform-discord-bot-card,html.rw-dark-mode .platform-discord-metrics>div,html.rw-dark-mode .platform-discord-targets,html.rw-dark-mode .platform-discord-services,html.rw-dark-mode .platform-discord-preview,html.rw-dark-mode .platform-discord-community-picker,html.rw-dark-mode .platform-discord-server-row,html.rw-dark-mode .platform-discord-log-row,html.rw-dark-mode .platform-discord-log-summary span,html.rw-dark-mode .platform-discord-health-head,html.rw-dark-mode .platform-discord-health-grid>div,html.rw-dark-mode .platform-discord-health-list>div,html.rw-dark-mode .platform-discord-config>div { background:#121e25; border-color:#355668; color:#c8d9e2; }
+html.rw-dark-mode .platform-discord-server-row.head,html.rw-dark-mode .platform-discord-log-row.head { background:#192b34; color:#c1d5de; }
+html.rw-dark-mode .platform-discord-bot-card strong,html.rw-dark-mode .platform-discord-metrics strong,html.rw-dark-mode .platform-discord-targets>strong,html.rw-dark-mode .platform-discord-services>strong,html.rw-dark-mode .platform-discord-community-picker strong,html.rw-dark-mode .platform-discord-server-row strong,html.rw-dark-mode .platform-discord-log-row strong,html.rw-dark-mode .platform-discord-health-head strong,html.rw-dark-mode .platform-discord-health-grid strong,html.rw-dark-mode .platform-discord-health-list strong,html.rw-dark-mode .platform-discord-config strong,html.rw-dark-mode .platform-discord-preview>div { color:#e0eef4; }
+html.rw-dark-mode .platform-discord-bot-card span,html.rw-dark-mode .platform-discord-metrics span,html.rw-dark-mode .platform-discord-community-picker small,html.rw-dark-mode .platform-discord-server-row span,html.rw-dark-mode .platform-discord-server-row small,html.rw-dark-mode .platform-discord-log-row span,html.rw-dark-mode .platform-discord-log-row small,html.rw-dark-mode .platform-discord-health-head span,html.rw-dark-mode .platform-discord-health-grid span,html.rw-dark-mode .platform-discord-health-list small,html.rw-dark-mode .platform-discord-config span,html.rw-dark-mode .platform-discord-preview p,html.rw-dark-mode .platform-discord-preview small { color:#9eb4c0; }
+html.rw-dark-mode .platform-discord-composer-grid label { color:#b9ced8; }
+html.rw-dark-mode .platform-discord-composer-grid input,html.rw-dark-mode .platform-discord-composer-grid select,html.rw-dark-mode .platform-discord-composer-grid textarea { background:#0d171d; border-color:#3c5969; color:#e0edf3; }
+html.rw-dark-mode .platform-discord-target-tabs button,html.rw-dark-mode .platform-discord-overview-actions button,html.rw-dark-mode .platform-discord-server-row button,html.rw-dark-mode .platform-discord-log-row button,html.rw-dark-mode .platform-discord-health-head button { background:#192a33; border-color:#416172; color:#c9dbe4; }
+html.rw-dark-mode .platform-discord-target-tabs button.active { background:#1479b8; color:#fff; }
+html.rw-dark-mode .platform-discord-check-grid label { color:#c0d2dc; }
+
+@media (max-width:1000px) {
+  .platform-discord-metrics,.platform-discord-health-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .platform-discord-config { grid-template-columns:1fr; }
+  .platform-discord-server-row,.platform-discord-log-row { grid-template-columns:1fr; }
+  .platform-discord-server-row.head,.platform-discord-log-row.head { display:none; }
+}
+@media (max-width:700px) {
+  .platform-discord-composer-grid { grid-template-columns:1fr; }
+  .platform-discord-composer-grid label.wide { grid-column:auto; }
+  .platform-discord-metrics,.platform-discord-health-grid { grid-template-columns:1fr; }
+}

@@ -19,6 +19,7 @@ export default function DiscordIntegrationPanel() {
   const [channels, setChannels] = useState([])
   const [maintenanceNotifications, setMaintenanceNotifications] = useState(true)
   const [loginDmEnabled, setLoginDmEnabled] = useState(true)
+  const [platformAnnouncementsEnabled, setPlatformAnnouncementsEnabled] = useState(true)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [notice, setNotice] = useState('')
@@ -36,6 +37,7 @@ export default function DiscordIntegrationPanel() {
       setChannelId(row.channel_id || '')
       setMaintenanceNotifications(row.maintenance_notifications !== false)
       setLoginDmEnabled(row.login_dm_enabled !== false)
+      setPlatformAnnouncementsEnabled(row.platform_announcements_enabled !== false)
     }
     if (Array.isArray(next?.channels)) setChannels(next.channels)
   }
@@ -58,7 +60,7 @@ export default function DiscordIntegrationPanel() {
       setGuildId(clean)
       setChannels(result.channels || [])
       setStatus((current) => ({ ...(current || {}), bot: result.bot || current?.bot, discovered_guild: result.guild }))
-      if (result.guild?.name) setNotice(`RecordsWeb Bot found ${result.guild.name}. Choose the maintenance channel below.`)
+      if (result.guild?.name) setNotice(`RecordsWeb Bot found ${result.guild.name}. Choose the RecordsWeb status channel below.`)
     } catch (err) { setChannels([]); setError(err.message || 'Unable to find that Discord server.') }
     finally { setBusy(false) }
   }
@@ -67,11 +69,11 @@ export default function DiscordIntegrationPanel() {
     const cleanGuild = cleanSnowflake(guildId)
     const cleanChannel = cleanSnowflake(channelId)
     if (!/^\d{17,20}$/.test(cleanGuild)) { setError('Enter a valid Discord server ID.'); return }
-    if (!/^\d{17,20}$/.test(cleanChannel)) { setError('Select or enter a valid maintenance channel.'); return }
+    if (!/^\d{17,20}$/.test(cleanChannel)) { setError('Select or enter a valid status channel.'); return }
     if (!window.confirm(`Connect this RecordsWeb community to ${status?.discovered_guild?.name || integration?.guild_name || 'the selected Discord server'}?`)) return
     setBusy(true); setError(''); setNotice('')
     try {
-      const result = await saveDiscordIntegration({ guildId: cleanGuild, channelId: cleanChannel, maintenanceNotifications, loginDmEnabled })
+      const result = await saveDiscordIntegration({ guildId: cleanGuild, channelId: cleanChannel, maintenanceNotifications, loginDmEnabled, platformAnnouncementsEnabled })
       applyStatus(result)
       setNotice('Discord integration saved and verified.')
     } catch (err) { setError(err.message || 'Unable to save Discord integration.') }
@@ -88,7 +90,7 @@ export default function DiscordIntegrationPanel() {
   }
 
   async function disconnect() {
-    if (!window.confirm('Disconnect this community from RecordsWeb Bot? Automatic maintenance messages and login DMs will stop.')) return
+    if (!window.confirm('Disconnect this community from RecordsWeb Bot? Platform status messages, maintenance notices and login DMs will stop.')) return
     setBusy(true); setError(''); setNotice('')
     try {
       const result = await disconnectDiscordIntegration()
@@ -146,7 +148,7 @@ export default function DiscordIntegrationPanel() {
           </div>
 
           <div className="discord-setup-card">
-            <div className="discord-step-title"><span>3</span><div><strong>Allocate a maintenance channel</strong><small>Platform maintenance notices will be posted here automatically.</small></div></div>
+            <div className="discord-step-title"><span>3</span><div><strong>Allocate a RecordsWeb status channel</strong><small>Platform announcements, incidents and maintenance notices will be posted here.</small></div></div>
             <label className="discord-field"><span><Hash size={12}/> Channel</span>
               {channels.length ? (
                 <select value={channelId} onChange={(e) => setChannelId(e.target.value)}><option value="">Select a channel…</option>{channels.map((channel) => <option key={channel.id} value={channel.id}>#{channel.name}</option>)}</select>
@@ -161,13 +163,14 @@ export default function DiscordIntegrationPanel() {
         <div className="discord-options-card">
           <div><strong>Community automation</strong><span>Choose how this community uses RecordsWeb Bot.</span></div>
           <label><input type="checkbox" checked={maintenanceNotifications} onChange={(e) => setMaintenanceNotifications(e.target.checked)}/><span><strong>Automatic maintenance messages</strong><small>Post platform maintenance start/end information, maintenance text, estimated completion and RecordsWeb status link.</small></span></label>
+          <label><input type="checkbox" checked={platformAnnouncementsEnabled} onChange={(e) => setPlatformAnnouncementsEnabled(e.target.checked)}/><span><strong>Platform announcements</strong><small>Allow RecordsWeb Platform Management to post service notices and operational announcements to this allocated status channel.</small></span></label>
           <label><input type="checkbox" checked={loginDmEnabled} onChange={(e) => setLoginDmEnabled(e.target.checked)}/><span><strong>Staff login DMs</strong><small>Allow Management to send a staff member their RecordsWeb username and a newly-set temporary password by Discord DM.</small></span></label>
         </div>
 
         {connected && (
           <div className="discord-connection-details">
             <div><span>Server</span><strong>{integration.guild_name || 'Discord server'}</strong><small>{integration.guild_id}</small></div>
-            <div><span>Maintenance channel</span><strong>#{integration.channel_name || 'channel'}</strong><small>{integration.channel_id}</small></div>
+            <div><span>RecordsWeb status channel</span><strong>#{integration.channel_name || 'channel'}</strong><small>{integration.channel_id}</small></div>
             <div><span>Last verified</span><strong>{integration.verified_at ? new Date(integration.verified_at).toLocaleString() : 'Not recorded'}</strong><small>{integration.last_error || 'No connection errors'}</small></div>
           </div>
         )}

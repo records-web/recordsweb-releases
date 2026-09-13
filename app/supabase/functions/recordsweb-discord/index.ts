@@ -89,7 +89,7 @@ let recordsWebLogoDataUri: string | null = null
 async function getRecordsWebLogoDataUri() {
   if (recordsWebLogoDataUri) return recordsWebLogoDataUri
   const logoUrl = String(Deno.env.get('RECORDSWEB_LOGO_URL') || 'https://cdn.recordsweb.org/RW-Logo.png').trim()
-  const response = await fetch(logoUrl, { headers: { 'User-Agent': 'RecordsWeb-Bot/3.7.2' } })
+  const response = await fetch(logoUrl, { headers: { 'User-Agent': 'RecordsWeb-Bot/3.8.0' } })
   if (!response.ok) {
     throw Object.assign(new Error(`Unable to load the official RecordsWeb logo (HTTP ${response.status}).`), { status: 502 })
   }
@@ -455,10 +455,13 @@ function integrationPayload(row: any) {
     channel_id: row.channel_id,
     channel_name: row.channel_name,
     maintenance_notifications: row.maintenance_notifications !== false,
+    platform_announcements_enabled: row.platform_announcements_enabled !== false,
+    critical_notifications_enabled: row.critical_notifications_enabled !== false,
     login_dm_enabled: row.login_dm_enabled !== false,
     verified_at: row.verified_at,
     connected_by_name: row.connected_by_name,
     last_notification_at: row.last_notification_at,
+    last_health_check_at: row.last_health_check_at || null,
     last_error: row.last_error,
     updated_at: row.updated_at,
   }
@@ -494,6 +497,210 @@ async function botStatusSafe() {
   }
 }
 
+
+function relationOne(value: any) {
+  return Array.isArray(value) ? value[0] || null : value || null
+}
+
+function discordBroadcastColour(severity: string, type: string) {
+  if (severity === 'critical' || type === 'critical' || type === 'incident') return 0xB91C1C
+  if (severity === 'warning' || type.startsWith('maintenance_')) return 0xD97706
+  if (severity === 'success' || type === 'maintenance_complete') return 0x15803D
+  return 0x0F6FBD
+}
+
+function discordBroadcastTitle(type: string, requested: string) {
+  const clean = cleanText(requested, 120)
+  if (clean) return clean
+  const defaults: Record<string, string> = {
+    announcement: 'RecordsWeb announcement',
+    incident: 'RecordsWeb service incident',
+    critical: 'Critical RecordsWeb notice',
+    maintenance_planned: 'Planned RecordsWeb Maintenance',
+    maintenance_started: 'RecordsWeb maintenance has started',
+    maintenance_update: 'RecordsWeb maintenance update',
+    maintenance_complete: 'RecordsWeb maintenance complete',
+  }
+  return defaults[type] || 'RecordsWeb platform notice'
+}
+
+function discordBroadcastEmbed(broadcast: any, organisation: any, operatorName: string) {
+  const publicBase = String(Deno.env.get('RECORDSWEB_PUBLIC_URL') || 'https://www.recordsweb.org').replace(/\/$/, '')
+  const statusUrl = `${publicBase}/#/status`
+  const fields: any[] = []
+  if (broadcast.starts_at) fields.push({ name: 'Starts', value: formatDiscordDate(broadcast.starts_at), inline: true })
+  if (broadcast.ends_at) fields.push({ name: 'Expected end', value: formatDiscordDate(broadcast.ends_at), inline: true })
+  if (Array.isArray(broadcast.affected_services) && broadcast.affected_services.length) {
+    fields.push({ name: 'Affected services', value: broadcast.affected_services.map((item: string) => `• ${cleanText(item, 80)}`).join('\n').slice(0, 1024), inline: false })
+  }
+  fields.push({ name: 'Community', value: `${organisation?.name || 'RecordsWeb community'} (@${organisation?.org_code || 'XX.XX'})`, inline: false })
+  return {
+    title: discordBroadcastTitle(String(broadcast.broadcast_type || ''), String(broadcast.title || '')),
+    description: cleanText(broadcast.message, 1800),
+    color: discordBroadcastColour(String(broadcast.severity || 'info'), String(broadcast.broadcast_type || 'announcement')),
+    fields,
+    url: statusUrl,
+    footer: { text: `RecordsWeb Platform Operations${operatorName ? ` · ${operatorName}` : ''}` },
+    timestamp: new Date().toISOString(),
+  }
+}
+
+async function platformIntegrationRows(admin: any) {
+  const { data, error } = await admin
+    .from('recordsweb_discord_integrations')
+    .select('*, organisations!inner(id,name,org_code,system_mode,active)')
+    .eq('organisations.active', true)
+    .order('updated_at', { ascending: false })
+  if (error) {
+    if (/does not exist|schema cache|recordsweb_discord_integrations/i.test(error.message || '')) {
+      throw new Error('Discord integration is not installed in Supabase. Run the RecordsWeb Discord migrations first.')
+    }
+    throw error
+  }
+  return data || []
+}
+
+function flattenedIntegration(row: any) {
+  const org = relationOne(row.organisations)
+  return {
+    organisation_id: row.organisation_id,
+    organisation_name: org?.name || 'RecordsWeb community',
+    organisation_code: org?.org_code || '',
+    system_mode: org?.system_mode || 'general_practice',
+    guild_id: row.guild_id,
+    guild_name: row.guild_name,
+    channel_id: row.channel_id,
+    channel_name: row.channel_name,
+    maintenance_notifications: row.maintenance_notifications !== false,
+    platform_announcements_enabled: row.platform_announcements_enabled !== false,
+    critical_notifications_enabled: row.critical_notifications_enabled !== false,
+    login_dm_enabled: row.login_dm_enabled !== false,
+    verified_at: row.verified_at,
+    last_health_check_at: row.last_health_check_at || null,
+    last_notification_at: row.last_notification_at,
+    last_error: row.last_error,
+    updated_at: row.updated_at,
+  }
+}
+
+function broadcastAllowedForIntegration(row: any, type: string) {
+  if (type.startsWith('maintenance_')) return row.maintenance_notifications !== false
+  if (type === 'critical' || type === 'incident') return row.critical_notifications_enabled !== false
+  return row.platform_announcements_enabled !== false
+}
+
+function targetIntegration(row: any, broadcast: any, forcedOrganisationIds: string[] | null = null) {
+  const org = relationOne(row.organisations)
+  const orgId = String(row.organisation_id || '')
+  if (forcedOrganisationIds) return forcedOrganisationIds.includes(orgId)
+  if (broadcast.target_scope === 'selected') return (broadcast.target_organisation_ids || []).map(String).includes(orgId)
+  if (broadcast.target_scope === 'modes') return (broadcast.target_modes || []).map(String).includes(String(org?.system_mode || 'general_practice'))
+  return true
+}
+
+async function createPlatformBroadcast(admin: any, context: any, input: any) {
+  const broadcastType = cleanText(input.broadcast_type, 60) || 'announcement'
+  const severity = cleanText(input.severity, 30) || 'info'
+  const title = discordBroadcastTitle(broadcastType, input.title)
+  const message = cleanText(input.message, 1800)
+  if (!message) throw Object.assign(new Error('Enter a Discord broadcast message.'), { status: 400 })
+  const targetScope = ['all','modes','selected'].includes(String(input.target_scope)) ? String(input.target_scope) : 'all'
+  const targetModes = Array.isArray(input.target_modes) ? input.target_modes.map((x: unknown) => cleanText(x, 40)).filter(Boolean).slice(0, 10) : []
+  const targetOrganisationIds = Array.isArray(input.target_organisation_ids) ? input.target_organisation_ids.map((x: unknown) => cleanText(x, 80)).filter(Boolean).slice(0, 200) : []
+  const affectedServices = Array.isArray(input.affected_services) ? input.affected_services.map((x: unknown) => cleanText(x, 80)).filter(Boolean).slice(0, 20) : []
+  if (targetScope === 'modes' && !targetModes.length) throw Object.assign(new Error('Select at least one care setting.'), { status: 400 })
+  if (targetScope === 'selected' && !targetOrganisationIds.length) throw Object.assign(new Error('Select at least one community.'), { status: 400 })
+
+  const row = {
+    broadcast_type: broadcastType,
+    severity,
+    title,
+    message,
+    target_scope: targetScope,
+    target_modes: targetModes,
+    target_organisation_ids: targetOrganisationIds,
+    affected_services: affectedServices,
+    starts_at: input.starts_at || null,
+    ends_at: input.ends_at || null,
+    status: 'sending',
+    created_by: context.profile.id,
+    created_by_name: context.profile.display_name || context.user.email || 'Platform operator',
+  }
+  const { data, error } = await admin.from('recordsweb_discord_broadcasts').insert(row).select('*').single()
+  if (error) {
+    if (/does not exist|schema cache|recordsweb_discord_broadcasts/i.test(error.message || '')) {
+      throw new Error('Platform Discord Operations is not installed in Supabase. Run supabase/recordsweb-3.8.0-platform-discord-operations.sql.')
+    }
+    throw error
+  }
+  return data
+}
+
+async function deliverPlatformBroadcast(admin: any, context: any, broadcast: any, forcedOrganisationIds: string[] | null = null) {
+  const integrations = await platformIntegrationRows(admin)
+  const targets = integrations.filter((row: any) => targetIntegration(row, broadcast, forcedOrganisationIds))
+  let sent = 0
+  let failed = 0
+  let skipped = 0
+  const failures: Array<{ organisation_id: string, error: string }> = []
+
+  for (const row of targets) {
+    const org = relationOne(row.organisations)
+    if (!broadcastAllowedForIntegration(row, String(broadcast.broadcast_type || 'announcement'))) {
+      skipped += 1
+      await admin.from('recordsweb_discord_deliveries').insert({
+        broadcast_id: broadcast.id,
+        organisation_id: row.organisation_id,
+        guild_id: row.guild_id,
+        guild_name: row.guild_name || '',
+        channel_id: row.channel_id,
+        channel_name: row.channel_name || '',
+        status: 'skipped',
+        error: 'Community notification preference disabled for this broadcast type.',
+      })
+      continue
+    }
+
+    try {
+      const result = await sendMessage(String(row.channel_id), { embeds: [discordBroadcastEmbed(broadcast, org, context.profile.display_name || '')] })
+      sent += 1
+      await admin.from('recordsweb_discord_deliveries').insert({
+        broadcast_id: broadcast.id,
+        organisation_id: row.organisation_id,
+        guild_id: row.guild_id,
+        guild_name: row.guild_name || '',
+        channel_id: row.channel_id,
+        channel_name: row.channel_name || '',
+        status: 'sent',
+        discord_message_id: String(result?.id || ''),
+        delivered_at: new Date().toISOString(),
+      })
+      await admin.from('recordsweb_discord_integrations').update({ last_notification_at: new Date().toISOString(), last_error: null, updated_at: new Date().toISOString() }).eq('organisation_id', row.organisation_id)
+    } catch (error) {
+      failed += 1
+      const message = error instanceof Error ? error.message : 'Discord notification failed.'
+      failures.push({ organisation_id: String(row.organisation_id), error: message })
+      await admin.from('recordsweb_discord_deliveries').insert({
+        broadcast_id: broadcast.id,
+        organisation_id: row.organisation_id,
+        guild_id: row.guild_id,
+        guild_name: row.guild_name || '',
+        channel_id: row.channel_id,
+        channel_name: row.channel_name || '',
+        status: 'failed',
+        error: message.slice(0, 1000),
+      })
+      await admin.from('recordsweb_discord_integrations').update({ last_error: message.slice(0, 500), updated_at: new Date().toISOString() }).eq('organisation_id', row.organisation_id)
+    }
+  }
+
+  const finalStatus = failed === 0 ? 'sent' : sent > 0 ? 'partial' : 'failed'
+  await admin.from('recordsweb_discord_broadcasts').update({ status: finalStatus, sent_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', broadcast.id)
+  await writeAudit(admin, context.profile, 'platform.discord.broadcast.sent', 'discord_broadcast', broadcast.id, `Sent ${broadcast.broadcast_type} Discord broadcast to ${sent} community channel(s); ${failed} failed; ${skipped} skipped.`, { sent, failed, skipped, broadcast_type: broadcast.broadcast_type })
+  return { ok: failed === 0, broadcast_id: broadcast.id, sent, failed, skipped, failures }
+}
+
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders })
   if (req.method !== 'POST') return json({ error: 'Method not allowed.' }, 405)
@@ -514,66 +721,158 @@ Deno.serve(async (req) => {
       if (!platformOperator(context)) return json({ error: 'RecordsWeb platform operator permission is required.' }, 403)
       const botState = await botStatusSafe()
       if (!botState.configured || !botState.bot) return json({ ok: false, configured: botState.configured, error: botState.error || 'RecordsWeb Bot is unavailable.', sent: 0, failed: 0 }, 200)
-
-      const { data: rows, error: integrationsError } = await admin
-        .from('recordsweb_discord_integrations')
-        .select('*, organisations!inner(id,name,org_code,active)')
-        .eq('maintenance_notifications', true)
-        .eq('organisations.active', true)
-      if (integrationsError) {
-        if (/does not exist|schema cache/i.test(integrationsError.message || '')) return json({ ok: false, error: 'Discord integration migration is not installed.', sent: 0, failed: 0 }, 200)
-        throw integrationsError
-      }
-
       const enabled = Boolean(body.enabled)
-      const maintenanceMessage = cleanText(body.message, 500) || 'RecordsWeb is currently unavailable while scheduled maintenance is being carried out.'
-      const estimated = body.estimated_end_at || null
-      const statusUrl = `${String(Deno.env.get('RECORDSWEB_PUBLIC_URL') || 'https://www.recordsweb.org').replace(/\/$/, '')}/status`
-      let sent = 0
-      let failed = 0
-      const failures: Array<{ organisation_id: string, error: string }> = []
+      const broadcast = await createPlatformBroadcast(admin, context, {
+        broadcast_type: enabled ? 'maintenance_started' : 'maintenance_complete',
+        severity: enabled ? 'warning' : 'success',
+        title: enabled ? 'RecordsWeb platform maintenance' : 'RecordsWeb maintenance complete',
+        message: enabled
+          ? (cleanText(body.message, 1800) || 'RecordsWeb is currently unavailable while scheduled maintenance is being carried out.')
+          : 'RecordsWeb is available again. Staff can sign in normally.',
+        target_scope: 'all',
+        affected_services: enabled ? ['RecordsWeb staff website', 'Desktop clinical system'] : [],
+        ends_at: enabled ? (body.estimated_end_at || null) : null,
+      })
+      return json({ configured: true, ...(await deliverPlatformBroadcast(admin, context, broadcast)) })
+    }
 
-      for (const row of rows || []) {
+    if (action === 'platform-overview') {
+      if (!platformOperator(context)) return json({ error: 'RecordsWeb platform operator permission is required.' }, 403)
+      const botState = await botStatusSafe()
+      const integrations = await platformIntegrationRows(admin)
+      const { count: activeCommunityCount } = await admin.from('organisations').select('id', { count: 'exact', head: true }).eq('active', true)
+      const midnight = new Date(); midnight.setUTCHours(0, 0, 0, 0)
+      const { data: todayRows, error: todayError } = await admin.from('recordsweb_discord_deliveries').select('status').gte('attempted_at', midnight.toISOString())
+      if (todayError && /does not exist|schema cache/i.test(todayError.message || '')) throw new Error('Platform Discord Operations is not installed in Supabase. Run supabase/recordsweb-3.8.0-platform-discord-operations.sql.')
+      if (todayError) throw todayError
+      return json({
+        configured: botState.configured,
+        bot: botState.bot,
+        error: botState.error || '',
+        counts: {
+          connected: integrations.length,
+          status_channels: integrations.filter((row: any) => row.channel_id).length,
+          missing: Math.max(0, Number(activeCommunityCount || 0) - integrations.length),
+          sent_today: (todayRows || []).filter((row: any) => row.status === 'sent').length,
+          failed_today: (todayRows || []).filter((row: any) => row.status === 'failed').length,
+        },
+      })
+    }
+
+    if (action === 'platform-integrations') {
+      if (!platformOperator(context)) return json({ error: 'RecordsWeb platform operator permission is required.' }, 403)
+      const rows = await platformIntegrationRows(admin)
+      return json({ integrations: rows.map(flattenedIntegration) })
+    }
+
+    if (action === 'platform-logs') {
+      if (!platformOperator(context)) return json({ error: 'RecordsWeb platform operator permission is required.' }, 403)
+      const limit = Math.max(1, Math.min(500, Number(body.limit || 250)))
+      const { data, error } = await admin
+        .from('recordsweb_discord_deliveries')
+        .select('*, recordsweb_discord_broadcasts(title,broadcast_type,severity), organisations(name,org_code)')
+        .order('attempted_at', { ascending: false })
+        .limit(limit)
+      if (error) {
+        if (/does not exist|schema cache/i.test(error.message || '')) throw new Error('Platform Discord Operations is not installed in Supabase. Run supabase/recordsweb-3.8.0-platform-discord-operations.sql.')
+        throw error
+      }
+      const logs = (data || []).map((row: any) => {
+        const broadcast = relationOne(row.recordsweb_discord_broadcasts)
+        const org = relationOne(row.organisations)
+        return {
+          id: row.id,
+          broadcast_id: row.broadcast_id,
+          broadcast_title: broadcast?.title || '',
+          broadcast_type: broadcast?.broadcast_type || '',
+          severity: broadcast?.severity || '',
+          organisation_id: row.organisation_id,
+          organisation_name: org?.name || '',
+          organisation_code: org?.org_code || '',
+          guild_id: row.guild_id,
+          guild_name: row.guild_name,
+          channel_id: row.channel_id,
+          channel_name: row.channel_name,
+          status: row.status,
+          discord_message_id: row.discord_message_id,
+          error: row.error,
+          attempted_at: row.attempted_at,
+          delivered_at: row.delivered_at,
+        }
+      })
+      return json({ logs })
+    }
+
+    if (action === 'platform-health-check') {
+      if (!platformOperator(context)) return json({ error: 'RecordsWeb platform operator permission is required.' }, 403)
+      const botState = await botStatusSafe()
+      if (!botState.configured || !botState.bot) return json({ error: botState.error || 'RecordsWeb Bot is unavailable.' }, 503)
+      const rows = await platformIntegrationRows(admin)
+      let failed = 0
+      const results: any[] = []
+      for (const row of rows) {
         try {
-          const org = (row as any).organisations
-          const embed = enabled ? {
-            title: 'RecordsWeb platform maintenance',
-            description: maintenanceMessage,
-            color: 0xD97706,
-            fields: [
-              { name: 'Status', value: 'Maintenance in progress', inline: true },
-              { name: 'Estimated completion', value: formatDiscordDate(estimated), inline: true },
-              { name: 'Affected', value: 'RecordsWeb staff website and desktop clinical system', inline: false },
-              { name: 'Community', value: `${org?.name || 'RecordsWeb community'} (@${org?.org_code || 'XX.XX'})`, inline: false },
-            ],
-            url: statusUrl,
-            footer: { text: `RecordsWeb Platform Operations · ${context.profile.display_name || 'Operator'}` },
-            timestamp: new Date().toISOString(),
-          } : {
-            title: 'RecordsWeb maintenance complete',
-            description: 'RecordsWeb is available again. Staff can sign in normally.',
-            color: 0x15803D,
-            fields: [
-              { name: 'Status', value: 'Operational', inline: true },
-              { name: 'Community', value: `${org?.name || 'RecordsWeb community'} (@${org?.org_code || 'XX.XX'})`, inline: true },
-            ],
-            url: statusUrl,
-            footer: { text: 'RecordsWeb Platform Operations' },
-            timestamp: new Date().toISOString(),
-          }
-          await sendMessage(String(row.channel_id), { embeds: [embed] })
-          sent += 1
-          await admin.from('recordsweb_discord_integrations').update({ last_notification_at: new Date().toISOString(), last_error: null, updated_at: new Date().toISOString() }).eq('organisation_id', row.organisation_id)
+          const channel = await verifyChannel(String(row.guild_id), String(row.channel_id))
+          const now = new Date().toISOString()
+          await admin.from('recordsweb_discord_integrations').update({ channel_name: channel.name, verified_at: now, last_health_check_at: now, last_error: null, updated_at: now }).eq('organisation_id', row.organisation_id)
+          results.push({ organisation_id: row.organisation_id, ok: true })
         } catch (error) {
           failed += 1
-          const message = error instanceof Error ? error.message : 'Discord notification failed.'
-          failures.push({ organisation_id: row.organisation_id, error: message })
-          await admin.from('recordsweb_discord_integrations').update({ last_error: message.slice(0, 500), updated_at: new Date().toISOString() }).eq('organisation_id', row.organisation_id)
+          const message = error instanceof Error ? error.message : 'Discord connection check failed.'
+          const now = new Date().toISOString()
+          await admin.from('recordsweb_discord_integrations').update({ last_health_check_at: now, last_error: message.slice(0, 500), updated_at: now }).eq('organisation_id', row.organisation_id)
+          results.push({ organisation_id: row.organisation_id, ok: false, error: message })
         }
       }
+      await writeAudit(admin, context.profile, 'platform.discord.health_check', 'discord', null, `Checked ${rows.length} Discord integration(s); ${failed} failed.`, { checked: rows.length, failed })
+      return json({ ok: failed === 0, checked: rows.length, failed, results })
+    }
 
-      await writeAudit(admin, context.profile, enabled ? 'platform.discord.maintenance.started' : 'platform.discord.maintenance.ended', 'discord', null, `${enabled ? 'Sent maintenance start' : 'Sent maintenance end'} notification to ${sent} Discord channel(s); ${failed} failed.`, { sent, failed })
-      return json({ ok: failed === 0, configured: true, sent, failed, failures })
+    if (action === 'platform-send-test') {
+      if (!platformOperator(context)) return json({ error: 'RecordsWeb platform operator permission is required.' }, 403)
+      const organisationId = cleanText(body.organisation_id, 80)
+      const rows = await platformIntegrationRows(admin)
+      const row = rows.find((item: any) => String(item.organisation_id) === organisationId)
+      if (!row) return json({ error: 'That community does not have a configured Discord status channel.' }, 404)
+      const org = relationOne(row.organisations)
+      const result = await sendMessage(String(row.channel_id), { embeds: [{
+        title: 'RecordsWeb Platform Management test',
+        description: 'This is a test message from RecordsWeb Platform Management. This channel is configured correctly for platform notices.',
+        color: 0x0F6FBD,
+        fields: [{ name: 'Community', value: `${org?.name || 'RecordsWeb community'} (@${org?.org_code || 'XX.XX'})`, inline: false }],
+        footer: { text: `RecordsWeb Platform Operations · ${context.profile.display_name || 'Operator'}` },
+        timestamp: new Date().toISOString(),
+      }] })
+      const now = new Date().toISOString()
+      await admin.from('recordsweb_discord_integrations').update({ verified_at: now, last_health_check_at: now, last_error: null, updated_at: now }).eq('organisation_id', row.organisation_id)
+      await writeAudit(admin, context.profile, 'platform.discord.test', 'organisation', row.organisation_id, `Sent a platform Discord test to ${org?.name || 'community'} #${row.channel_name || row.channel_id}.`)
+      return json({ ok: true, message_id: String(result?.id || '') })
+    }
+
+    if (action === 'platform-broadcast') {
+      if (!platformOperator(context)) return json({ error: 'RecordsWeb platform operator permission is required.' }, 403)
+      const botState = await botStatusSafe()
+      if (!botState.configured || !botState.bot) return json({ error: botState.error || 'RecordsWeb Bot is unavailable.' }, 503)
+      const broadcast = await createPlatformBroadcast(admin, context, body)
+      return json(await deliverPlatformBroadcast(admin, context, broadcast))
+    }
+
+    if (action === 'platform-retry-broadcast') {
+      if (!platformOperator(context)) return json({ error: 'RecordsWeb platform operator permission is required.' }, 403)
+      const broadcastId = cleanText(body.broadcast_id, 80)
+      if (!broadcastId) return json({ error: 'Broadcast id is required.' }, 400)
+      const { data: broadcast, error: broadcastError } = await admin.from('recordsweb_discord_broadcasts').select('*').eq('id', broadcastId).maybeSingle()
+      if (broadcastError || !broadcast) return json({ error: 'Discord broadcast was not found.' }, 404)
+      const { data: deliveries, error: deliveriesError } = await admin.from('recordsweb_discord_deliveries').select('organisation_id,status,attempted_at').eq('broadcast_id', broadcastId).order('attempted_at', { ascending: false })
+      if (deliveriesError) throw deliveriesError
+      const latest = new Map<string, string>()
+      for (const row of deliveries || []) {
+        const orgId = String(row.organisation_id || '')
+        if (orgId && !latest.has(orgId)) latest.set(orgId, String(row.status || ''))
+      }
+      const failedOrganisationIds = [...latest.entries()].filter(([, status]) => status === 'failed').map(([orgId]) => orgId)
+      if (!failedOrganisationIds.length) return json({ ok: true, sent: 0, failed: 0, skipped: 0, message: 'There are no failed deliveries to retry.' })
+      return json(await deliverPlatformBroadcast(admin, context, broadcast, failedOrganisationIds))
     }
 
     if (!context.profile.is_management) return json({ error: 'Management permission is required.' }, 403)
@@ -617,6 +916,8 @@ Deno.serve(async (req) => {
         channel_id: channelId,
         channel_name: channel.name,
         maintenance_notifications: body.maintenance_notifications !== false,
+        platform_announcements_enabled: body.platform_announcements_enabled !== false,
+        critical_notifications_enabled: true,
         login_dm_enabled: body.login_dm_enabled !== false,
         connected_by: context.profile.id,
         connected_by_name: context.profile.display_name,
@@ -644,11 +945,11 @@ Deno.serve(async (req) => {
 
     if (action === 'send-test') {
       const integration = await getIntegration(admin, context.profile.organisation_id)
-      if (!integration?.channel_id) return json({ error: 'Connect a Discord server and maintenance channel first.' }, 400)
+      if (!integration?.channel_id) return json({ error: 'Connect a Discord server and RecordsWeb status channel first.' }, 400)
       await sendMessage(String(integration.channel_id), {
         embeds: [{
           title: 'RecordsWeb Bot connected',
-          description: 'This channel is configured to receive RecordsWeb platform maintenance notifications.',
+          description: 'This channel is configured to receive RecordsWeb platform announcements, incidents and maintenance notifications.',
           color: 0x0F6FBD,
           fields: [
             { name: 'Community', value: `${context.organisation.name} (@${context.organisation.org_code})`, inline: true },
@@ -702,7 +1003,7 @@ Deno.serve(async (req) => {
         organisationName: context.organisation.name,
         organisationCode: context.organisation.org_code,
         publicUrl,
-        version: String(Deno.env.get('RECORDSWEB_VERSION') || '3.7.2'),
+        version: String(Deno.env.get('RECORDSWEB_VERSION') || '3.8.0'),
       })
 
       await writeAudit(admin, context.profile, 'account.discord_login_dm.sent', 'profile', target.id, `Sent RecordsWeb login details by Discord DM to ${target.display_name}.`, { discord_user_id: discordUserId, delivery_format: deliveryFormat, password_reset: resetPassword })

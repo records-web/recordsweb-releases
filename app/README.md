@@ -1,4 +1,10 @@
 # RecordsWeb
+## RecordsWeb 3.8.0 — Platform Discord Operations
+
+RecordsWeb 3.8.0 adds a Platform Management Discord operations workspace for the official RecordsWeb Bot. Platform operators can broadcast announcements and maintenance lifecycle messages to configured community status channels, target all communities, care settings or selected communities, run connection health checks, send test messages, review delivery logs and retry failed deliveries. Community Management can separately enable or disable general platform announcements while retaining maintenance and staff-login DM controls.
+
+Run `supabase/recordsweb-3.8.0-platform-discord-operations.sql` and redeploy the `recordsweb-discord` Edge Function before using the new Platform Management Discord area.
+
 
 ## RecordsWeb 3.7.2 — Status monitoring
 
