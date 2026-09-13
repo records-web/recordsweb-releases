@@ -76,7 +76,7 @@ export default function ProblemEditorModal({ record = {}, onClose, onSave }) {
           <label className="problem-editor-search-field">
             Problem
             <ProblemReferenceInput value={form.name} onChange={(name) => setForm((current) => ({ ...current, name }))} onSelect={selectReference} autoFocus={!record.id} />
-            <small>Search the supplied GP problem reference as you type. Free-text problems are also allowed.</small>
+            <small>Click to browse and select from the supplied GP conditions/presentations, or type to search. Free-text problems are also allowed.</small>
           </label>
           <label>Status
             <select value={form.status} onChange={(event) => setStatus(event.target.value)}>

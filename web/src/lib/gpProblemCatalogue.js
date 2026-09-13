@@ -5257,18 +5257,59 @@ export const GP_PROBLEM_CATALOGUE = [
 }
 ]
 
-export function findProblemReferenceByName(name) {
-  const wanted = String(name || '').trim().toLowerCase()
-  if (!wanted) return null
-  return GP_PROBLEM_CATALOGUE.find((entry) => entry.name.toLowerCase() === wanted) || null
+const normalizeProblemName = (value) => String(value || '').trim().toLowerCase()
+
+const suppliedReferenceProblems = GP_PROBLEM_CATALOGUE.filter((entry) => String(entry.id || '').startsWith('gp500-condition-'))
+const legacyProblems = GP_PROBLEM_CATALOGUE.filter((entry) => !String(entry.id || '').startsWith('gp500-condition-'))
+const legacyByName = new Map(legacyProblems.map((entry) => [normalizeProblemName(entry.name), entry]))
+
+export const GP_PROBLEM_REFERENCE_COUNT = suppliedReferenceProblems.length
+
+// The Problems picker is driven by the user-supplied GP conditions/presentations list.
+// Where an older RecordsWeb catalogue entry has the exact same name, keep its richer
+// description/significance while retaining the supplied reference number/page.
+export const SELECTABLE_GP_PROBLEMS = (() => {
+  const seen = new Set()
+  const rows = []
+
+  for (const reference of suppliedReferenceProblems) {
+    const key = normalizeProblemName(reference.name)
+    if (!key || seen.has(key)) continue
+    const legacy = legacyByName.get(key)
+    rows.push({
+      ...reference,
+      description: legacy?.description || reference.description,
+      severity: legacy?.severity && legacy.severity !== 'Unclassified' ? legacy.severity : reference.severity,
+    })
+    seen.add(key)
+  }
+
+  for (const entry of legacyProblems) {
+    const key = normalizeProblemName(entry.name)
+    if (!key || seen.has(key)) continue
+    rows.push(entry)
+    seen.add(key)
+  }
+
+  return rows
+})()
+
+export function listGPProblems() {
+  return SELECTABLE_GP_PROBLEMS
 }
 
-export function searchGPProblems(query, limit = 12) {
-  const clean = String(query || '').trim().toLowerCase()
-  if (!clean) return []
+export function findProblemReferenceByName(name) {
+  const wanted = normalizeProblemName(name)
+  if (!wanted) return null
+  return SELECTABLE_GP_PROBLEMS.find((entry) => normalizeProblemName(entry.name) === wanted) || null
+}
+
+export function searchGPProblems(query, limit = 60) {
+  const clean = normalizeProblemName(query)
+  if (!clean) return SELECTABLE_GP_PROBLEMS.slice(0, Math.max(1, Number(limit) || 60))
 
   const tokens = clean.split(/\s+/).filter(Boolean)
-  return GP_PROBLEM_CATALOGUE
+  return SELECTABLE_GP_PROBLEMS
     .map((entry) => {
       const name = entry.name.toLowerCase()
       const description = entry.description.toLowerCase()
