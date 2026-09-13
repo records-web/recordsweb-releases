@@ -265,6 +265,25 @@ function customQuantityPlaceholderForForm(form = '') {
   return `e.g. 40 ${quantityUnitForForm(form)}`
 }
 
+
+function parseSprayDose(value = '') {
+  const text = String(value || '').toLowerCase().replaceAll('–', '-')
+  const spraysMatch = text.match(/\b([1-4])\s*sprays?\b/)
+  const frequencyMatch = text.match(/\b([1-4])\s*(?:times?)\s+(?:a|per)\s+day\b/) || text.match(/\b([1-4])\s*(?:times?)\s+daily\b/)
+  return {
+    spraysPerNostril: spraysMatch?.[1] || '1',
+    timesPerDay: frequencyMatch?.[1] || '1',
+  }
+}
+
+function sprayDoseText(spraysPerNostril = '1', timesPerDay = '1') {
+  const sprays = Number(spraysPerNostril)
+  const frequency = Number(timesPerDay)
+  if (!Number.isInteger(sprays) || sprays < 1) return ''
+  if (!Number.isInteger(frequency) || frequency < 1) return ''
+  return `Use ${sprays} spray${sprays === 1 ? '' : 's'} each nostril ${frequency} ${frequency === 1 ? 'time' : 'times'} a day`
+}
+
 function formatCalculatedQuantity(value) {
   const number = Number(value)
   if (!Number.isFinite(number)) return ''
@@ -507,6 +526,7 @@ export function MedicationModal({ medication, authoriser, isGpPartner, onClose, 
   const [strengthAmount, setStrengthAmount] = useState('')
   const [strengthUnit, setStrengthUnit] = useState(initialTypicalMatch?.doseUnit || initialTypicalOptions[0]?.doseUnit || 'mg')
   const [frequencyPerDay, setFrequencyPerDay] = useState(String(initialTypicalMatch?.frequencyPerDay || initialTypicalOptions[0]?.frequencyPerDay || ''))
+  const initialSprayDose = parseSprayDose(medication.dose || initialTypicalMatch?.label || '')
   const [courseDurationDays, setCourseDurationDays] = useState('')
   const [quantityMode, setQuantityMode] = useState(
     medication.quantity || !supportsAutomaticQuantity(initialReference?.form || medication.form) || !(initialTypicalMatch || initialTypicalOptions[0])?.calculable
@@ -514,6 +534,8 @@ export function MedicationModal({ medication, authoriser, isGpPartner, onClose, 
       : 'auto',
   )
   const [customQuantity, setCustomQuantity] = useState(medication.quantity || '')
+  const [spraysPerNostril, setSpraysPerNostril] = useState(initialSprayDose.spraysPerNostril)
+  const [sprayTimesPerDay, setSprayTimesPerDay] = useState(initialSprayDose.timesPerDay)
 
   const isNew = !medication.id
   const set = (key, value) => setForm((current) => ({ ...current, [key]: value }))
@@ -563,6 +585,14 @@ export function MedicationModal({ medication, authoriser, isGpPartner, onClose, 
     setForm((current) => current.dose === prescribedDose ? current : { ...current, dose: prescribedDose })
   }, [dosageMode, frequencyPerDay, selectedTypical])
 
+
+  useEffect(() => {
+    if (activeFormKind !== 'spray' || dosageMode !== 'custom') return
+    const nextDose = sprayDoseText(spraysPerNostril, sprayTimesPerDay)
+    if (!nextDose) return
+    setForm((current) => current.dose === nextDose ? current : { ...current, dose: nextDose })
+  }, [activeFormKind, dosageMode, sprayTimesPerDay, spraysPerNostril])
+
   function pinDigits(setter) {
     return (event) => setter(event.target.value.replace(/\D/g, '').slice(0, 4))
   }
@@ -586,11 +616,14 @@ export function MedicationModal({ medication, authoriser, isGpPartner, onClose, 
     setDosageMode(first ? 'typical' : 'custom')
     setSelectedTypicalId(first?.id || '')
     setStrengthAmount('')
+    const sprayDefaults = parseSprayDose(first?.label || entry.usualDose || '')
     setStrengthUnit(first?.doseUnit || 'mg')
     setFrequencyPerDay(first?.frequencyPerDay ? String(first.frequencyPerDay) : '')
     setCourseDurationDays('')
     setQuantityMode(autoSupported ? 'auto' : 'custom')
     setCustomQuantity('')
+    setSpraysPerNostril(sprayDefaults.spraysPerNostril)
+    setSprayTimesPerDay(sprayDefaults.timesPerDay)
     setSearchOpen(false)
   }
 
@@ -619,6 +652,8 @@ export function MedicationModal({ medication, authoriser, isGpPartner, onClose, 
     setCourseDurationDays('')
     setQuantityMode('custom')
     setCustomQuantity('')
+    setSpraysPerNostril('1')
+    setSprayTimesPerDay('1')
     setSearchOpen(Boolean(value.trim()))
   }
 
@@ -823,9 +858,28 @@ export function MedicationModal({ medication, authoriser, isGpPartner, onClose, 
             </div>
           ) : (
             <div className="med-dose-builder-grid">
-              <label className="span-two">{customDosageLabelForForm(activeForm)}
-                <input value={form.dose} onChange={(event) => set('dose', event.target.value)} placeholder={customDosagePlaceholderForForm(activeForm)}/>
-              </label>
+              {activeFormKind === 'spray' ? (
+                <>
+                  <label>Sprays per nostril
+                    <select value={spraysPerNostril} onChange={(event) => setSpraysPerNostril(event.target.value)}>
+                      {[1, 2, 3, 4].map((value) => <option key={value} value={String(value)}>{value}</option>)}
+                    </select>
+                  </label>
+                  <label>Times per day
+                    <select value={sprayTimesPerDay} onChange={(event) => setSprayTimesPerDay(event.target.value)}>
+                      {[1, 2, 3, 4].map((value) => <option key={value} value={String(value)}>{value}</option>)}
+                    </select>
+                  </label>
+                  <div className="med-calculated-quantity span-two">
+                    <div><span>Spray dosage preview</span><strong>{form.dose || sprayDoseText(spraysPerNostril, sprayTimesPerDay) || 'Select the spray regimen'}</strong></div>
+                    <small>RecordsWeb will write nasal spray directions in the format “Use 1 spray each nostril 2 times a day”.</small>
+                  </div>
+                </>
+              ) : (
+                <label className="span-two">{customDosageLabelForForm(activeForm)}
+                  <input value={form.dose} onChange={(event) => set('dose', event.target.value)} placeholder={customDosagePlaceholderForForm(activeForm)}/>
+                </label>
+              )}
               <label className="span-two">Custom quantity
                 <input value={customQuantity} onChange={(event) => setCustomQuantity(event.target.value)} placeholder={customQuantityPlaceholderForForm(activeForm)}/>
               </label>
