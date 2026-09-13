@@ -68,6 +68,6 @@ with organisation-scoped row-level security.
 
 ## Deployment
 
-After applying the SQL migration, deploy the updated web app and/or build the updated Electron app. The existing Discord Edge Function can continue to be used; its default RecordsWeb version is now 3.5.0.
+After applying the SQL migration, deploy the updated web app and/or build the updated Electron app. The existing Discord Edge Function can continue to be used. In the 3.5.1 source bundle its default RecordsWeb version is 3.5.1.
 
-If you store `RECORDSWEB_VERSION` as a Supabase secret, update it to `3.5.0` before redeploying `recordsweb-discord`.
+If you store `RECORDSWEB_VERSION` as a Supabase secret, update it to `3.5.1` before redeploying `recordsweb-discord`.

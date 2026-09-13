@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react'
-import { Search, UserRound } from 'lucide-react'
+import { Search, UserPlus, UserRound } from 'lucide-react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { listPatients } from '../lib/dataService'
 import Panel from '../components/Panel'
+import { useAuth } from '../contexts/AuthContext'
 
 export default function PatientSearchPage() {
   const [params, setParams] = useSearchParams()
@@ -12,6 +13,8 @@ export default function PatientSearchPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const navigate = useNavigate()
+  const { session } = useAuth()
+  const mode = session?.profile?.organisation_mode || 'general_practice'
 
   async function load(term = search) {
     setLoading(true)
@@ -35,7 +38,7 @@ export default function PatientSearchPage() {
 
   return (
     <div className="page-pad">
-      <div className="page-title-row"><div><h1>Patient search</h1><p>Find a patient by name, NHS number or local record number.</p></div></div>
+      <div className="page-title-row"><div><h1>Patient search</h1><p>{mode === 'hospital' ? 'Find an inpatient, previous hospital patient or patient to admit.' : mode === 'ambulance' ? 'Find a patient to link to an incident or electronic patient care record.' : 'Find a patient by name, NHS number or local record number.'}</p></div><button className="primary-button" onClick={() => navigate(`/registration?returnTo=${encodeURIComponent(mode === 'hospital' ? '/hospital/admissions' : mode === 'ambulance' ? '/ambulance/incidents' : '/patients')}`)}><UserPlus size={14}/>Create patient</button></div>
       <Panel title="Search criteria">
         <form className="patient-search-form" onSubmit={submit}>
           <div className="search-field"><Search size={18} /><input autoFocus value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Name or NHS number" /></div>

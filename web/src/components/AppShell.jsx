@@ -235,21 +235,23 @@ export default function AppShell({ children }) {
 
   const ribbonLinks = organisationMode === 'hospital'
     ? [
-        ['Summary', '/'],
-        ['Care Record', '/patients'],
+        ['Hospital Home', '/'],
         ['Ward Board', '/hospital/ward-board'],
         ['Admissions', '/hospital/admissions'],
+        ['Patients', '/patients'],
+        ['New Patient', '/registration?returnTo=%2Fhospital%2Fadmissions'],
+        ['Clinical Work Queue', '/work-queue'],
         ['Discharge', '/hospital/discharge'],
-        ['Work Queue', '/work-queue'],
         ['Staff Area', '/staff-area'],
       ]
     : organisationMode === 'ambulance'
       ? [
-          ['Summary', '/'],
-          ['Incidents', '/ambulance/incidents'],
-          ['Care Record', '/patients'],
+          ['Operations', '/'],
+          ['Active Incidents', '/ambulance/incidents'],
+          ['Patients', '/patients'],
+          ['New Patient', '/registration?returnTo=%2Fambulance%2Fincidents'],
           ['Handover', '/ambulance/handover'],
-          ['Work Queue', '/work-queue'],
+          ['Clinical Work Queue', '/work-queue'],
           ['Staff Area', '/staff-area'],
         ]
       : [
@@ -261,9 +263,9 @@ export default function AppShell({ children }) {
         ]
 
   const worklistLinks = organisationMode === 'hospital'
-    ? [['Ward Board', '/hospital/ward-board'], ['Admissions', '/hospital/admissions'], ['Clinical Work Queue', '/work-queue'], ['Patient Search', '/patients']]
+    ? [['Ward Board', '/hospital/ward-board'], ['Admissions', '/hospital/admissions'], ['Patients', '/patients'], ['New Patient', '/registration?returnTo=%2Fhospital%2Fadmissions'], ['Clinical Work Queue', '/work-queue']]
     : organisationMode === 'ambulance'
-      ? [['Active Incidents', '/ambulance/incidents'], ['Handover', '/ambulance/handover'], ['Clinical Work Queue', '/work-queue'], ['Patient Search', '/patients']]
+      ? [['Active Incidents', '/ambulance/incidents'], ['Patients', '/patients'], ['New Patient', '/registration?returnTo=%2Fambulance%2Fincidents'], ['Handover', '/ambulance/handover'], ['Clinical Work Queue', '/work-queue']]
       : [['Appointments', '/appointments'], ['Patient Search', '/patients'], ['Registration', '/registration'], ['Staff Area', '/staff-area']]
 
   return (

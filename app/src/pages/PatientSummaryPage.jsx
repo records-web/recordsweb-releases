@@ -6,10 +6,13 @@ import Panel from '../components/Panel'
 import ClinicalToolbar from '../components/ClinicalToolbar'
 import { getPatient, listForPatient } from '../lib/dataService'
 import { listSharedCarePatientLinks } from '../lib/sharedCareService'
+import { useAuth } from '../contexts/AuthContext'
 
 export default function PatientSummaryPage() {
   const { patientId } = useParams()
   const navigate = useNavigate()
+  const { session } = useAuth()
+  const mode = session?.profile?.organisation_mode || 'general_practice'
   const [patient, setPatient] = useState(null)
   const [data, setData] = useState({ problems: [], medications: [], consultations: [], diary: [], alerts: [], sharedCare: [] })
 
@@ -27,7 +30,19 @@ export default function PatientSummaryPage() {
 
   return (
     <div>
-      <ClinicalToolbar actions={[
+      <ClinicalToolbar actions={mode === 'hospital' ? [
+        { label: 'Add clinical note', icon: 'consult', onClick: () => navigate(`/patients/${patientId}/consultations/new`) },
+        { label: 'Add medication', icon: 'medication', onClick: () => navigate(`/patients/${patientId}/medication?add=1`) },
+        { label: 'Admissions', icon: 'request', groupStart: true, onClick: () => navigate(`/hospital/admissions?patient=${patientId}`) },
+        { label: 'Ward board', icon: 'info', onClick: () => navigate('/hospital/ward-board') },
+        { label: 'Print', icon: 'print', groupStart: true, onClick: () => window.print() },
+      ] : mode === 'ambulance' ? [
+        { label: 'Open ePCR', icon: 'consult', onClick: () => navigate(`/ambulance/incidents?patient=${patientId}`) },
+        { label: 'Add medication', icon: 'medication', onClick: () => navigate(`/patients/${patientId}/medication?add=1`) },
+        { label: 'Handover', icon: 'request', groupStart: true, onClick: () => navigate(`/ambulance/handover?patient=${patientId}`) },
+        { label: 'Shared Care', icon: 'info', onClick: () => navigate(`/patients/${patientId}/shared-care`) },
+        { label: 'Print', icon: 'print', groupStart: true, onClick: () => window.print() },
+      ] : [
         { label: 'New consultation', icon: 'consult', onClick: () => navigate(`/patients/${patientId}/consultations/new`) },
         { label: 'Add medication', icon: 'medication', onClick: () => navigate(`/patients/${patientId}/medication?add=1`) },
         { label: 'Book appointment', icon: 'appointment', groupStart: true, onClick: () => navigate(`/appointments?patient=${patientId}`) },

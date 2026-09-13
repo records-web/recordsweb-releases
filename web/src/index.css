@@ -4754,7 +4754,7 @@ html.rw-dark-mode .problems-summary-row em { color:#a9bdc6 !important; }
 .ambulance-stats article>svg { color:#b9671d; }
 .care-stat-grid strong { display:block; font-size:24px; line-height:1; color:var(--text-strong,#173548); }
 .care-stat-grid span { display:block; margin-top:5px; font-size:10px; color:var(--text-muted,#627987); }
-.care-dashboard-shortcuts { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+.care-dashboard-shortcuts { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:8px; }
 .care-dashboard-shortcuts>button { min-height:84px; display:grid; grid-template-columns:auto 1fr; grid-template-rows:auto auto; gap:3px 9px; text-align:left; padding:13px; border:1px solid var(--panel-border,#91aab5); background:var(--panel-bg,#fff); color:inherit; }
 .care-dashboard-shortcuts>button svg { grid-row:1/3; color:#247ca8; margin-top:2px; }
 .ambulance-shortcuts>button svg { color:#b9671d; }
@@ -4893,3 +4893,51 @@ html.rw-dark-mode .shared-care-transfer-form textarea { background:#0d171d; colo
   .epcr-observation-table>div { min-width:520px; }
   .shared-care-transfer-list article { grid-template-columns:1fr; }
 }
+
+
+/* RecordsWeb 3.5.1 — care-mode patient workflows + button contrast */
+.care-secondary-button,
+.care-heading-actions button:not(.primary-button),
+.care-form-actions button:not(.primary-button),
+.care-row-actions button:not(.primary-button),
+.care-inline-patient-button {
+  border:1px solid #8ea9b7;
+  background:#edf4f7;
+  color:#244f67;
+  font-weight:700;
+  cursor:pointer;
+}
+.care-secondary-button:hover,
+.care-heading-actions button:not(.primary-button):hover,
+.care-form-actions button:not(.primary-button):hover,
+.care-row-actions button:not(.primary-button):hover,
+.care-inline-patient-button:hover { background:#dcecf3; border-color:#5f91aa; color:#173e55; }
+.care-heading-actions button:disabled,
+.care-form-actions button:disabled,
+.care-row-actions button:disabled { opacity:.55; cursor:not-allowed; }
+.care-inline-patient-button { margin-top:4px; min-height:24px!important; width:max-content; display:inline-flex; align-items:center; gap:4px; padding:0 7px!important; font-size:8.5px!important; }
+html.rw-dark-mode .care-secondary-button,
+html.rw-dark-mode .care-heading-actions button:not(.primary-button),
+html.rw-dark-mode .care-form-actions button:not(.primary-button),
+html.rw-dark-mode .care-row-actions button:not(.primary-button),
+html.rw-dark-mode .care-inline-patient-button { background:#1a2b35; border-color:#486879; color:#c9e2ef; }
+html.rw-dark-mode .care-secondary-button:hover,
+html.rw-dark-mode .care-heading-actions button:not(.primary-button):hover,
+html.rw-dark-mode .care-form-actions button:not(.primary-button):hover,
+html.rw-dark-mode .care-row-actions button:not(.primary-button):hover,
+html.rw-dark-mode .care-inline-patient-button:hover { background:#243b48; border-color:#5f8aa0; color:#eef8fc; }
+.care-patient-registration-modal { width:min(780px,96vw); }
+.care-patient-modal-body { padding:12px; }
+.care-patient-modal-intro { display:flex; align-items:center; gap:9px; padding:9px 10px; margin-bottom:10px; border:1px solid #a8bdc8; background:#eef5f8; color:#28546a; }
+.care-patient-modal-intro div { display:flex; flex-direction:column; gap:2px; }
+.care-patient-modal-intro strong { font-size:11px; }
+.care-patient-modal-intro span { font-size:9px; color:#607988; }
+.care-patient-modal-grid { padding:0; }
+.care-patient-generated-note { margin-top:9px; padding:7px 9px; border-left:3px solid #2584b5; background:#f2f7fa; color:#607987; font-size:8.5px; }
+html.rw-dark-mode .care-patient-modal-intro { background:#142630; border-color:#426170; color:#d7ebf5; }
+html.rw-dark-mode .care-patient-modal-intro span { color:#9ab5c4; }
+html.rw-dark-mode .care-patient-generated-note { background:#11222b; color:#9bb5c4; }
+.patient-tabs-hospital a.active { box-shadow:inset 0 -2px #2f8eb4; }
+.patient-tabs-ambulance a.active { box-shadow:inset 0 -2px #cf741f; }
+.care-mode-hospital .patient-header { border-top-color:#2f8eb4; }
+.care-mode-ambulance .patient-header { border-top-color:#cf741f; }

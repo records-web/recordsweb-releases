@@ -1,9 +1,11 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { BedDouble, ClipboardPlus, DoorOpen, FileClock, RefreshCw, Search, Stethoscope, UserRoundCheck } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { BedDouble, ClipboardPlus, DoorOpen, FileClock, RefreshCw, Search, Stethoscope, UserPlus, UserRoundCheck } from 'lucide-react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import Panel from '../components/Panel'
 import { listPatients } from '../lib/dataService'
 import { createCareEpisode, listCareEpisodes, updateCareEpisode } from '../lib/careWorkspaceService'
+import QuickPatientRegistrationModal from '../components/QuickPatientRegistrationModal'
+import { useAuth } from '../contexts/AuthContext'
 
 const STATUS_OPTIONS = [
   ['admitted', 'Admitted'],
@@ -19,11 +21,16 @@ function patientName(patient) {
 
 export default function HospitalWorkspacePage({ view = 'dashboard' }) {
   const navigate = useNavigate()
+  const [params] = useSearchParams()
+  const { session } = useAuth()
+  const organisationName = session?.profile?.organisation_name || 'Hospital'
+  const patientFilter = params.get('patient') || ''
   const [episodes, setEpisodes] = useState([])
   const [patients, setPatients] = useState([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [showForm, setShowForm] = useState(view === 'admissions')
+  const [showPatientModal, setShowPatientModal] = useState(false)
   const [form, setForm] = useState({ patient_id: '', presenting_complaint: '', ward: 'Acute Medical Unit', bed: '', assigned_clinician: '' })
 
   async function load() {
@@ -36,6 +43,7 @@ export default function HospitalWorkspacePage({ view = 'dashboard' }) {
   }
 
   useEffect(() => { load() }, [])
+  useEffect(() => { if (patientFilter) { setForm((current) => ({ ...current, patient_id: patientFilter })); if (view === 'admissions') setShowForm(true) } }, [patientFilter, view])
 
   const patientMap = useMemo(() => new Map(patients.map((patient) => [patient.id, patient])), [patients])
   const active = episodes.filter((row) => row.status !== 'discharged')
@@ -62,13 +70,14 @@ export default function HospitalWorkspacePage({ view = 'dashboard' }) {
   }
 
   const title = view === 'ward' ? 'Ward Board' : view === 'admissions' ? 'Admissions' : view === 'discharge' ? 'Discharge' : 'Hospital Operations'
-  const rows = view === 'discharge' ? active.filter((row) => ['discharge_planned', 'awaiting_results', 'review_due', 'admitted'].includes(row.status)) : view === 'admissions' ? episodes : active
+  const baseRows = view === 'discharge' ? active.filter((row) => ['discharge_planned', 'awaiting_results', 'review_due', 'admitted'].includes(row.status)) : view === 'admissions' ? episodes : active
+  const rows = patientFilter ? baseRows.filter((row) => row.patient_id === patientFilter) : baseRows
 
   return (
     <div className="care-workspace care-workspace-hospital page-pad compact-pad">
       <div className="care-workspace-heading">
         <div><span>SECONDARY CARE</span><h1>{title}</h1><p>Episode-based hospital workflow for admissions, ward activity, clinical review and discharge.</p></div>
-        <div className="care-heading-actions"><button onClick={load} disabled={busy}><RefreshCw size={14}/>Refresh</button><button className="primary-button" onClick={() => setShowForm((value) => !value)}><ClipboardPlus size={14}/>New admission</button></div>
+        <div className="care-heading-actions"><button className="care-secondary-button" onClick={load} disabled={busy}><RefreshCw size={14}/>Refresh</button><button className="care-secondary-button" onClick={() => setShowPatientModal(true)}><UserPlus size={14}/>New patient</button><button className="primary-button" onClick={() => setShowForm((value) => !value)}><ClipboardPlus size={14}/>New admission</button></div>
       </div>
       {error && <div className="form-error">{error}</div>}
 
@@ -82,12 +91,12 @@ export default function HospitalWorkspacePage({ view = 'dashboard' }) {
       {showForm && (
         <Panel title="Create hospital admission">
           <form className="care-inline-form" onSubmit={createAdmission}>
-            <label><span>Patient *</span><select value={form.patient_id} onChange={(e) => setForm({ ...form, patient_id: e.target.value })} required><option value="">Select patient</option>{patients.map((patient) => <option key={patient.id} value={patient.id}>{patientName(patient)} · {patient.nhs_number || 'No NHS number'}</option>)}</select></label>
+            <label><span>Patient *</span><select value={form.patient_id} onChange={(e) => setForm({ ...form, patient_id: e.target.value })} required><option value="">Select patient</option>{patients.map((patient) => <option key={patient.id} value={patient.id}>{patientName(patient)} · {patient.nhs_number || 'No NHS number'}</option>)}</select><button className="care-inline-patient-button" type="button" onClick={() => setShowPatientModal(true)}><UserPlus size={12}/>Create new patient</button></label>
             <label><span>Reason for admission *</span><input value={form.presenting_complaint} onChange={(e) => setForm({ ...form, presenting_complaint: e.target.value })} required /></label>
             <label><span>Ward</span><input value={form.ward} onChange={(e) => setForm({ ...form, ward: e.target.value })} /></label>
             <label><span>Bed</span><input value={form.bed} onChange={(e) => setForm({ ...form, bed: e.target.value })} placeholder="AMU-12" /></label>
             <label><span>Consultant / clinician</span><input value={form.assigned_clinician} onChange={(e) => setForm({ ...form, assigned_clinician: e.target.value })} /></label>
-            <div className="care-form-actions"><button type="button" onClick={() => setShowForm(false)}>Cancel</button><button className="primary-button" type="submit" disabled={busy}>Create admission</button></div>
+            <div className="care-form-actions"><button className="care-secondary-button" type="button" onClick={() => setShowForm(false)}>Cancel</button><button className="primary-button" type="submit" disabled={busy}>Create admission</button></div>
           </form>
         </Panel>
       )}
@@ -95,7 +104,7 @@ export default function HospitalWorkspacePage({ view = 'dashboard' }) {
       {view === 'dashboard' && (
         <div className="care-dashboard-shortcuts">
           <button onClick={() => navigate('/hospital/ward-board')}><BedDouble size={17}/><strong>Ward Board</strong><span>Current beds and inpatient status</span></button>
-          <button onClick={() => navigate('/hospital/admissions')}><ClipboardPlus size={17}/><strong>Admissions</strong><span>Create and review episodes</span></button>
+          <button onClick={() => navigate('/hospital/admissions')}><ClipboardPlus size={17}/><strong>Admissions</strong><span>Create and review episodes</span></button><button onClick={() => setShowPatientModal(true)}><UserPlus size={17}/><strong>New Patient</strong><span>Create a hospital patient record</span></button>
           <button onClick={() => navigate('/hospital/discharge')}><DoorOpen size={17}/><strong>Discharge</strong><span>Plan and complete discharge</span></button>
           <button onClick={() => navigate('/work-queue')}><UserRoundCheck size={17}/><strong>Clinical Work Queue</strong><span>Reviews, results and tasks</span></button>
         </div>
@@ -119,6 +128,7 @@ export default function HospitalWorkspacePage({ view = 'dashboard' }) {
           </div>
         )}
       </Panel>
+          {showPatientModal && <QuickPatientRegistrationModal mode="hospital" organisationName={organisationName} onClose={() => setShowPatientModal(false)} onCreated={(patient) => { setPatients((current) => [patient, ...current.filter((row) => row.id !== patient.id)]); setForm((current) => ({ ...current, patient_id: patient.id })); setShowPatientModal(false); setShowForm(true) }} />}
     </div>
   )
 }

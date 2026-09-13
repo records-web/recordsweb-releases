@@ -1,6 +1,9 @@
 # RecordsWeb
 
-## RecordsWeb 3.5.0 — Care-Specific Workspaces + Shared Care 2.0
+
+Version 3.5.1 improves the Hospital and Ambulance / PHEM workspaces with care-specific patient navigation, inline patient creation and corrected dark-mode button contrast. Hospital records now use secondary-care tab labels and shortcuts; Ambulance records expose ePCR, handover and patient-linking workflows directly. Primary Care remains unchanged.
+
+## RecordsWeb 3.5.1 — Care Workspace Patient Workflow Polish
 
 Version 3.5.0 adds dedicated Hospital and Ambulance / PHEM workspaces, a cross-setting Clinical Work Queue, Shared Care transfer-of-care workflows and a Light / Dark toggle on the public home page. Primary Care keeps the existing RecordsWeb interface and the login page remains unchanged for every community type.
 
