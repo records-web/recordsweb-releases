@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { ORGANISATION } from '../lib/demoData'
 import recordsWebIcon from '../assets/recordsweb-update-logo.png'
 import { listAppointments } from '../lib/dataService'
-import { getSettings, saveSettings } from '../lib/settings'
+import { activateSettingsScope, getResolvedTheme, getSettings, saveSettings, setOrganisationInterfaceDefault } from '../lib/settings'
 import { getCachedOrganisationSettings, loadOrganisationSettings } from '../lib/organisationSettings'
 import { subscribeToPatientRecordChanges } from '../lib/patientRealtime'
 import PatientRecordUpdateBanner from './PatientRecordUpdateBanner'
@@ -46,8 +46,10 @@ export default function AppShell({ children }) {
   const staffIdentity = `${primaryRole} | ${staffName || profile.display_name || 'Clinical User'}${profile.title ? ` (${profile.title})` : ''}`
   const [notice, setNotice] = useState('')
   const [appointmentCount, setAppointmentCount] = useState(0)
-  const [settings, setSettings] = useState(() => getSettings())
-  const [organisationSettings, setOrganisationSettings] = useState(() => getCachedOrganisationSettings())
+  const initialOrganisationSettings = getCachedOrganisationSettings()
+  const settingsScope = `${session?.user?.id || profile?.id || 'staff'}:${profile?.organisation_id || profile?.organisations?.id || initialOrganisationSettings.organisationId || initialOrganisationSettings.organisationCode || 'organisation'}`
+  const [settings, setSettings] = useState(() => activateSettingsScope(settingsScope, { organisationDefault: initialOrganisationSettings.defaultInterfaceStyle }))
+  const [organisationSettings, setOrganisationSettings] = useState(() => initialOrganisationSettings)
   const organisationName = profile.organisation_name || organisationSettings.organisationName || ORGANISATION.name
   const organisationLocation = profile.organisation_location || organisationSettings.defaultLocation || ORGANISATION.default_location || 'Main Site'
   const organisationMode = profile.organisation_mode || organisationSettings.systemMode || ORGANISATION.system_mode || 'general_practice'
@@ -93,9 +95,14 @@ export default function AppShell({ children }) {
   const openPatientId = patientMatch ? decodeURIComponent(patientMatch[1]) : ''
 
   useEffect(() => {
-    const syncOrganisationSettings = (event) => setOrganisationSettings(event?.detail || getCachedOrganisationSettings())
+    const applyOrganisation = (next) => {
+      const resolved = next || getCachedOrganisationSettings()
+      setOrganisationSettings(resolved)
+      setOrganisationInterfaceDefault(resolved.defaultInterfaceStyle)
+    }
+    const syncOrganisationSettings = (event) => applyOrganisation(event?.detail)
     window.addEventListener('recordsweb-organisation-settings-changed', syncOrganisationSettings)
-    loadOrganisationSettings().then(setOrganisationSettings).catch(() => {})
+    loadOrganisationSettings().then(applyOrganisation).catch(() => {})
     return () => window.removeEventListener('recordsweb-organisation-settings-changed', syncOrganisationSettings)
   }, [])
 
@@ -104,6 +111,12 @@ export default function AppShell({ children }) {
     window.addEventListener('recordsweb-settings-changed', syncSettings)
     return () => window.removeEventListener('recordsweb-settings-changed', syncSettings)
   }, [])
+
+  useEffect(() => {
+    const next = activateSettingsScope(settingsScope, { organisationDefault: organisationSettings.defaultInterfaceStyle })
+    setSettings(next)
+  }, [settingsScope])
+
 
   useEffect(() => {
     let live = true
@@ -175,7 +188,8 @@ export default function AppShell({ children }) {
   }
 
   function toggleTheme() {
-    const nextTheme = settings.theme === 'dark' ? 'light' : 'dark'
+    const activeTheme = getResolvedTheme(settings)
+    const nextTheme = activeTheme === 'dark' ? 'light' : 'dark'
     setSettings(saveSettings({ ...settings, theme: nextTheme }))
   }
 
@@ -353,11 +367,11 @@ export default function AppShell({ children }) {
           type="button"
           className="status-theme-toggle"
           onClick={toggleTheme}
-          title={settings.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
-          aria-label={settings.theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          title={getResolvedTheme(settings) === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+          aria-label={getResolvedTheme(settings) === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
         >
-          {settings.theme === 'dark' ? <Sun size={12} /> : <Moon size={12} />}
-          <span>{settings.theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>
+          {getResolvedTheme(settings) === 'dark' ? <Sun size={12} /> : <Moon size={12} />}
+          <span>{getResolvedTheme(settings) === 'dark' ? 'Light mode' : 'Dark mode'}</span>
         </button>
         <span className="status-ok">● Connected</span>
       </footer>

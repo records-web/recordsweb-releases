@@ -5057,3 +5057,138 @@ html.rw-dark-mode .handover-status-track span { border-color:#3b5967; }
   .network-connector { width:2px; height:28px; align-self:center; }
   .network-connector:after { display:none; }
 }
+
+
+/* RecordsWeb 3.7.0 — Classic / Modern user interface styles */
+.interface-style-setting { display:flex; align-items:flex-start; gap:10px; padding:10px 11px; border-bottom:1px solid var(--line,#d5e0e6); }
+.interface-style-options { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; margin-top:9px; }
+.interface-style-option { position:relative; min-height:82px; display:grid; grid-template-columns:auto 1fr auto; align-items:start; gap:9px; padding:11px; border:1px solid #abc1ce; background:#fff; color:#294a60; text-align:left; }
+.interface-style-option:hover { border-color:#5c9fc5; background:#f6fbfe; }
+.interface-style-option.selected { border-color:var(--rw-brand,#0f6fbd); background:linear-gradient(180deg,#f4fbff,#e7f4fb); box-shadow:inset 0 -3px 0 var(--rw-brand,#0f6fbd); }
+.interface-style-option-icon { width:32px; height:32px; display:grid; place-items:center; border:1px solid #b9d0dc; background:#edf6fb; color:var(--rw-brand,#0f6fbd); }
+.interface-style-option strong,.interface-style-option small { display:block; }
+.interface-style-option strong { margin-top:1px; font-size:10.5px; color:#1f465f; }
+.interface-style-option small { margin-top:5px; color:#647c89; font-size:8.5px; line-height:1.35; }
+.interface-style-radio { width:15px; height:15px; border:1px solid #8ca7b6; border-radius:50%; display:grid; place-items:center; margin-top:2px; }
+.interface-style-option.selected .interface-style-radio { border-color:var(--rw-brand,#0f6fbd); }
+.interface-style-option.selected .interface-style-radio i { width:7px; height:7px; border-radius:50%; background:var(--rw-brand,#0f6fbd); }
+.settings-current-value { margin-top:7px; color:#637c89; font-size:8.5px; }
+.settings-current-value strong { display:inline; font-size:inherit; color:#2a678b; }
+.community-interface-style { margin-top:12px; padding:11px; border:1px solid #c1d2dc; background:#f8fbfd; }
+.community-interface-style-heading { display:flex; gap:9px; align-items:flex-start; }
+.community-interface-style-heading svg { color:var(--rw-brand,#0f6fbd); }
+.community-interface-style-heading strong,.community-interface-style-heading span { display:block; }
+.community-interface-style-heading span { margin-top:3px; color:#607887; font-size:9px; line-height:1.4; }
+.community-interface-style .segmented-setting { margin-top:9px; }
+
+/* Modern style intentionally targets the signed-in app shell only. Login remains the established RecordsWeb UI. */
+html.rw-interface-modern .app-frame { background:#eef4f7; }
+html.rw-interface-modern .desktop-titlebar { min-height:34px; padding:0 12px; background:linear-gradient(180deg,#f8fbfd,#edf4f7); border-color:#bfd0da; }
+html.rw-interface-modern .ribbon-tabs { min-height:39px; padding:5px 10px 0; gap:4px; background:linear-gradient(180deg,#e9f4fa,#dcecf5); border-color:#b6cfdd; }
+html.rw-interface-modern .ribbon-tabs a { min-height:32px; display:flex; align-items:center; padding:0 13px; border:1px solid transparent; border-radius:8px 8px 0 0; font-size:10px; }
+html.rw-interface-modern .ribbon-tabs a:hover { background:rgba(255,255,255,.65); border-color:#c0d7e4; }
+html.rw-interface-modern .ribbon-tabs a.active { background:#fff; border-color:#aec9d8; border-bottom-color:#fff; box-shadow:0 -1px 4px rgba(23,72,99,.07); }
+html.rw-interface-modern .global-header { min-height:70px; padding:9px 16px; gap:16px; background:#fff; border-color:#cfdae1; box-shadow:0 3px 12px rgba(35,68,87,.08); }
+html.rw-interface-modern .brand-logo-image { max-height:45px; }
+html.rw-interface-modern .brand-name { font-size:22px; letter-spacing:-.02em; }
+html.rw-interface-modern .brand-subtitle { margin-top:2px; font-size:9px; }
+html.rw-interface-modern .global-search { max-width:620px; min-height:38px; border-radius:10px; border-color:#bdccd5; background:#f6f9fb; padding:0 11px; box-shadow:inset 0 1px 2px rgba(28,58,75,.04); }
+html.rw-interface-modern .global-search input { font-size:11px; }
+html.rw-interface-modern .icon-btn { width:36px; height:36px; border-radius:9px; }
+html.rw-interface-modern .profile-chip { min-height:38px; padding:4px 11px; border:1px solid #d1dde4; border-radius:10px; background:#f7fafc; }
+html.rw-interface-modern .worklist-strip { min-height:34px; padding:0 12px; background:#f7fafc; border-color:#d2dee5; }
+html.rw-interface-modern .worklist-strip a { min-height:33px; display:flex; align-items:center; padding:0 11px; border-right:0; border-radius:7px; margin:3px 2px; }
+html.rw-interface-modern .worklist-strip a:hover { background:#e9f4fa; }
+html.rw-interface-modern .app-content { background:linear-gradient(180deg,#f3f7f9 0,#eef4f7 180px,#edf3f6 100%); }
+html.rw-interface-modern .page-pad { padding:18px 20px; }
+html.rw-interface-modern .compact-pad { padding:14px 16px; }
+html.rw-interface-modern .workspace-page { max-width:1700px; }
+html.rw-interface-modern .page-title-row { margin-bottom:12px; }
+html.rw-interface-modern .page-title-row h1 { font-size:24px; letter-spacing:-.015em; }
+html.rw-interface-modern .page-title-row p { margin-top:4px; font-size:10.5px; }
+html.rw-interface-modern .panel { border-radius:13px; overflow:hidden; border:1px solid #c6d4dc; box-shadow:0 5px 18px rgba(38,70,88,.07); background:#fff; }
+html.rw-interface-modern .panel-header { min-height:42px; display:flex; align-items:center; padding:0 14px; background:linear-gradient(180deg,#fbfdfe,#f1f6f8); border-color:#d0dce3; font-size:11px; font-weight:800; }
+html.rw-interface-modern .panel-body { padding:12px 14px; }
+html.rw-interface-modern .primary-button,html.rw-interface-modern .secondary-button,html.rw-interface-modern .care-secondary-button { min-height:38px; padding:0 14px; border-radius:9px; font-size:10.5px; }
+html.rw-interface-modern .primary-button { box-shadow:0 3px 8px rgba(15,111,189,.16); }
+html.rw-interface-modern .secondary-button,html.rw-interface-modern .care-secondary-button { background:#fff; border-color:#b9cbd6; color:#315a73; box-shadow:0 1px 2px rgba(26,58,75,.04); }
+html.rw-interface-modern input:not([type="checkbox"]):not([type="radio"]),html.rw-interface-modern select,html.rw-interface-modern textarea { border-radius:8px; min-height:36px; padding-left:10px; padding-right:10px; }
+html.rw-interface-modern textarea { padding-top:9px; padding-bottom:9px; }
+html.rw-interface-modern .patient-tabs { min-height:42px; padding:5px 8px 0; gap:3px; background:#eaf3f7; border-color:#bed1dc; }
+html.rw-interface-modern .patient-tabs a { min-height:36px; display:flex; align-items:center; padding:0 12px; border-radius:8px 8px 0 0; }
+html.rw-interface-modern .patient-tabs a.active { background:#fff; box-shadow:0 -1px 5px rgba(28,66,87,.08); }
+html.rw-interface-modern .generic-row,html.rw-interface-modern .account-row,html.rw-interface-modern .appointment-row,html.rw-interface-modern .med-row,html.rw-interface-modern .patient-results>button { min-height:48px; padding-top:9px; padding-bottom:9px; }
+html.rw-interface-modern .settings-section,html.rw-interface-modern .setting-toggle-row,html.rw-interface-modern .interface-style-setting { padding:13px 14px; }
+html.rw-interface-modern .settings-section-icon { width:36px; height:36px; border-radius:9px; }
+html.rw-interface-modern .segmented-setting { border:0; gap:4px; padding:3px; background:#edf3f6; border-radius:9px; }
+html.rw-interface-modern .segmented-setting button { min-height:32px; border:0; border-radius:7px; background:transparent; }
+html.rw-interface-modern .segmented-setting button.selected { background:#fff; box-shadow:0 1px 5px rgba(32,67,87,.12); }
+html.rw-interface-modern .interface-style-option { border-radius:11px; min-height:94px; }
+html.rw-interface-modern .interface-style-option-icon { border-radius:9px; }
+html.rw-interface-modern .community-interface-style { border-radius:11px; background:#f7fafc; }
+
+/* Modern care-setting workspaces */
+html.rw-interface-modern .care-workspace { display:flex; flex-direction:column; gap:12px; }
+html.rw-interface-modern .care-workspace-heading { padding:18px 20px; border-radius:14px; border-color:#bfd0d9; background:linear-gradient(135deg,#ffffff,#f1f7fa); box-shadow:0 5px 16px rgba(35,68,87,.07); }
+html.rw-interface-modern .care-workspace-heading h1 { font-size:25px; letter-spacing:-.015em; }
+html.rw-interface-modern .care-workspace-heading p { font-size:10.5px; }
+html.rw-interface-modern .care-stat-grid { gap:10px; }
+html.rw-interface-modern .care-stat-grid article { min-height:92px; padding:16px; border-radius:12px; border-color:#c5d3db; box-shadow:0 3px 11px rgba(35,68,87,.055); }
+html.rw-interface-modern .care-stat-grid strong { font-size:27px; }
+html.rw-interface-modern .care-dashboard-shortcuts { gap:10px; }
+html.rw-interface-modern .care-dashboard-shortcuts>button { min-height:100px; padding:16px; border-radius:12px; border-color:#c5d3db; box-shadow:0 3px 11px rgba(35,68,87,.05); }
+html.rw-interface-modern .care-dashboard-shortcuts>button:hover { transform:translateY(-1px); border-color:#79acc8; box-shadow:0 7px 18px rgba(35,68,87,.09); }
+html.rw-interface-modern .hospital-ward-board,html.rw-interface-modern .ambulance-incident-list,html.rw-interface-modern .epcr-card { border-radius:13px; overflow:hidden; box-shadow:0 4px 15px rgba(35,68,87,.055); }
+html.rw-interface-modern .hospital-board-row { min-height:66px; padding:10px 12px; }
+html.rw-interface-modern .ambulance-incident-list { gap:8px; padding:10px; }
+html.rw-interface-modern .ambulance-incident-list>button { padding:13px 14px; border-radius:10px; }
+html.rw-interface-modern .ambulance-incident-list>button.active { box-shadow:inset 4px 0 #d87a20,0 3px 10px rgba(89,54,21,.08); }
+html.rw-interface-modern .epcr-section { border-radius:10px; overflow:hidden; margin-top:13px; }
+html.rw-interface-modern .epcr-section>header { min-height:40px; align-items:center; padding:9px 12px; }
+
+/* Modern Shared Care workspace */
+html.rw-interface-modern .shared-care-workspace-tabs { padding:5px; gap:4px; border-radius:10px; background:#eaf2f6; }
+html.rw-interface-modern .shared-care-workspace-tabs button { border-radius:8px; min-height:34px; }
+html.rw-interface-modern .shared-care-message-composer,html.rw-interface-modern .shared-care-task-form { padding:14px; gap:10px; }
+html.rw-interface-modern .shared-care-message-list article { padding:13px 14px; gap:11px; }
+html.rw-interface-modern .shared-care-message-avatar { width:36px; height:36px; border-radius:10px; }
+html.rw-interface-modern .shared-care-task-list article,html.rw-interface-modern .shared-care-handover-list article { min-height:64px; padding:12px 14px; }
+html.rw-interface-modern .shared-care-task-status { border-radius:999px; padding:5px 9px; }
+html.rw-interface-modern .shared-care-network-map { gap:7px; padding:14px; }
+html.rw-interface-modern .shared-care-network-map article { flex-basis:240px; min-height:86px; padding:13px; border-radius:11px; }
+html.rw-interface-modern .network-connector { margin:0 2px; }
+
+/* Comfortable density can be used with either Classic or Modern. */
+html.rw-density-comfortable .page-pad { padding-top:16px; padding-bottom:16px; }
+html.rw-density-comfortable .panel-body { padding-top:13px; padding-bottom:13px; }
+html.rw-density-comfortable .generic-row,html.rw-density-comfortable .account-row,html.rw-density-comfortable .appointment-row,html.rw-density-comfortable .med-row { min-height:52px; }
+html.rw-density-comfortable .patient-results>button { min-height:68px; }
+
+html.rw-dark-mode .interface-style-option,html.rw-dark-mode .community-interface-style { background:#17232c; border-color:#395566; color:#d3e1e8; }
+html.rw-dark-mode .interface-style-option:hover { background:#1c303b; border-color:#4f7890; }
+html.rw-dark-mode .interface-style-option.selected { background:linear-gradient(180deg,#1e3440,#172a34); border-color:#55a8d8; box-shadow:inset 0 -3px 0 #55a8d8; }
+html.rw-dark-mode .interface-style-option-icon { background:#203743; border-color:#3e6174; color:#83c9f1; }
+html.rw-dark-mode .interface-style-option strong,html.rw-dark-mode .settings-current-value strong { color:#bce0f4; }
+html.rw-dark-mode .interface-style-option small,html.rw-dark-mode .settings-current-value,html.rw-dark-mode .community-interface-style-heading span { color:#94aab6; }
+html.rw-dark-mode .interface-style-radio { border-color:#607988; }
+html.rw-dark-mode.rw-interface-modern .app-frame,html.rw-dark-mode.rw-interface-modern .app-content { background:#0e171d; }
+html.rw-dark-mode.rw-interface-modern .desktop-titlebar { background:linear-gradient(180deg,#1c2d37,#16232b); border-color:#35566a; }
+html.rw-dark-mode.rw-interface-modern .ribbon-tabs { background:linear-gradient(180deg,#1d323d,#162932); border-color:#345c72; }
+html.rw-dark-mode.rw-interface-modern .ribbon-tabs a.active { background:#15232b; border-color:#416a80; border-bottom-color:#15232b; }
+html.rw-dark-mode.rw-interface-modern .global-header { background:#121f27; border-color:#304d5e; box-shadow:0 4px 15px rgba(0,0,0,.2); }
+html.rw-dark-mode.rw-interface-modern .global-search,html.rw-dark-mode.rw-interface-modern .profile-chip { background:#0f1a21; border-color:#365363; }
+html.rw-dark-mode.rw-interface-modern .worklist-strip { background:#14262f; border-color:#34566a; }
+html.rw-dark-mode.rw-interface-modern .app-content { background:linear-gradient(180deg,#101b22,#0e171d 240px,#0d161c); }
+html.rw-dark-mode.rw-interface-modern .panel { background:#15222a; border-color:#344f60; box-shadow:0 6px 18px rgba(0,0,0,.16); }
+html.rw-dark-mode.rw-interface-modern .panel-header { background:linear-gradient(180deg,#1b303a,#182832); border-color:#365365; }
+html.rw-dark-mode.rw-interface-modern .secondary-button,html.rw-dark-mode.rw-interface-modern .care-secondary-button { background:#1a2b35; color:#c8d9e2; border-color:#405d6d; }
+html.rw-dark-mode.rw-interface-modern .segmented-setting { background:#111f27; }
+html.rw-dark-mode.rw-interface-modern .segmented-setting button.selected { background:#203744; color:#d6eaf5; }
+html.rw-dark-mode.rw-interface-modern .care-workspace-heading { background:linear-gradient(135deg,#172832,#142129); border-color:#365668; box-shadow:0 5px 16px rgba(0,0,0,.15); }
+html.rw-dark-mode.rw-interface-modern .care-stat-grid article,html.rw-dark-mode.rw-interface-modern .care-dashboard-shortcuts>button { background:#142129; border-color:#314d5d; box-shadow:0 4px 12px rgba(0,0,0,.12); }
+
+@media (max-width:900px) {
+  .interface-style-options { grid-template-columns:1fr; }
+  html.rw-interface-modern .global-header { padding:7px 10px; }
+  html.rw-interface-modern .page-pad { padding:12px; }
+}

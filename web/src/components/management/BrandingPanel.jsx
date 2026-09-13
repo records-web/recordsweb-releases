@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Image, Palette, RotateCcw, Save, Trash2, Upload } from 'lucide-react'
+import { Image, LayoutDashboard, Palette, RotateCcw, Save, Trash2, Upload } from 'lucide-react'
 import Panel from '../Panel'
 import { DEFAULT_ORGANISATION_SETTINGS, loadOrganisationSettings, resetOrganisationSettings, saveOrganisationSettings } from '../../lib/organisationSettings'
 import recordsWebIcon from '../../assets/recordsweb-update-logo.png'
@@ -166,6 +166,20 @@ export default function BrandingPanel() {
               </div>
             </label>
           ))}
+        </div>
+
+        <div className="community-interface-style">
+          <div className="community-interface-style-heading">
+            <LayoutDashboard size={18}/>
+            <div>
+              <strong>Default staff interface</strong>
+              <span>Choose the default presentation for this community. Staff can still override it from their own Settings page.</span>
+            </div>
+          </div>
+          <div className="segmented-setting">
+            <button type="button" className={form.defaultInterfaceStyle !== 'modern' ? 'selected' : ''} onClick={() => set('defaultInterfaceStyle', 'classic')}>Classic</button>
+            <button type="button" className={form.defaultInterfaceStyle === 'modern' ? 'selected' : ''} onClick={() => set('defaultInterfaceStyle', 'modern')}>Modern</button>
+          </div>
         </div>
 
         <div className="branding-logo-section">

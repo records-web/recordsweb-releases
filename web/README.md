@@ -1,6 +1,21 @@
 # RecordsWeb
 
-Version **3.6.0** introduces **Shared Care Workspaces**. Active Shared Care links are now resolved as a connected care network, so a chain such as Hospital → GP → Ambulance shares one collaborative workspace without granting unrestricted clinical-record access between indirect partners.
+Version **3.7.0** introduces **Classic / Modern interface styles**. Classic remains the established dense RecordsWeb default, while Modern provides an updated presentation without changing clinical workflows, care-setting behaviour, permissions or the login UI.
+
+## RecordsWeb 3.7.0 — Interface styles
+
+- Per-user **Organisation default / Classic / Modern** interface setting.
+- Community management can choose the default staff interface.
+- Independent **System / Light / Dark** colour mode.
+- Independent **Compact / Standard / Comfortable** workspace density.
+- Modern styling covers Primary Care, Hospital, Ambulance/PHEM and Shared Care workspaces.
+- Classic remains the default for existing and new organisations until management changes it.
+- User preferences are scoped by signed-in user + organisation on the current browser/workstation.
+- Login remains the established RecordsWeb login UI.
+
+Run `supabase/recordsweb-3.7.0-interface-style.sql` after the 3.6.0 Shared Care migration. See `docs/RECORDSWEB-3.7.0-INTERFACE-STYLES.md`.
+
+Version **3.6.0** introduced **Shared Care Workspaces**. Active Shared Care links are now resolved as a connected care network, so a chain such as Hospital → GP → Ambulance shares one collaborative workspace without granting unrestricted clinical-record access between indirect partners.
 
 ## RecordsWeb 3.6.0 — Shared Care Workspaces
 
@@ -71,7 +86,7 @@ Staff login DMs now contain **only the generated RecordsWeb PNG attachment**. Th
 
 # RecordsWeb Web
 
-**Version:** 3.6.0  
+**Version:** 3.7.0  
 **Runtime:** Browser / Vite / React  
 **Deployment:** Multi-organisation
 
