@@ -14,13 +14,17 @@ function saveDemoMessages(rows) {
   window.dispatchEvent(new CustomEvent('recordsweb-demo-screen-message'))
 }
 
-export async function listMessageStaff() {
+export async function listMessageStaff({ organisationIds = [] } = {}) {
   if (!supabaseConfigured) return (await listAccounts()).filter((x) => x.active !== false)
-  const { data, error } = await supabase
+  const cleanIds = [...new Set((organisationIds || []).filter(Boolean))]
+  let query = supabase
     .from('profiles')
-    .select('id,username,title,first_name,last_name,display_name,role,roles,active')
+    .select('id,username,title,first_name,last_name,display_name,role,roles,active,organisation_id,organisations(name, org_code, system_mode)')
     .eq('active', true)
     .order('last_name')
+    .order('first_name')
+  if (cleanIds.length > 0) query = query.in('organisation_id', cleanIds)
+  const { data, error } = await query
   if (error) throw error
   return data || []
 }
@@ -33,8 +37,6 @@ export async function listScreenMessages(recipientId) {
   if (error) throw error
   return data || []
 }
-
-
 
 export async function listScreenMessageAudit() {
   if (!supabaseConfigured) {

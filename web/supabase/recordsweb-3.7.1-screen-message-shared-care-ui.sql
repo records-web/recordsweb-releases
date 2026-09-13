@@ -1,0 +1,8 @@
+-- RecordsWeb 3.7.1
+-- Screen message recipient tab refinement and contrast fixes.
+--
+-- No new database schema changes are required for this release.
+-- The Shared Care recipient tab uses the existing Shared Care workspace tables
+-- introduced in RecordsWeb 3.6.0 and the existing profiles.organisation_id link.
+--
+-- Application update only.

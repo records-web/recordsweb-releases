@@ -5192,3 +5192,132 @@ html.rw-dark-mode.rw-interface-modern .care-stat-grid article,html.rw-dark-mode.
   html.rw-interface-modern .global-header { padding:7px 10px; }
   html.rw-interface-modern .page-pad { padding:12px; }
 }
+
+
+/* RecordsWeb 3.7.1 — screen message recipient tabs and contrast fixes */
+.screen-message-window .primary-button { color: #fff; }
+.screen-message-window .secondary-button,
+.screen-message-window > header button,
+.screen-message-tabs button,
+.recipient-source-tabs button,
+.screen-message-reply-banner button {
+  color: #315b76;
+}
+.recipient-source-tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.recipient-source-tabs button {
+  min-height: 22px;
+  border: 1px solid #9fb8ca;
+  background: #fff;
+  padding: 0 10px;
+  font: 600 9px "Segoe UI", Arial, sans-serif;
+  color: #315b76;
+}
+.recipient-source-tabs button.active {
+  background: #dceeff;
+  border-color: #6da7ce;
+  color: #154a70;
+}
+.recipient-source-tabs button:disabled {
+  opacity: .58;
+  cursor: not-allowed;
+}
+.recipient-bar > strong {
+  min-width: 18px;
+}
+.recipient-bar > span,
+.recipient-bar label,
+.recipient-empty-state,
+.recipient-group > summary,
+.recipient-group > summary span,
+.recipient-group-list small,
+.recipient-list strong,
+.screen-message-compose label,
+.screen-message-reply-banner button {
+  color: inherit;
+}
+.recipient-group {
+  border-bottom: 1px solid #e2ebf0;
+}
+.recipient-group > summary {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 8px;
+  background: #f4f9fc;
+  border-bottom: 1px solid #e2ebf0;
+  cursor: pointer;
+  color: #2f5064;
+}
+.recipient-group > summary::-webkit-details-marker {
+  display: none;
+}
+.recipient-group > summary strong {
+  font-size: 9px;
+}
+.recipient-group > summary span {
+  font-size: 8px;
+  color: #6b8596;
+}
+.recipient-group-list > label {
+  min-height: 28px;
+  display: grid;
+  grid-template-columns: 18px 12px 1fr;
+  align-items: center;
+  padding: 2px 6px;
+  border-bottom: 1px solid #edf1f3;
+  font-size: 9px;
+}
+.recipient-group-list > label:hover {
+  background: #eaf4fb;
+}
+.recipient-group-list strong {
+  display: block;
+  font-size: 9px;
+  font-weight: 600;
+  color: #263f50;
+}
+.recipient-group-list small {
+  display: block;
+  color: #78909d;
+  font-size: 8px;
+}
+.recipient-empty-state {
+  padding: 12px 10px;
+  font-size: 9px;
+  color: #6e8796;
+}
+html.rw-dark-mode .recipient-source-tabs button {
+  background: #1a2933 !important;
+  border-color: #415a68 !important;
+  color: #c7d6de !important;
+}
+html.rw-dark-mode .recipient-source-tabs button.active {
+  background: #24404f !important;
+  color: #e1f2fa !important;
+}
+html.rw-dark-mode .recipient-group,
+html.rw-dark-mode .recipient-group > summary,
+html.rw-dark-mode .recipient-group-list > label {
+  border-color: #334955 !important;
+}
+html.rw-dark-mode .recipient-group > summary {
+  background: #17252f !important;
+  color: #d7e2e8 !important;
+}
+html.rw-dark-mode .recipient-group > summary span,
+html.rw-dark-mode .recipient-empty-state,
+html.rw-dark-mode .recipient-group-list small {
+  color: #9fb5c1 !important;
+}
+html.rw-dark-mode .recipient-group-list strong {
+  color: #ebf5fa !important;
+}
+html.rw-dark-mode .recipient-group-list > label:hover {
+  background: #1d3441 !important;
+}
