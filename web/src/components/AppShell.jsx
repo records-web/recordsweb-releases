@@ -50,6 +50,7 @@ export default function AppShell({ children }) {
   const [organisationSettings, setOrganisationSettings] = useState(() => getCachedOrganisationSettings())
   const organisationName = profile.organisation_name || organisationSettings.organisationName || ORGANISATION.name
   const organisationLocation = profile.organisation_location || organisationSettings.defaultLocation || ORGANISATION.default_location || 'Main Site'
+  const organisationMode = profile.organisation_mode || organisationSettings.systemMode || ORGANISATION.system_mode || 'general_practice'
   const [recordUpdate, setRecordUpdate] = useState(null)
   const [contentRevision, setContentRevision] = useState(0)
   const [patientPeers, setPatientPeers] = useState([])
@@ -232,8 +233,41 @@ export default function AppShell({ children }) {
   }
 
 
+  const ribbonLinks = organisationMode === 'hospital'
+    ? [
+        ['Summary', '/'],
+        ['Care Record', '/patients'],
+        ['Ward Board', '/hospital/ward-board'],
+        ['Admissions', '/hospital/admissions'],
+        ['Discharge', '/hospital/discharge'],
+        ['Work Queue', '/work-queue'],
+        ['Staff Area', '/staff-area'],
+      ]
+    : organisationMode === 'ambulance'
+      ? [
+          ['Summary', '/'],
+          ['Incidents', '/ambulance/incidents'],
+          ['Care Record', '/patients'],
+          ['Handover', '/ambulance/handover'],
+          ['Work Queue', '/work-queue'],
+          ['Staff Area', '/staff-area'],
+        ]
+      : [
+          ['Summary', '/'],
+          ['Care Record', '/patients'],
+          ['Appointments', '/appointments'],
+          ['Registration', '/registration'],
+          ['Staff Area', '/staff-area'],
+        ]
+
+  const worklistLinks = organisationMode === 'hospital'
+    ? [['Ward Board', '/hospital/ward-board'], ['Admissions', '/hospital/admissions'], ['Clinical Work Queue', '/work-queue'], ['Patient Search', '/patients']]
+    : organisationMode === 'ambulance'
+      ? [['Active Incidents', '/ambulance/incidents'], ['Handover', '/ambulance/handover'], ['Clinical Work Queue', '/work-queue'], ['Patient Search', '/patients']]
+      : [['Appointments', '/appointments'], ['Patient Search', '/patients'], ['Registration', '/registration'], ['Staff Area', '/staff-area']]
+
   return (
-    <div className="app-frame">
+    <div className={`app-frame care-mode-${organisationMode}`}>
       <header className="desktop-titlebar">
         <strong>RecordsWeb Health Care System - {organisationName}</strong>
         <div className="titlebar-spacer" />
@@ -241,12 +275,10 @@ export default function AppShell({ children }) {
         <SystemNotificationCenter session={session} />
       </header>
 
-      <div className="ribbon-tabs">
-        <Link className={location.pathname === '/' ? 'active' : ''} to="/">Summary</Link>
-        <Link className={location.pathname.startsWith('/patients') ? 'active' : ''} to="/patients">Care Record</Link>
-        <Link className={location.pathname.startsWith('/appointments') ? 'active' : ''} to="/appointments">Appointments</Link>
-        <Link className={location.pathname.startsWith('/registration') ? 'active' : ''} to="/registration">Registration</Link>
-        <Link className={location.pathname.startsWith('/staff-area') ? 'active' : ''} to="/staff-area">Staff Area</Link>
+      <div className="ribbon-tabs care-mode-ribbon">
+        {ribbonLinks.map(([label, path]) => (
+          <Link key={path} className={path === '/' ? (location.pathname === '/' ? 'active' : '') : (location.pathname.startsWith(path) ? 'active' : '')} to={path}>{label}</Link>
+        ))}
         {profile.is_management && <Link className={location.pathname.startsWith('/management') ? 'active' : ''} to="/management">Management</Link>}
       </div>
 
@@ -269,13 +301,12 @@ export default function AppShell({ children }) {
         </div>
       </header>
 
-      <div className="worklist-strip">
-        <Link to="/appointments">Appointments {settings.showWorklistCounts && <strong>{appointmentCount}</strong>}</Link>
-        <Link to="/patients">Patient Search</Link>
-        <Link to="/registration">Registration</Link>
-        <Link to="/staff-area">Staff Area</Link>
+      <div className="worklist-strip care-mode-worklist">
+        {worklistLinks.map(([label, path]) => (
+          <Link key={path} to={path}>{label}{path === '/appointments' && settings.showWorklistCounts && <strong>{appointmentCount}</strong>}</Link>
+        ))}
         <div className="worklist-spacer" />
-        <span>Organisation: {organisationName}</span>
+        <span>{organisationMode === 'hospital' ? 'Hospital workspace' : organisationMode === 'ambulance' ? 'Ambulance / PHEM workspace' : 'Primary Care workspace'} · {organisationName}</span>
       </div>
 
       {billingAccess.mode === 'grace' && (

@@ -5,8 +5,10 @@ import Panel from '../components/Panel'
 import OrganisationNewsPanel from '../components/home/OrganisationNewsPanel'
 import OrganisationNotepadPanel from '../components/home/OrganisationNotepadPanel'
 import { useAuth } from '../contexts/AuthContext'
+import HospitalWorkspacePage from './HospitalWorkspacePage'
+import AmbulanceWorkspacePage from './AmbulanceWorkspacePage'
 
-export default function HomePage() {
+function PrimaryCareHome() {
   const navigate = useNavigate()
   const { session } = useAuth()
   const profile = session?.profile || {}
@@ -34,4 +36,12 @@ export default function HomePage() {
       <OrganisationNewsPanel />
     </div>
   )
+}
+
+export default function HomePage() {
+  const { session } = useAuth()
+  const mode = session?.profile?.organisation_mode || 'general_practice'
+  if (mode === 'hospital') return <HospitalWorkspacePage view="dashboard" />
+  if (mode === 'ambulance') return <AmbulanceWorkspacePage view="dashboard" />
+  return <PrimaryCareHome />
 }

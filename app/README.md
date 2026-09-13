@@ -1,5 +1,11 @@
 # RecordsWeb
 
+## RecordsWeb 3.5.0 — Care-Specific Workspaces + Shared Care 2.0
+
+Version 3.5.0 adds dedicated Hospital and Ambulance / PHEM workspaces, a cross-setting Clinical Work Queue, Shared Care transfer-of-care workflows and a Light / Dark toggle on the public home page. Primary Care keeps the existing RecordsWeb interface and the login page remains unchanged for every community type.
+
+Before using the new operational workspaces with Supabase, run `supabase/recordsweb-3.5.0-care-workspaces.sql`. See `docs/RECORDSWEB-3.5.0-CARE-WORKSPACES.md` for the release notes.
+
 ## RecordsWeb 3.4.3 — dense Problems record + image-only Discord login DMs
 
 ### 3.4.3 Problems layout and 3.4.2 login-DM change

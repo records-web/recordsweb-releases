@@ -4603,3 +4603,196 @@ html.rw-dark-mode .problems-summary-row em { color:#a9bdc6 !important; }
   .emis-problem-name { white-space:normal; }
   .emis-problem-significance { font-size:9px; }
 }
+
+/* RecordsWeb 3.5.0 — care-specific workspaces + Shared Care 2.0 */
+.public-theme-toggle { display:inline-flex; align-items:center; gap:6px; }
+.public-home.public-theme-dark { background:#10181e; color:#d8e5ed; }
+.public-home.public-theme-dark .public-home-header { background:linear-gradient(#1c2a34,#15232c); border-color:#356582; }
+.public-home.public-theme-dark .public-home-brand > span { color:#8da5b4; }
+.public-home.public-theme-dark .public-home-header nav button,
+.public-home.public-theme-dark .public-secondary { background:#17242d; border-color:#3d5d70; color:#bdd1dd; }
+.public-home.public-theme-dark .public-home-header .public-staff-button,
+.public-home.public-theme-dark .public-primary { background:#116da5; border-color:#2d82b3; color:#fff; }
+.public-home.public-theme-dark .public-hero,
+.public-home.public-theme-dark .public-section { border-color:#355364; }
+.public-home.public-theme-dark .public-hero-copy h1,
+.public-home.public-theme-dark .public-section-heading h2,
+.public-home.public-theme-dark .public-request-intro h2 { color:#dcebf3; }
+.public-home.public-theme-dark .public-hero-copy>p,
+.public-home.public-theme-dark .public-section-heading p,
+.public-home.public-theme-dark .public-request-intro>p { color:#98adba; }
+.public-home.public-theme-dark .public-hero-panel,
+.public-home.public-theme-dark .public-feature-grid article,
+.public-home.public-theme-dark .public-mode-grid article,
+.public-home.public-theme-dark .public-request-form { background:#121e25; border-color:#39596b; box-shadow:none; }
+.public-home.public-theme-dark .public-panel-title { background:#182b35; border-color:#39596b; color:#cfe1eb; }
+.public-home.public-theme-dark .public-org-example { border-color:#304d5d; }
+.public-home.public-theme-dark .public-org-example span,
+.public-home.public-theme-dark .public-hero-panel>p,
+.public-home.public-theme-dark .public-feature-grid p,
+.public-home.public-theme-dark .public-mode-grid p { color:#93aab7; }
+.public-home.public-theme-dark .public-feature-grid strong,
+.public-home.public-theme-dark .public-mode-grid strong,
+.public-home.public-theme-dark .public-process-row strong { color:#c7dce7; }
+.public-home.public-theme-dark .public-mode-icon { background:#182e39; border-color:#36596c; color:#79bce2; }
+.public-home.public-theme-dark .public-process-row>div { background:#132029; border-color:#355566; }
+.public-home.public-theme-dark .public-request-form input,
+.public-home.public-theme-dark .public-request-form select,
+.public-home.public-theme-dark .public-request-form textarea { background:#0f1a21; color:#dcebf3; border-color:#3a596a; }
+.public-home.public-theme-dark .public-home-footer { background:#14242d; border-color:#35586e; color:#a8bfcd; }
+
+.care-mode-hospital .ribbon-tabs { border-bottom-color:#2b7084; }
+.care-mode-ambulance .ribbon-tabs { border-bottom-color:#a25c1a; }
+.care-workspace { display:flex; flex-direction:column; gap:12px; min-height:100%; }
+.care-workspace-heading { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; padding:14px 16px; border:1px solid var(--panel-border,#7c969f); background:var(--panel-bg,#f8fbfc); }
+.care-workspace-heading>div:first-child>span { display:block; color:#247ca8; font-size:9px; letter-spacing:.14em; font-weight:800; margin-bottom:5px; }
+.care-workspace-ambulance .care-workspace-heading>div:first-child>span { color:#bd6a18; }
+.care-workspace-heading h1 { margin:0; font-size:22px; color:var(--text-strong,#173548); }
+.care-workspace-heading p { margin:5px 0 0; color:var(--text-muted,#607887); font-size:11px; }
+.care-heading-actions { display:flex; gap:7px; align-items:center; flex-wrap:wrap; }
+.care-heading-actions button { display:inline-flex; align-items:center; gap:6px; min-height:30px; padding:0 10px; }
+.care-stat-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+.care-stat-grid article { min-height:76px; display:flex; align-items:center; gap:12px; padding:12px 14px; border:1px solid var(--panel-border,#9ab0ba); background:var(--panel-bg,#fff); }
+.care-stat-grid article>svg { color:#247ca8; }
+.ambulance-stats article>svg { color:#b9671d; }
+.care-stat-grid strong { display:block; font-size:24px; line-height:1; color:var(--text-strong,#173548); }
+.care-stat-grid span { display:block; margin-top:5px; font-size:10px; color:var(--text-muted,#627987); }
+.care-dashboard-shortcuts { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:8px; }
+.care-dashboard-shortcuts>button { min-height:84px; display:grid; grid-template-columns:auto 1fr; grid-template-rows:auto auto; gap:3px 9px; text-align:left; padding:13px; border:1px solid var(--panel-border,#91aab5); background:var(--panel-bg,#fff); color:inherit; }
+.care-dashboard-shortcuts>button svg { grid-row:1/3; color:#247ca8; margin-top:2px; }
+.ambulance-shortcuts>button svg { color:#b9671d; }
+.care-dashboard-shortcuts strong { font-size:12px; color:var(--text-strong,#173548); }
+.care-dashboard-shortcuts span { font-size:9.5px; color:var(--text-muted,#667c89); line-height:1.35; }
+.care-inline-form { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:10px; padding:10px; }
+.care-inline-form label,.ambulance-handover-grid label { display:flex; flex-direction:column; gap:4px; }
+.care-inline-form label>span,.ambulance-handover-grid label>span { font-size:9px; color:var(--text-muted,#667c89); font-weight:700; }
+.care-inline-form input,.care-inline-form select,.ambulance-handover-grid input { min-height:32px; border:1px solid var(--input-border,#879ca5); background:var(--input-bg,#fff); color:var(--text-strong,#173548); padding:0 8px; }
+.care-form-actions { grid-column:1/-1; display:flex; justify-content:flex-end; gap:7px; }
+.care-form-actions button { min-height:30px; padding:0 12px; }
+.hospital-ward-board { display:flex; flex-direction:column; }
+.hospital-board-head,.hospital-board-row { display:grid; grid-template-columns:72px minmax(170px,1.1fr) minmax(220px,1.4fr) minmax(130px,.8fr) 145px minmax(150px,.8fr); align-items:center; column-gap:8px; }
+.hospital-board-head { min-height:31px; padding:0 9px; background:var(--table-head,#e7eff3); border-bottom:1px solid var(--panel-border,#9fb1b8); color:var(--text-muted,#526b78); font-size:9px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; }
+.hospital-board-row { min-height:58px; padding:7px 9px; border-bottom:1px solid var(--line,#d4e0e5); font-size:10.5px; }
+.hospital-board-row:last-child { border-bottom:0; }
+.hospital-board-row>strong { font-size:12px; color:#25799d; }
+.hospital-board-row small { display:block; margin-top:3px; color:var(--text-muted,#6a7f89); font-size:9px; }
+.hospital-board-row select { min-height:28px; background:var(--input-bg,#fff); color:inherit; border:1px solid var(--input-border,#8ba2ad); }
+.care-patient-link { border:0; background:transparent; text-align:left; color:var(--text-strong,#173548); padding:0; cursor:pointer; font-weight:700; }
+.care-row-actions { display:flex; gap:5px; flex-wrap:wrap; }
+.care-row-actions button { min-height:27px; display:inline-flex; align-items:center; gap:4px; padding:0 7px; font-size:9px; }
+.ambulance-incident-layout { display:grid; grid-template-columns:minmax(250px,.78fr) minmax(0,1.6fr); gap:10px; align-items:start; }
+.ambulance-incident-list { display:flex; flex-direction:column; gap:5px; padding:7px; max-height:580px; overflow:auto; }
+.ambulance-incident-list>button { position:relative; display:flex; flex-direction:column; gap:3px; text-align:left; padding:10px 11px; border:1px solid var(--panel-border,#9cb0b8); background:var(--panel-bg,#fff); color:inherit; }
+.ambulance-incident-list>button.active { border-color:#c66b17; box-shadow:inset 3px 0 #d87a20; }
+.ambulance-incident-list>button>div { display:flex; justify-content:space-between; gap:10px; }
+.ambulance-incident-list strong { color:#b86112; }
+.ambulance-incident-list b { font-size:11px; }
+.ambulance-incident-list small { color:var(--text-muted,#687d88); }
+.incident-status { margin-top:4px; width:max-content; padding:2px 6px; border:1px solid #b98455; color:#a45610; text-transform:uppercase; font-size:8px; letter-spacing:.05em; }
+.epcr-card { padding:11px; }
+.epcr-header { display:flex; justify-content:space-between; gap:12px; border-bottom:1px solid var(--line,#d6e0e4); padding-bottom:10px; }
+.epcr-header span { color:#b86112; font-size:9px; font-weight:800; letter-spacing:.06em; }
+.epcr-header h2 { margin:3px 0; font-size:17px; }
+.epcr-header p { margin:0; color:var(--text-muted,#637985); font-size:10px; }
+.epcr-header select { min-width:135px; align-self:start; min-height:30px; background:var(--input-bg,#fff); color:inherit; border:1px solid var(--input-border,#91a6af); }
+.epcr-section { margin-top:11px; border:1px solid var(--panel-border,#a5b6bd); }
+.epcr-section>header { display:flex; justify-content:space-between; padding:8px 10px; background:var(--table-head,#edf3f5); }
+.epcr-section>header strong { font-size:11px; }
+.epcr-section>header span { font-size:9px; color:var(--text-muted,#627781); }
+.epcr-observation-table>div { display:grid; grid-template-columns:80px repeat(5,1fr); min-height:28px; align-items:center; padding:0 9px; border-top:1px solid var(--line,#dbe3e7); font-size:9.5px; }
+.epcr-observation-form { display:grid; grid-template-columns:repeat(5,1fr) auto; gap:6px; padding:8px; border-top:1px solid var(--line,#dbe3e7); }
+.epcr-observation-form label { display:flex; flex-direction:column; gap:2px; }
+.epcr-observation-form label span { font-size:8px; color:var(--text-muted,#657983); }
+.epcr-observation-form input { min-width:0; height:28px; border:1px solid var(--input-border,#91a6af); background:var(--input-bg,#fff); color:inherit; padding:0 6px; }
+.epcr-treatment-list>div { display:grid; grid-template-columns:78px 1fr; padding:7px 9px; border-top:1px solid var(--line,#dbe3e7); font-size:9.5px; }
+.epcr-treatment-list time { color:var(--text-muted,#667d89); }
+.epcr-treatment-form { display:flex; gap:6px; padding:8px; border-top:1px solid var(--line,#dbe3e7); }
+.epcr-treatment-form input { flex:1; min-height:30px; border:1px solid var(--input-border,#91a6af); background:var(--input-bg,#fff); color:inherit; padding:0 7px; }
+.ambulance-handover-list { display:grid; gap:8px; padding:8px; }
+.ambulance-handover-list article { border:1px solid var(--panel-border,#9fb1b8); padding:10px; }
+.ambulance-handover-list article>header { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; }
+.ambulance-handover-list article>header div span { display:block; color:var(--text-muted,#657b87); margin-top:3px; font-size:9px; }
+.ambulance-handover-grid { display:grid; grid-template-columns:2fr 1fr; gap:8px; margin:9px 0; }
+.care-priority { display:inline-flex; width:max-content; align-items:center; padding:3px 7px; border:1px solid #7a919d; text-transform:uppercase; font-size:8px; font-weight:800; letter-spacing:.04em; }
+.priority-c1,.priority-immediate { border-color:#bb3131; color:#a52222; background:rgba(190,45,45,.08); }
+.priority-c2,.priority-urgent { border-color:#c07822; color:#a25c13; background:rgba(192,120,34,.08); }
+.care-work-list { display:flex; flex-direction:column; }
+.care-work-list article { display:grid; grid-template-columns:90px minmax(220px,1fr) 180px minmax(150px,auto); gap:10px; align-items:center; min-height:58px; padding:8px 10px; border-bottom:1px solid var(--line,#d8e1e5); }
+.care-work-list article.completed { opacity:.62; }
+.care-work-list article.overdue { box-shadow:inset 3px 0 #b63d3d; }
+.care-work-main>span { display:block; color:#247ca8; font-size:8px; font-weight:800; text-transform:uppercase; }
+.care-work-main strong { display:block; margin-top:2px; font-size:11px; }
+.care-work-main small,.care-work-meta span { display:block; margin-top:3px; color:var(--text-muted,#687d88); font-size:9px; }
+.care-work-meta b { display:block; margin-top:3px; font-size:8px; text-transform:uppercase; }
+.care-inline-check { display:flex; align-items:center; gap:5px; font-size:9px; }
+
+.shared-care-v2 .shared-care-patient-intro { align-items:center; }
+.shared-care-network { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:7px; padding:8px; }
+.shared-care-network article { display:flex; align-items:flex-start; gap:9px; padding:10px; border:1px solid var(--panel-border,#9fb2ba); background:var(--panel-bg,#fff); }
+.shared-care-network article.local { border-color:#247ca8; }
+.shared-care-network-icon { width:34px; height:34px; display:grid; place-items:center; color:#247ca8; background:rgba(36,124,168,.08); border:1px solid rgba(36,124,168,.35); }
+.shared-care-network article span { display:block; color:#247ca8; font-size:7.5px; font-weight:900; letter-spacing:.08em; }
+.shared-care-network article strong { display:block; margin-top:3px; font-size:10.5px; }
+.shared-care-network article small { display:block; margin-top:3px; color:var(--text-muted,#677d88); font-size:8.5px; }
+.shared-care-transfer-form { display:grid; grid-template-columns:1fr 1fr; gap:9px; padding:10px; }
+.shared-care-transfer-form label { display:flex; flex-direction:column; gap:4px; }
+.shared-care-transfer-form label>span { color:var(--text-muted,#637986); font-size:9px; font-weight:700; }
+.shared-care-transfer-form select,.shared-care-transfer-form textarea { border:1px solid var(--input-border,#8da2ac); background:var(--input-bg,#fff); color:inherit; padding:7px; }
+.shared-care-transfer-summary { grid-column:1/-1; }
+.shared-care-transfer-list { display:flex; flex-direction:column; }
+.shared-care-transfer-list article { display:grid; grid-template-columns:76px minmax(0,1fr) auto; gap:10px; align-items:center; padding:9px 10px; border-bottom:1px solid var(--line,#dae3e7); }
+.transfer-direction { font-size:8px; font-weight:900; letter-spacing:.06em; color:#247ca8; }
+.transfer-direction.inbound { color:#23814e; }
+.shared-care-transfer-list strong { text-transform:capitalize; font-size:10.5px; }
+.shared-care-transfer-list p { margin:4px 0; font-size:9.5px; line-height:1.45; }
+.shared-care-transfer-list small { color:var(--text-muted,#667c88); font-size:8.5px; }
+.shared-care-source-banner { position:relative; }
+.shared-care-provenance-badge { margin-left:auto; padding:3px 7px; border:1px solid currentColor; font-size:7.5px; font-weight:900; letter-spacing:.06em; opacity:.8; }
+.shared-care-record-section>header .shared-care-section-meta { display:flex; align-items:center; gap:8px; }
+.shared-care-record-section>header .shared-care-section-meta small { color:var(--text-muted,#6a7f89); font-size:7.5px; font-weight:500; }
+
+html.rw-dark-mode .care-workspace-heading,
+html.rw-dark-mode .care-stat-grid article,
+html.rw-dark-mode .care-dashboard-shortcuts>button,
+html.rw-dark-mode .ambulance-incident-list>button,
+html.rw-dark-mode .shared-care-network article { background:#111d24; border-color:#385564; }
+html.rw-dark-mode .care-workspace-heading h1,
+html.rw-dark-mode .care-stat-grid strong,
+html.rw-dark-mode .care-dashboard-shortcuts strong,
+html.rw-dark-mode .care-patient-link { color:#d9e8ef; }
+html.rw-dark-mode .hospital-board-head,
+html.rw-dark-mode .epcr-section>header { background:#182831; }
+html.rw-dark-mode .hospital-board-row,
+html.rw-dark-mode .care-work-list article,
+html.rw-dark-mode .shared-care-transfer-list article,
+html.rw-dark-mode .epcr-observation-table>div,
+html.rw-dark-mode .epcr-treatment-list>div { border-color:#2e4652; }
+html.rw-dark-mode .care-inline-form input,
+html.rw-dark-mode .care-inline-form select,
+html.rw-dark-mode .hospital-board-row select,
+html.rw-dark-mode .epcr-header select,
+html.rw-dark-mode .epcr-observation-form input,
+html.rw-dark-mode .epcr-treatment-form input,
+html.rw-dark-mode .ambulance-handover-grid input,
+html.rw-dark-mode .shared-care-transfer-form select,
+html.rw-dark-mode .shared-care-transfer-form textarea { background:#0d171d; color:#d9e8ef; border-color:#3d5967; }
+
+@media (max-width:1100px) {
+  .care-stat-grid,.care-dashboard-shortcuts { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .hospital-board-head { display:none; }
+  .hospital-board-row { grid-template-columns:60px 1fr 1.2fr; row-gap:7px; }
+  .hospital-board-row>select,.hospital-board-row>.care-row-actions,.hospital-board-row>span { grid-column:auto; }
+  .ambulance-incident-layout { grid-template-columns:1fr; }
+  .care-work-list article { grid-template-columns:80px 1fr; }
+  .care-work-meta,.care-work-list article>.care-row-actions { grid-column:2; }
+}
+@media (max-width:700px) {
+  .care-workspace-heading { flex-direction:column; }
+  .care-stat-grid,.care-dashboard-shortcuts,.care-inline-form,.shared-care-transfer-form { grid-template-columns:1fr; }
+  .shared-care-transfer-summary,.care-form-actions { grid-column:auto; }
+  .hospital-board-row { grid-template-columns:1fr; }
+  .epcr-observation-form { grid-template-columns:repeat(2,1fr); }
+  .epcr-observation-table { overflow-x:auto; }
+  .epcr-observation-table>div { min-width:520px; }
+  .shared-care-transfer-list article { grid-template-columns:1fr; }
+}

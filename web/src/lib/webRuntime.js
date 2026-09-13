@@ -1,7 +1,7 @@
 export const APP_VERSION =
   typeof __RECORDSWEB_APP_VERSION__ !== 'undefined'
     ? __RECORDSWEB_APP_VERSION__
-    : '3.4.4'
+    : '3.5.0'
 export const APP_RUNTIME_LABEL = 'Web Clinical System'
 
 export function getWebDeviceContext() {

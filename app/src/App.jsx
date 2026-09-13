@@ -20,6 +20,9 @@ import ManagementPage from './pages/ManagementPage'
 import SecurityPage from './pages/SecurityPage'
 import SettingsPage from './pages/SettingsPage'
 import SharedCarePatientPage from './pages/SharedCarePatientPage'
+import HospitalWorkspacePage from './pages/HospitalWorkspacePage'
+import AmbulanceWorkspacePage from './pages/AmbulanceWorkspacePage'
+import CareWorkQueuePage from './pages/CareWorkQueuePage'
 import AppShell from './components/AppShell'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import UpdateGate from './components/update/UpdateGate'
@@ -66,6 +69,12 @@ export default function App() {
                 <Route path="patients/:patientId/documents" element={<DocumentsPage />} />
                 <Route path="patients/:patientId/referrals" element={<ReferralsPage />} />
             <Route path="patients/:patientId/shared-care" element={<SharedCarePatientPage />} />
+            <Route path="hospital/ward-board" element={<HospitalWorkspacePage view="ward" />} />
+            <Route path="hospital/admissions" element={<HospitalWorkspacePage view="admissions" />} />
+            <Route path="hospital/discharge" element={<HospitalWorkspacePage view="discharge" />} />
+            <Route path="ambulance/incidents" element={<AmbulanceWorkspacePage view="incidents" />} />
+            <Route path="ambulance/handover" element={<AmbulanceWorkspacePage view="handover" />} />
+            <Route path="work-queue" element={<CareWorkQueuePage />} />
                 <Route path="appointments" element={<AppointmentBookPage />} />
                 <Route path="registration" element={<RegistrationPage />} />
                 <Route path="staff-area" element={<StaffAreaPage />} />

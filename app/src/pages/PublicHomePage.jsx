@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Ambulance, ArrowRight, Building2, CalendarDays, CheckCircle2, ClipboardList, FileText, Gamepad2, Handshake, Hospital, ImagePlus, LockKeyhole, Mail, Pill, Search, Send, Stethoscope, Users } from 'lucide-react'
+import { Ambulance, ArrowRight, Building2, CalendarDays, CheckCircle2, ClipboardList, FileText, Gamepad2, Handshake, Hospital, ImagePlus, LockKeyhole, Mail, Moon, Pill, Search, Send, Stethoscope, Sun, Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import recordsWebWordmark from '../assets/RW-Logo.png'
 import { submitRecordsWebAccessRequest } from '../lib/accessRequestService'
@@ -27,17 +27,27 @@ const FEATURES = [
   [CalendarDays, 'Appointments', 'Manage appointment books, arrival states and live waiting-time information.'],
   [LockKeyhole, 'Organisation isolation', 'Each approved community receives its own @XX.XX namespace and protected data boundary.'],
   [Gamepad2, 'Roblox bridge', 'Optionally connect the community to its Roblox experience for live waiting-room patient calls.'],
-  [Handshake, 'Shared Care', 'Link approved RecordsWeb communities so matched patients can be viewed across GP, hospital and ambulance services with directional permissions and audit logging.'],
+  [Handshake, 'Shared Care', 'Connect GP, hospital and ambulance communities with source provenance, linked patient records and structured transfer-of-care workflows.'],
 ]
 
 export default function PublicHomePage() {
   const navigate = useNavigate()
+  const [publicTheme, setPublicTheme] = useState(() => localStorage.getItem('recordsweb-public-theme') || (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'))
   useEffect(() => {
     applyRecordsWebProductBrand()
+    const hadDarkClass = document.documentElement.classList.contains('rw-dark-mode')
+    document.documentElement.classList.remove('rw-dark-mode')
     if (window.location.hash === '#request-access') {
       window.setTimeout(() => document.getElementById('request-access')?.scrollIntoView({ behavior: 'smooth' }), 0)
     }
+    return () => { if (hadDarkClass) document.documentElement.classList.add('rw-dark-mode') }
   }, [])
+
+  function togglePublicTheme() {
+    const next = publicTheme === 'dark' ? 'light' : 'dark'
+    setPublicTheme(next)
+    localStorage.setItem('recordsweb-public-theme', next)
+  }
   const requestSectionRef = useRef(null)
   const formRef = useRef(null)
   const [form, setForm] = useState(INITIAL_FORM)
@@ -74,7 +84,7 @@ export default function PublicHomePage() {
   }
 
   return (
-    <div className="public-home">
+    <div className={`public-home public-theme-${publicTheme}`}>
       <header className="public-home-header">
         <div className="public-home-brand">
           <img className="public-home-wordmark" src={recordsWebWordmark} alt="RecordsWeb" />
@@ -84,6 +94,7 @@ export default function PublicHomePage() {
           <button type="button" onClick={() => navigate('/pricing')}>Pricing</button>
           <button type="button" onClick={() => navigate('/status')}>Status</button>
           <button type="button" onClick={() => requestSectionRef.current?.scrollIntoView({ behavior: 'smooth' })}>Request access</button>
+          <button type="button" className="public-theme-toggle" onClick={togglePublicTheme} title={`Switch to ${publicTheme === 'dark' ? 'light' : 'dark'} mode`} aria-label={`Switch to ${publicTheme === 'dark' ? 'light' : 'dark'} mode`}>{publicTheme === 'dark' ? <Sun size={15}/> : <Moon size={15}/>}<span>{publicTheme === 'dark' ? 'Light' : 'Dark'}</span></button>
           <button type="button" className="public-staff-button" onClick={() => navigate('/login')}>Staff sign in <ArrowRight size={15}/></button>
         </nav>
       </header>
@@ -122,8 +133,8 @@ export default function PublicHomePage() {
           <div className="public-section-heading"><span>DEPLOYMENT MODES</span><h2>Configured around the organisation</h2></div>
           <div className="public-mode-grid">
             <article><div className="public-mode-icon"><Stethoscope size={23}/></div><div><strong>Primary Care (GP)</strong><p>For general practice and primary care organisations using RecordsWeb for consultations, medication, documents, appointments, registration, investigations, referrals and staff administration.</p></div></article>
-            <article><div className="public-mode-icon"><Hospital size={23}/></div><div><strong>Secondary Care (Hospital)</strong><p>For hospital and secondary care organisations using a RecordsWeb environment configured for hospital-based services, departments and future secondary-care modules.</p></div></article>
-            <article><div className="public-mode-icon"><Ambulance size={23}/></div><div><strong>Ambulance / PHEM</strong><p>For ambulance and pre-hospital emergency medicine communities, with Shared Care connectivity to linked GP and hospital RecordsWeb environments.</p></div></article>
+            <article><div className="public-mode-icon"><Hospital size={23}/></div><div><strong>Secondary Care (Hospital)</strong><p>Episode-first hospital workspace with Ward Board, admissions, clinical work queues, discharge and Shared Care transfer-of-care workflows.</p></div></article>
+            <article><div className="public-mode-icon"><Ambulance size={23}/></div><div><strong>Ambulance / PHEM</strong><p>Incident-first ambulance / PHEM workspace with active incidents, ePCR observations and treatment, conveyance, handover and Shared Care pre-alert workflows.</p></div></article>
           </div>
         </section>
 
