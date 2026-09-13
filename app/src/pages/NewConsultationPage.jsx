@@ -149,6 +149,13 @@ export default function NewConsultationPage() {
 
   async function prescribeFromConsultation(payload, pin) {
     const saved = await createMedication(patientId, { ...payload, authoriser: clinician }, pin)
+    if (saved?.discord_notification?.skipped && saved.discord_notification.reason === 'missing_patient_discord_id') {
+      setError('Prescription issued, but this patient has no Discord ID so no DM was sent.')
+    } else if (saved?.discord_notification?.skipped && saved.discord_notification.reason === 'discord_not_connected') {
+      setError('Prescription issued, but this community has no Discord bot integration configured.')
+    } else if (saved?.discord_notification?.ok === false) {
+      setError(`Prescription issued, but the patient Discord DM failed: ${saved.discord_notification.error || 'Unknown Discord error.'}`)
+    }
     const medication = saved || { ...payload, authoriser: clinician, id: `local-${Date.now()}` }
     setConsultationMedications((current) => {
       if (medication?.id && current.some((row) => row.id === medication.id)) return current

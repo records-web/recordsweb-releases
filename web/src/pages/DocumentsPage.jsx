@@ -8,6 +8,7 @@ import FitNoteModal from '../components/FitNoteModal'
 import DocumentDetailsModal from '../components/DocumentDetailsModal'
 import { createForPatient, getPatient, listForPatient, lockFitNoteDocument, updateForPatient } from '../lib/dataService'
 import { useAuth } from '../contexts/AuthContext'
+import { sendPatientFitNoteDm } from '../lib/discordIntegrationService'
 
 const fields = [
   ['title', 'Document title', 'text'],
@@ -125,6 +126,17 @@ export default function DocumentsPage() {
             await lockFitNoteDocument(createdDocument.id)
           } catch (lockError) {
             issueWarning = `${issueWarning ? `${issueWarning} ` : ''}The fit note could not be locked. Run the v3.1.5 Supabase migration before issuing further fit notes. ${lockError?.message || ''}`.trim()
+          }
+
+          try {
+            const discordResult = await sendPatientFitNoteDm({ patientId, documentId: createdDocument.id })
+            if (discordResult?.skipped && discordResult?.reason === 'missing_patient_discord_id') {
+              issueWarning = `${issueWarning ? `${issueWarning} ` : ''}Fit note issued, but this patient has no Discord ID so no DM was sent.`.trim()
+            } else if (discordResult?.skipped && discordResult?.reason === 'discord_not_connected') {
+              issueWarning = `${issueWarning ? `${issueWarning} ` : ''}Fit note issued, but this community has no Discord bot integration configured.`.trim()
+            }
+          } catch (discordError) {
+            issueWarning = `${issueWarning ? `${issueWarning} ` : ''}Fit note issued, but the Discord DM failed: ${discordError?.message || 'Unknown Discord error.'}`.trim()
           }
         }
 

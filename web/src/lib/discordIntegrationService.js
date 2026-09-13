@@ -56,6 +56,24 @@ export async function sendDiscordLoginDetails({ userId, temporaryPassword, reset
   })
 }
 
+
+export async function sendPatientPrescriptionDm({ patientId, medicationId, eventType = 'issued' }) {
+  return invokeDiscord({
+    action: 'send-patient-prescription-dm',
+    patient_id: String(patientId || '').trim(),
+    medication_id: String(medicationId || '').trim(),
+    event_type: String(eventType || 'issued').trim(),
+  })
+}
+
+export async function sendPatientFitNoteDm({ patientId, documentId }) {
+  return invokeDiscord({
+    action: 'send-patient-fit-note-dm',
+    patient_id: String(patientId || '').trim(),
+    document_id: String(documentId || '').trim(),
+  })
+}
+
 export async function broadcastDiscordMaintenance({ enabled, message, estimatedEndAt = null, enabledByName = '' }) {
   return invokeDiscord({
     action: 'broadcast-maintenance',

@@ -413,6 +413,42 @@ async function sendMessage(channelId: string, payload: Record<string, unknown>) 
   })
 }
 
+
+function displayDateOnly(value: unknown) {
+  const clean = cleanText(value, 40)
+  if (!clean) return 'Not specified'
+  const date = new Date(`${clean.slice(0, 10)}T12:00:00Z`)
+  if (Number.isNaN(date.getTime())) return clean
+  return new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'UTC' }).format(date)
+}
+
+async function patientDiscordTarget(admin: any, context: any, patientId: string) {
+  if (!patientId) return { error: 'Patient is required.', status: 400 }
+  const { data: patient, error } = await admin
+    .from('patients')
+    .select('id,organisation_id,title,first_name,last_name,discord_user_id')
+    .eq('id', patientId)
+    .eq('organisation_id', context.profile.organisation_id)
+    .maybeSingle()
+  if (error) {
+    if (/discord_user_id|schema cache|column/i.test(error.message || '')) {
+      throw Object.assign(new Error('Patient Discord IDs are not installed in Supabase. Run supabase/recordsweb-3.8.2-patient-discord-dms.sql.'), { status: 500 })
+    }
+    throw error
+  }
+  if (!patient) return { error: 'Patient record not found.', status: 404 }
+  if (!patient.discord_user_id) return { patient, skipped: true, reason: 'missing_patient_discord_id' }
+  return { patient, discordUserId: snowflake(patient.discord_user_id, 'Patient Discord User ID') }
+}
+
+async function sendPatientDm(discordUserId: string, payload: Record<string, unknown>) {
+  const dm = await discordRequest('/users/@me/channels', {
+    method: 'POST',
+    body: JSON.stringify({ recipient_id: discordUserId }),
+  })
+  return sendMessage(String(dm.id), payload)
+}
+
 async function writeAudit(admin: any, caller: any, action: string, entityType: string, entityId: string | null, description: string, metadata: Record<string, unknown> = {}) {
   try {
     await admin.from('audit_log').insert({
@@ -963,6 +999,109 @@ Deno.serve(async (req) => {
       await admin.from('recordsweb_discord_integrations').update({ verified_at: new Date().toISOString(), last_error: null, updated_at: new Date().toISOString() }).eq('organisation_id', context.profile.organisation_id)
       await writeAudit(admin, context.profile, 'discord.integration.test', 'organisation', context.profile.organisation_id, `Sent a RecordsWeb Bot test message to #${integration.channel_name || integration.channel_id}.`)
       return json({ ok: true })
+    }
+
+    if (action === 'send-patient-prescription-dm') {
+      const integration = await getIntegration(admin, context.profile.organisation_id)
+      if (!integration?.guild_id) return json({ ok: true, sent: false, skipped: true, reason: 'discord_not_connected' })
+
+      const patientId = cleanText(body.patient_id, 80)
+      const medicationId = cleanText(body.medication_id, 80)
+      const eventType = cleanText(body.event_type, 40) === 'reauthorised' ? 'reauthorised' : 'issued'
+      if (!patientId || !medicationId) return json({ error: 'Patient and medication are required.' }, 400)
+
+      const target = await patientDiscordTarget(admin, context, patientId)
+      if ((target as any).error) return json({ error: (target as any).error }, Number((target as any).status || 400))
+      if ((target as any).skipped) return json({ ok: true, sent: false, skipped: true, reason: (target as any).reason })
+
+      const { data: medication, error: medicationError } = await admin
+        .from('medications')
+        .select('id,patient_id,name,dose,quantity,usage,authoriser,last_issue_date,form')
+        .eq('id', medicationId)
+        .eq('patient_id', patientId)
+        .maybeSingle()
+      if (medicationError) throw medicationError
+      if (!medication) return json({ error: 'Medication record not found.' }, 404)
+
+      const title = eventType === 'reauthorised' ? 'Prescription re-authorised' : 'Prescription issued'
+      await sendPatientDm(String((target as any).discordUserId), {
+        embeds: [{
+          title,
+          description: eventType === 'reauthorised'
+            ? 'A prescription on your RecordsWeb patient record has been re-authorised.'
+            : 'A new prescription has been issued on your RecordsWeb patient record.',
+          color: 0x0F6FBD,
+          fields: [
+            { name: 'Medication', value: cleanText(medication.name, 1024) || 'Not specified', inline: false },
+            { name: 'Dose', value: cleanText(medication.dose, 1024) || 'Not specified', inline: true },
+            { name: 'Quantity', value: cleanText(medication.quantity, 1024) || 'Not specified', inline: true },
+            { name: 'Directions', value: cleanText(medication.usage, 1024) || 'Not specified', inline: false },
+            { name: 'Issued by', value: cleanText(medication.authoriser, 1024) || 'RecordsWeb clinician', inline: true },
+            { name: 'Issue date', value: displayDateOnly(medication.last_issue_date), inline: true },
+            { name: 'Community', value: `${context.organisation.name} (@${context.organisation.org_code})`, inline: false },
+          ],
+          footer: { text: 'Automated RecordsWeb patient notification · Do not reply to this bot' },
+          timestamp: new Date().toISOString(),
+        }],
+      })
+
+      await writeAudit(admin, context.profile, `patient.discord.prescription.${eventType}`, 'medications', medication.id, `${title} Discord DM sent to patient.`, {
+        patient_id: patientId,
+        discord_user_id: (target as any).discordUserId,
+      })
+      return json({ ok: true, sent: true, recipient_id: (target as any).discordUserId, event_type: eventType })
+    }
+
+    if (action === 'send-patient-fit-note-dm') {
+      const integration = await getIntegration(admin, context.profile.organisation_id)
+      if (!integration?.guild_id) return json({ ok: true, sent: false, skipped: true, reason: 'discord_not_connected' })
+
+      const patientId = cleanText(body.patient_id, 80)
+      const documentId = cleanText(body.document_id, 80)
+      if (!patientId || !documentId) return json({ error: 'Patient and fit note are required.' }, 400)
+
+      const target = await patientDiscordTarget(admin, context, patientId)
+      if ((target as any).error) return json({ error: (target as any).error }, Number((target as any).status || 400))
+      if ((target as any).skipped) return json({ ok: true, sent: false, skipped: true, reason: (target as any).reason })
+
+      const { data: document, error: documentError } = await admin
+        .from('documents')
+        .select('id,patient_id,title,category,document_type,status,date,author,details')
+        .eq('id', documentId)
+        .eq('patient_id', patientId)
+        .maybeSingle()
+      if (documentError) throw documentError
+      if (!document) return json({ error: 'Fit note record not found.' }, 404)
+      if (document.document_type !== 'Fit Note' && document.category !== 'Fit Note') return json({ error: 'The selected document is not a fit note.' }, 400)
+
+      const details = document.details && typeof document.details === 'object' ? document.details : {}
+      const period = details.period_mode === 'duration'
+        ? `${cleanText(details.duration_value, 30) || '—'} ${cleanText(details.duration_unit, 40) || ''}`.trim()
+        : `${displayDateOnly(details.period_from)} to ${displayDateOnly(details.period_to)}`
+
+      await sendPatientDm(String((target as any).discordUserId), {
+        embeds: [{
+          title: 'Fit note issued',
+          description: 'A Statement of Fitness for Work has been issued on your RecordsWeb patient record.',
+          color: 0x0F6FBD,
+          fields: [
+            { name: 'Advice', value: cleanText(details.advice, 1024) || 'Not specified', inline: false },
+            { name: 'Condition(s)', value: cleanText(details.condition, 1024) || 'Not specified', inline: false },
+            { name: 'Period', value: period || 'Not specified', inline: false },
+            { name: 'Statement date', value: displayDateOnly(details.statement_date || document.date), inline: true },
+            { name: 'Issued by', value: cleanText(details.issuer_name || document.author, 1024) || 'RecordsWeb clinician', inline: true },
+            { name: 'Community', value: `${context.organisation.name} (@${context.organisation.org_code})`, inline: false },
+          ],
+          footer: { text: 'ROLEPLAY / SIMULATION ONLY · Automated RecordsWeb patient notification · Do not reply to this bot' },
+          timestamp: new Date().toISOString(),
+        }],
+      })
+
+      await writeAudit(admin, context.profile, 'patient.discord.fit_note.sent', 'documents', document.id, 'Fit note Discord DM sent to patient.', {
+        patient_id: patientId,
+        discord_user_id: (target as any).discordUserId,
+      })
+      return json({ ok: true, sent: true, recipient_id: (target as any).discordUserId })
     }
 
     if (action === 'send-login-dm') {

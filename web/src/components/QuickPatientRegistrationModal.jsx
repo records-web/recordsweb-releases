@@ -13,8 +13,7 @@ export default function QuickPatientRegistrationModal({ mode = 'general_practice
     gender: '',
     usual_gp: '',
     address: '',
-    phone: '',
-    mobile: '',
+    discord_user_id: '',
   })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
@@ -29,10 +28,15 @@ export default function QuickPatientRegistrationModal({ mode = 'general_practice
 
   async function submit(event) {
     event.preventDefault()
-    setSaving(true)
     setError('')
+    const discordUserId = String(form.discord_user_id || '').trim()
+    if (discordUserId && !/^\d{17,20}$/.test(discordUserId)) {
+      setError('Discord ID must be a 17–20 digit Discord User ID.')
+      return
+    }
+    setSaving(true)
     try {
-      const created = await createPatient(form)
+      const created = await createPatient({ ...form, discord_user_id: discordUserId || null })
       onCreated?.(created)
     } catch (err) {
       setError(err?.message || 'Unable to create the patient record.')
@@ -58,8 +62,7 @@ export default function QuickPatientRegistrationModal({ mode = 'general_practice
             <label>Sex<select value={form.sex} onChange={(event) => set('sex', event.target.value)}><option value="">Not recorded</option><option>Female</option><option>Male</option><option>Intersex</option></select></label>
             <label>Gender<input value={form.gender} onChange={(event) => set('gender', event.target.value)} placeholder="Optional" /></label>
             <label className="span-two">Address<textarea value={form.address} onChange={(event) => set('address', event.target.value)} /></label>
-            <label>Telephone<input value={form.phone} onChange={(event) => set('phone', event.target.value)} /></label>
-            <label>Mobile<input value={form.mobile} onChange={(event) => set('mobile', event.target.value)} /></label>
+            <label>Discord ID<input value={form.discord_user_id} onChange={(event) => set('discord_user_id', event.target.value.replace(/\D+/g, '').slice(0, 20))} inputMode="numeric" placeholder="123456789012345678" /><small>Used for automatic RecordsWeb Bot prescription and fit-note DMs.</small></label>
             {mode !== 'ambulance' && <label>Usual GP<input value={form.usual_gp} onChange={(event) => set('usual_gp', event.target.value)} placeholder="Clinician name" /></label>}
           </div>
           <div className="care-patient-generated-note">NHS number and local record number are generated automatically when the patient is created.</div>

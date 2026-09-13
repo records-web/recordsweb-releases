@@ -457,8 +457,16 @@ export default function MedicationPage() {
           onClose={() => setEditing(null)}
           onSave={async (payload, pin) => {
             const cleanPayload = { ...payload, type: normaliseMedicationType(payload.type), authoriser: currentClinician }
-            if (editing.id) await updateMedication(editing.id, patientId, cleanPayload, pin)
-            else await createMedication(patientId, cleanPayload, pin)
+            const saved = editing.id
+              ? await updateMedication(editing.id, patientId, cleanPayload, pin)
+              : await createMedication(patientId, cleanPayload, pin)
+            if (!editing.id && saved?.discord_notification?.skipped && saved.discord_notification.reason === 'missing_patient_discord_id') {
+              setPageError('Prescription issued, but this patient has no Discord ID so no DM was sent.')
+            } else if (!editing.id && saved?.discord_notification?.skipped && saved.discord_notification.reason === 'discord_not_connected') {
+              setPageError('Prescription issued, but this community has no Discord bot integration configured.')
+            } else if (!editing.id && saved?.discord_notification?.ok === false) {
+              setPageError(`Prescription issued, but the patient Discord DM failed: ${saved.discord_notification.error || 'Unknown Discord error.'}`)
+            }
             setEditing(null)
             await load()
           }}
@@ -484,7 +492,14 @@ export default function MedicationPage() {
           isGpPartner={isGpPartner}
           onClose={() => setReauthoriseTarget(null)}
           onConfirm={async (pin) => {
-            await reauthoriseMedication(reauthoriseTarget.id, patientId, pin)
+            const saved = await reauthoriseMedication(reauthoriseTarget.id, patientId, pin)
+            if (saved?.discord_notification?.skipped && saved.discord_notification.reason === 'missing_patient_discord_id') {
+              setPageError('Prescription re-authorised, but this patient has no Discord ID so no DM was sent.')
+            } else if (saved?.discord_notification?.skipped && saved.discord_notification.reason === 'discord_not_connected') {
+              setPageError('Prescription re-authorised, but this community has no Discord bot integration configured.')
+            } else if (saved?.discord_notification?.ok === false) {
+              setPageError(`Prescription re-authorised, but the patient Discord DM failed: ${saved.discord_notification.error || 'Unknown Discord error.'}`)
+            }
             setReauthoriseTarget(null)
             await load()
           }}

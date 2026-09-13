@@ -5,6 +5,7 @@ import { recordDocumentVersion } from './documentVersions'
 import { archiveDeletedRecord } from './deletedItems'
 import { getInstallationNamespace } from './installation'
 import { assertBillingWriteAllowed } from './billingAccess'
+import { sendPatientPrescriptionDm } from './discordIntegrationService'
 
 import {
   demoPatients,
@@ -167,6 +168,10 @@ export async function createPatient(payload) {
       const nhsNumber = generateNhsNumberCandidate()
       const { data, error } = await supabase.from('patients').insert({ status: 'Active', nhs_number: nhsNumber, ...cleanPayload }).select().single()
       if (!error) { created = data; break }
+      const duplicateDetail = `${error.message || ''} ${error.details || ''} ${error.hint || ''}`
+      if (error.code === '23505' && /discord/i.test(duplicateDetail)) {
+        throw new Error('That Discord ID is already linked to another patient in this community.')
+      }
       if (error.code !== '23505') throw error
     }
     if (!created) throw new Error('Unable to generate a unique patient NHS number. Please try again.')
@@ -396,7 +401,16 @@ async function saveMedicationWithPin(patientId, medicationId, payload, pin) {
 }
 
 export async function createMedication(patientId, payload, pin) {
-  return saveMedicationWithPin(patientId, null, payload, pin)
+  const data = await saveMedicationWithPin(patientId, null, payload, pin)
+  if (!supabaseConfigured || !data?.id) return data
+  let discordNotification
+  try {
+    discordNotification = await sendPatientPrescriptionDm({ patientId, medicationId: data.id, eventType: 'issued' })
+  } catch (error) {
+    console.warn('Prescription saved, but the patient Discord DM could not be sent.', error)
+    discordNotification = { ok: false, sent: false, error: error?.message || 'Patient Discord DM failed.' }
+  }
+  return { ...data, discord_notification: discordNotification }
 }
 
 export async function updateMedication(id, patientId, payload, pin) {
@@ -523,7 +537,14 @@ export async function reauthoriseMedication(medicationId, patientId, pin) {
     throw new Error(error.message || 'Unable to re-authorise medication.')
   }
   await recordAudit({ action: 'medication.reauthorised', entityType: 'medications', entityId: medicationId, patientId, description: 'Medication re-authorised after prescribing PIN confirmation.' })
-  return data
+  let discordNotification
+  try {
+    discordNotification = await sendPatientPrescriptionDm({ patientId, medicationId, eventType: 'reauthorised' })
+  } catch (error) {
+    console.warn('Prescription re-authorised, but the patient Discord DM could not be sent.', error)
+    discordNotification = { ok: false, sent: false, error: error?.message || 'Patient Discord DM failed.' }
+  }
+  return data && typeof data === 'object' ? { ...data, discord_notification: discordNotification } : data
 }
 
 export async function listAppointments(date) {
