@@ -239,6 +239,7 @@ export default function AppShell({ children }) {
         ['Ward Board', '/hospital/ward-board'],
         ['Admissions', '/hospital/admissions'],
         ['Patients', '/patients'],
+        ['Shared Care', '/shared-care'],
         ['New Patient', '/registration?returnTo=%2Fhospital%2Fadmissions'],
         ['Clinical Work Queue', '/work-queue'],
         ['Discharge', '/hospital/discharge'],
@@ -249,6 +250,7 @@ export default function AppShell({ children }) {
           ['Operations', '/'],
           ['Active Incidents', '/ambulance/incidents'],
           ['Patients', '/patients'],
+          ['Shared Care', '/shared-care'],
           ['New Patient', '/registration?returnTo=%2Fambulance%2Fincidents'],
           ['Handover', '/ambulance/handover'],
           ['Clinical Work Queue', '/work-queue'],
@@ -257,16 +259,17 @@ export default function AppShell({ children }) {
       : [
           ['Summary', '/'],
           ['Care Record', '/patients'],
+          ['Shared Care', '/shared-care'],
           ['Appointments', '/appointments'],
           ['Registration', '/registration'],
           ['Staff Area', '/staff-area'],
         ]
 
   const worklistLinks = organisationMode === 'hospital'
-    ? [['Ward Board', '/hospital/ward-board'], ['Admissions', '/hospital/admissions'], ['Patients', '/patients'], ['New Patient', '/registration?returnTo=%2Fhospital%2Fadmissions'], ['Clinical Work Queue', '/work-queue']]
+    ? [['Ward Board', '/hospital/ward-board'], ['Admissions', '/hospital/admissions'], ['Patients', '/patients'], ['Shared Care', '/shared-care'], ['New Patient', '/registration?returnTo=%2Fhospital%2Fadmissions'], ['Clinical Work Queue', '/work-queue']]
     : organisationMode === 'ambulance'
-      ? [['Active Incidents', '/ambulance/incidents'], ['Patients', '/patients'], ['New Patient', '/registration?returnTo=%2Fambulance%2Fincidents'], ['Handover', '/ambulance/handover'], ['Clinical Work Queue', '/work-queue']]
-      : [['Appointments', '/appointments'], ['Patient Search', '/patients'], ['Registration', '/registration'], ['Staff Area', '/staff-area']]
+      ? [['Active Incidents', '/ambulance/incidents'], ['Patients', '/patients'], ['Shared Care', '/shared-care'], ['New Patient', '/registration?returnTo=%2Fambulance%2Fincidents'], ['Handover', '/ambulance/handover'], ['Clinical Work Queue', '/work-queue']]
+      : [['Appointments', '/appointments'], ['Patient Search', '/patients'], ['Shared Care', '/shared-care'], ['Registration', '/registration'], ['Staff Area', '/staff-area']]
 
   return (
     <div className={`app-frame care-mode-${organisationMode}`}>

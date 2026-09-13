@@ -28,6 +28,7 @@ import ManagementPage from './pages/ManagementPage'
 import SecurityPage from './pages/SecurityPage'
 import SettingsPage from './pages/SettingsPage'
 import SharedCarePatientPage from './pages/SharedCarePatientPage'
+import SharedCareWorkspacePage from './pages/SharedCareWorkspacePage'
 import HospitalWorkspacePage from './pages/HospitalWorkspacePage'
 import AmbulanceWorkspacePage from './pages/AmbulanceWorkspacePage'
 import CareWorkQueuePage from './pages/CareWorkQueuePage'
@@ -90,6 +91,7 @@ function StaffRoutes() {
             <Route path="patients/:patientId/documents" element={<DocumentsPage />} />
             <Route path="patients/:patientId/referrals" element={<ReferralsPage />} />
             <Route path="patients/:patientId/shared-care" element={<SharedCarePatientPage />} />
+            <Route path="shared-care" element={<SharedCareWorkspacePage />} />
             <Route path="hospital/ward-board" element={<HospitalWorkspacePage view="ward" />} />
             <Route path="hospital/admissions" element={<HospitalWorkspacePage view="admissions" />} />
             <Route path="hospital/discharge" element={<HospitalWorkspacePage view="discharge" />} />

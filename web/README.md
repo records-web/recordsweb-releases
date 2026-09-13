@@ -1,5 +1,29 @@
 # RecordsWeb
 
+Version **3.6.0** introduces **Shared Care Workspaces**. Active Shared Care links are now resolved as a connected care network, so a chain such as Hospital → GP → Ambulance shares one collaborative workspace without granting unrestricted clinical-record access between indirect partners.
+
+## RecordsWeb 3.6.0 — Shared Care Workspaces
+
+- One automatically merged workspace for each connected Shared Care network.
+- Workspace-wide staff discussion with organisation and role provenance.
+- Patient-specific discussion threads shared across every linked copy of the patient in the care chain.
+- Unified Clinical Timeline combining the local record, directly permitted partner records, Shared Care clinical updates, tasks and handovers.
+- Cross-organisation Clinical Work Queue with assign, accept, complete and cancel states.
+- Structured transfer-of-care workflow with **Sent → Received → Viewed → Acknowledged → Actioned** tracking.
+- Shared Care work is surfaced in the organisation's normal Clinical Work Queue.
+- Network membership and chain visualisation show GP, Hospital and Ambulance/PHEM communities working in one workspace.
+- Direct-link permissions remain authoritative for detailed clinical data; joining the workspace does not silently grant indirect access to another organisation's full record.
+
+Run `supabase/recordsweb-3.6.0-shared-care-workspaces.sql` after the existing 3.5.0 care-workspace migration. See `docs/RECORDSWEB-3.6.0-SHARED-CARE-WORKSPACES.md`.
+
+## RecordsWeb 3.5.1 — Care Workspace Patient Workflow Polish
+
+Version 3.5.1 improved the Hospital and Ambulance / PHEM workspaces with care-specific patient navigation, inline patient creation and corrected dark-mode button contrast. Primary Care remains unchanged.
+
+## RecordsWeb 3.5.0 — Care-specific workspaces
+
+Version 3.5.0 added dedicated Hospital and Ambulance / PHEM workspaces, a cross-setting Clinical Work Queue, Shared Care transfer-of-care workflows and a Light / Dark toggle on the public home page. The login page remains unchanged for every community type.
+
 ## RecordsWeb 3.4.3 — dense Problems record + image-only Discord login DMs
 
 ### 3.4.3 Problems layout and 3.4.2 login-DM change
@@ -47,7 +71,7 @@ Staff login DMs now contain **only the generated RecordsWeb PNG attachment**. Th
 
 # RecordsWeb Web
 
-**Version:** 3.4.3  
+**Version:** 3.6.0  
 **Runtime:** Browser / Vite / React  
 **Deployment:** Multi-organisation
 

@@ -5,6 +5,7 @@ import Panel from '../components/Panel'
 import { useAuth } from '../contexts/AuthContext'
 import { listPatients } from '../lib/dataService'
 import { careModeLabel, createCareWorkItem, listCareWorkItems, updateCareWorkItem } from '../lib/careWorkspaceService'
+import { getSharedCareWorkspaceOverview, listSharedCareWorkspaceTasks, updateSharedCareWorkspaceTaskStatus } from '../lib/sharedCareService'
 
 const MODE_CATEGORIES = {
   general_practice: ['Results review', 'Document', 'Medication request', 'Follow-up', 'Admin task'],
@@ -22,13 +23,23 @@ export default function CareWorkQueuePage() {
   const [error, setError] = useState('')
   const [showCompleted, setShowCompleted] = useState(false)
   const [showForm, setShowForm] = useState(false)
+  const [sharedOverview, setSharedOverview] = useState(null)
+  const [sharedRows, setSharedRows] = useState([])
   const [form, setForm] = useState({ patient_id: '', category: MODE_CATEGORIES[mode]?.[0] || 'Task', title: '', priority: 'Routine', due_at: '' })
 
   async function load() {
     setBusy(true); setError('')
     try {
-      const [items, patientRows] = await Promise.all([listCareWorkItems(mode, { includeCompleted: showCompleted }), listPatients('')])
-      setRows(items); setPatients(patientRows)
+      const [items, patientRows, workspaceOverview] = await Promise.all([
+        listCareWorkItems(mode, { includeCompleted: showCompleted }),
+        listPatients(''),
+        getSharedCareWorkspaceOverview().catch(() => null),
+      ])
+      setRows(items); setPatients(patientRows); setSharedOverview(workspaceOverview)
+      if (workspaceOverview?.workspace?.id) {
+        const sharedItems = await listSharedCareWorkspaceTasks(workspaceOverview.workspace.id, { includeCompleted: showCompleted }).catch(() => [])
+        setSharedRows(Array.isArray(sharedItems) ? sharedItems : [])
+      } else setSharedRows([])
     } catch (err) { setError(err?.message || 'Unable to load the clinical work queue.') }
     finally { setBusy(false) }
   }
@@ -57,6 +68,14 @@ export default function CareWorkQueuePage() {
     finally { setBusy(false) }
   }
 
+
+  async function updateSharedTask(row, status) {
+    setBusy(true); setError('')
+    try { await updateSharedCareWorkspaceTaskStatus(row.id, status); await load() }
+    catch (err) { setError(err?.message || 'Unable to update the Shared Care task.') }
+    finally { setBusy(false) }
+  }
+
   return (
     <div className="care-workspace page-pad compact-pad">
       <div className="care-workspace-heading">
@@ -81,6 +100,15 @@ export default function CareWorkQueuePage() {
           return <article key={row.id} className={`${row.status === 'completed' ? 'completed' : ''} ${overdueItem ? 'overdue' : ''}`}><div className={`care-priority priority-${String(row.priority || 'routine').toLowerCase()}`}>{row.priority || 'Routine'}</div><div className="care-work-main"><span>{row.category || 'Task'}</span><strong>{row.title}</strong><small>{patient ? `${patient.last_name?.toUpperCase()}, ${patient.first_name} · ${patient.nhs_number || 'No NHS number'}` : 'Organisation-level task'}</small></div><div className="care-work-meta"><span>{row.due_at ? new Date(row.due_at).toLocaleString('en-GB') : 'No due date'}</span><b>{row.status}</b></div><div className="care-row-actions">{row.patient_id && <button onClick={() => navigate(`/patients/${row.patient_id}`)}>Open record</button>}{row.status !== 'completed' && <button className="primary-button" onClick={() => complete(row)} disabled={busy}><CheckCircle2 size={13}/>Complete</button>}</div></article>
         })}</div>}
       </Panel>
+
+      {sharedOverview?.workspace?.id && <Panel title="Shared Care work" count={sharedRows.length} actions={<span className="shared-care-queue-network-label">{sharedOverview.members?.length || 0} connected communities</span>}>
+        {!sharedRows.length ? <div className="empty-state">No cross-organisation Shared Care tasks are currently assigned in this network.</div> : <div className="care-work-list shared-care-queue-list">{sharedRows.map((row) => {
+          const isTarget = row.target_organisation_id === sharedOverview.workspace.currentOrganisationId
+          const isSource = row.source_organisation_id === sharedOverview.workspace.currentOrganisationId
+          const overdueItem = row.due_at && !['completed','cancelled'].includes(row.status) && new Date(row.due_at) < new Date()
+          return <article key={row.id} className={`${row.status === 'completed' ? 'completed' : ''} ${overdueItem ? 'overdue' : ''}`}><div className={`care-priority priority-${String(row.priority || 'routine').toLowerCase()}`}>{row.priority || 'Routine'}</div><div className="care-work-main"><span>SHARED CARE · {row.source_organisation_name} → {row.target_organisation_name}</span><strong>{row.title}</strong><small>{row.details || 'Cross-organisation task'}{row.due_at ? ` · Due ${new Date(row.due_at).toLocaleString('en-GB')}` : ''}</small></div><div className="care-work-meta"><b>{row.status}</b></div><div className="care-row-actions">{row.local_patient_id && <button onClick={() => navigate(`/patients/${row.local_patient_id}/shared-care`)}>Shared record</button>}{isTarget && row.status === 'open' && <button onClick={() => updateSharedTask(row, 'accepted')}>Accept</button>}{isTarget && ['open','accepted'].includes(row.status) && <button className="primary-button" onClick={() => updateSharedTask(row, 'completed')}><CheckCircle2 size={13}/>Complete</button>}{isSource && !['completed','cancelled'].includes(row.status) && <button onClick={() => updateSharedTask(row, 'cancelled')}>Cancel</button>}</div></article>
+        })}</div>}
+      </Panel>}
     </div>
   )
 }
