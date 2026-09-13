@@ -133,6 +133,33 @@ function doseAmountsFromText(value = '') {
   }
 }
 
+function medicationFormKind(form = '') {
+  const value = String(form || '').trim().toLowerCase()
+  const hasSolid = /tablet|capsule/.test(value)
+  if (value.includes('spray') && !hasSolid) return 'spray'
+  if (/liquid|oral solution|syrup|suspension/.test(value) && !hasSolid) return 'liquid'
+  return 'solid'
+}
+
+function formulationDoseLabel(reference, text = '') {
+  const value = String(text || '').trim()
+  if (!value) return ''
+  const kind = medicationFormKind(reference?.form)
+  if (kind === 'liquid' && /\b\d+(?:\.\d+)?\s*mL\b/i.test(value) && !/^(?:consume|take|give|swallow)\b/i.test(value)) {
+    return `Consume ${value}`
+  }
+  return value
+}
+
+function hasUsableFormulationDose(reference, option) {
+  if (!reference || !option) return false
+  const kind = medicationFormKind(reference.form)
+  const value = String(option.label || option.sourceText || '')
+  if (kind === 'liquid') return /\b\d+(?:\.\d+)?\s*mL\b/i.test(value)
+  if (kind === 'spray') return /\b\d+(?:\.\d+)?(?:\s*[-–]\s*\d+(?:\.\d+)?)?\s*sprays?\b/i.test(value)
+  return true
+}
+
 function buildTypicalDoseOptions(reference) {
   if (!reference) return []
   if (/do not infer a dose from this list/i.test(String(reference.usualDose || ''))) return []
@@ -172,7 +199,7 @@ function buildTypicalDoseOptions(reference) {
         sourceKey: source.key,
         sourceLabel: source.label,
         sourceText: text,
-        label: text,
+        label: formulationDoseLabel(reference, text),
         doseAmount: null,
         doseUnit: '',
         frequencyPerDay: null,
@@ -181,14 +208,16 @@ function buildTypicalDoseOptions(reference) {
     }
   }
 
-  const chosen = options.length ? options : fallback.slice(0, 1)
+  const chosen = options.length ? options : fallback
   const seen = new Set()
-  return chosen.filter((option) => {
+  const filtered = chosen.filter((option) => {
+    if (!hasUsableFormulationDose(reference, option)) return false
     const key = option.label.toLowerCase()
     if (seen.has(key)) return false
     seen.add(key)
     return true
   })
+  return options.length ? filtered : filtered.slice(0, 1)
 }
 
 function supportsAutomaticQuantity(form = '') {
@@ -196,6 +225,9 @@ function supportsAutomaticQuantity(form = '') {
 }
 
 function quantityUnitForForm(form = '') {
+  const kind = medicationFormKind(form)
+  if (kind === 'liquid') return 'mL'
+  if (kind === 'spray') return 'spray container(s)'
   const value = String(form || '').toLowerCase()
   const hasTablet = value.includes('tablet')
   const hasCapsule = value.includes('capsule')
@@ -210,6 +242,27 @@ function strengthLabelForForm(form = '') {
   if (value.includes('tablet') && !value.includes('capsule')) return 'Strength per tablet'
   if (value.includes('capsule') && !value.includes('tablet')) return 'Strength per capsule'
   return 'Strength per tablet / unit'
+}
+
+function customDosageLabelForForm(form = '') {
+  const kind = medicationFormKind(form)
+  if (kind === 'liquid') return 'Custom liquid dosage'
+  if (kind === 'spray') return 'Custom spray dosage'
+  return 'Custom prescribed dosage'
+}
+
+function customDosagePlaceholderForForm(form = '') {
+  const kind = medicationFormKind(form)
+  if (kind === 'liquid') return 'e.g. Consume 10 mL twice daily'
+  if (kind === 'spray') return 'e.g. 1 spray into each nostril once daily'
+  return 'Enter the authorised regimen exactly as prescribed'
+}
+
+function customQuantityPlaceholderForForm(form = '') {
+  const kind = medicationFormKind(form)
+  if (kind === 'liquid') return 'e.g. 150 mL'
+  if (kind === 'spray') return 'e.g. 1 spray container'
+  return `e.g. 40 ${quantityUnitForForm(form)}`
 }
 
 function formatCalculatedQuantity(value) {
@@ -449,13 +502,17 @@ export function MedicationModal({ medication, authoriser, isGpPartner, onClose, 
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [searchOpen, setSearchOpen] = useState(false)
-  const [dosageMode, setDosageMode] = useState(initialReference && (!medication.dose || initialTypicalMatch) ? 'typical' : 'custom')
+  const [dosageMode, setDosageMode] = useState(initialReference && initialTypicalOptions.length && (!medication.dose || initialTypicalMatch) ? 'typical' : 'custom')
   const [selectedTypicalId, setSelectedTypicalId] = useState(initialTypicalMatch?.id || initialTypicalOptions[0]?.id || '')
   const [strengthAmount, setStrengthAmount] = useState('')
   const [strengthUnit, setStrengthUnit] = useState(initialTypicalMatch?.doseUnit || initialTypicalOptions[0]?.doseUnit || 'mg')
   const [frequencyPerDay, setFrequencyPerDay] = useState(String(initialTypicalMatch?.frequencyPerDay || initialTypicalOptions[0]?.frequencyPerDay || ''))
   const [courseDurationDays, setCourseDurationDays] = useState('')
-  const [quantityMode, setQuantityMode] = useState(medication.quantity ? 'custom' : 'auto')
+  const [quantityMode, setQuantityMode] = useState(
+    medication.quantity || !supportsAutomaticQuantity(initialReference?.form || medication.form) || !(initialTypicalMatch || initialTypicalOptions[0])?.calculable
+      ? 'custom'
+      : 'auto',
+  )
   const [customQuantity, setCustomQuantity] = useState(medication.quantity || '')
 
   const isNew = !medication.id
@@ -468,8 +525,10 @@ export function MedicationModal({ medication, authoriser, isGpPartner, onClose, 
     () => typicalOptions.find((option) => option.id === selectedTypicalId) || typicalOptions[0] || null,
     [typicalOptions, selectedTypicalId],
   )
-  const automaticQuantitySupported = supportsAutomaticQuantity(reference?.form || form.form)
-  const quantityUnit = quantityUnitForForm(reference?.form || form.form)
+  const activeForm = reference?.form || form.form
+  const activeFormKind = medicationFormKind(activeForm)
+  const automaticQuantitySupported = supportsAutomaticQuantity(activeForm)
+  const quantityUnit = quantityUnitForForm(activeForm)
 
   const autoQuantity = useMemo(() => {
     if (dosageMode !== 'typical' || quantityMode !== 'auto' || !automaticQuantitySupported || !selectedTypical?.calculable) return null
@@ -692,31 +751,47 @@ export function MedicationModal({ medication, authoriser, isGpPartner, onClose, 
                 {selectedTypical?.sourceText && <small>Reference wording: {selectedTypical.sourceText}</small>}
               </label>
 
-              <label>{strengthLabelForForm(reference?.form || form.form)}
-                <div className="med-strength-row">
-                  <input type="number" min="0" step="0.001" inputMode="decimal" value={strengthAmount} onChange={(event) => setStrengthAmount(event.target.value)} placeholder="e.g. 5"/>
-                  <select value={strengthUnit} onChange={(event) => setStrengthUnit(event.target.value)}><option value="micrograms">micrograms</option><option value="mg">mg</option><option value="g">g</option></select>
+              {activeFormKind === 'solid' ? (
+                <>
+                  <label>{strengthLabelForForm(activeForm)}
+                    <div className="med-strength-row">
+                      <input type="number" min="0" step="0.001" inputMode="decimal" value={strengthAmount} onChange={(event) => setStrengthAmount(event.target.value)} placeholder="e.g. 5"/>
+                      <select value={strengthUnit} onChange={(event) => setStrengthUnit(event.target.value)}><option value="micrograms">micrograms</option><option value="mg">mg</option><option value="g">g</option></select>
+                    </div>
+                    <small>Enter the strength of the actual tablet/capsule being issued; the supplied GP reference does not define pack strength.</small>
+                  </label>
+
+                  <label>Frequency per day (ONLY CHANGE THE NUMBER)
+                    <input
+                      type="number"
+                      min="1"
+                      max="24"
+                      step="1"
+                      inputMode="numeric"
+                      value={frequencyPerDay}
+                      onChange={(event) => setFrequencyPerDay(event.target.value.replace(/\D/g, '').slice(0, 2))}
+                      placeholder="e.g. 4"
+                    />
+                    <small>{frequencyLabelFromNumber(frequencyPerDay) || 'Enter the number of doses per day.'} · Only change the number.</small>
+                  </label>
+
+                  <label>Course duration (days)
+                    <input type="number" min="0.5" step="0.5" inputMode="decimal" value={courseDurationDays} onChange={(event) => setCourseDurationDays(event.target.value)} placeholder="e.g. 5"/>
+                  </label>
+                </>
+              ) : (
+                <div className="med-calculated-quantity span-two">
+                  <div>
+                    <span>{activeFormKind === 'spray' ? 'Spray dosage' : 'Liquid dosage'}</span>
+                    <strong>{form.dose || 'Enter a formulation-specific dosage'}</strong>
+                  </div>
+                  <small>
+                    {activeFormKind === 'spray'
+                      ? 'Sprays use spray directions rather than tablet strength. If the reference does not state the number of sprays, use Custom dosage.'
+                      : 'Liquids use a volume in mL rather than tablet strength. If the reference does not state an mL dose, use Custom dosage.'}
+                  </small>
                 </div>
-                <small>Enter the strength of the actual tablet/capsule being issued; the supplied GP reference does not define pack strength.</small>
-              </label>
-
-              <label>Frequency per day (ONLY CHANGE THE NUMBER)
-                <input
-                  type="number"
-                  min="1"
-                  max="24"
-                  step="1"
-                  inputMode="numeric"
-                  value={frequencyPerDay}
-                  onChange={(event) => setFrequencyPerDay(event.target.value.replace(/\D/g, '').slice(0, 2))}
-                  placeholder="e.g. 4"
-                />
-                <small>{frequencyLabelFromNumber(frequencyPerDay) || 'Enter the number of doses per day.'} · Only change the number.</small>
-              </label>
-
-              <label>Course duration (days)
-                <input type="number" min="0.5" step="0.5" inputMode="decimal" value={courseDurationDays} onChange={(event) => setCourseDurationDays(event.target.value)} placeholder="e.g. 5"/>
-              </label>
+              )}
 
               <div className="med-quantity-mode-field">
                 <span>Quantity mode</span>
@@ -742,17 +817,17 @@ export function MedicationModal({ medication, authoriser, isGpPartner, onClose, 
                 </div>
               ) : (
                 <label className="span-two">Custom quantity
-                  <input value={customQuantity} onChange={(event) => setCustomQuantity(event.target.value)} placeholder={`e.g. 40 ${quantityUnit}`}/>
+                  <input value={customQuantity} onChange={(event) => setCustomQuantity(event.target.value)} placeholder={customQuantityPlaceholderForForm(activeForm)}/>
                 </label>
               )}
             </div>
           ) : (
             <div className="med-dose-builder-grid">
-              <label className="span-two">Custom prescribed dosage
-                <input value={form.dose} onChange={(event) => set('dose', event.target.value)} placeholder="Enter the authorised regimen exactly as prescribed"/>
+              <label className="span-two">{customDosageLabelForForm(activeForm)}
+                <input value={form.dose} onChange={(event) => set('dose', event.target.value)} placeholder={customDosagePlaceholderForForm(activeForm)}/>
               </label>
               <label className="span-two">Custom quantity
-                <input value={customQuantity} onChange={(event) => setCustomQuantity(event.target.value)} placeholder="Enter the quantity to supply, e.g. 40 tablets"/>
+                <input value={customQuantity} onChange={(event) => setCustomQuantity(event.target.value)} placeholder={customQuantityPlaceholderForForm(activeForm)}/>
               </label>
               <div className="med-custom-dose-note span-two"><AlertTriangle size={15}/><span>Custom dosage and quantity bypass the automatic quantity calculation. The prescribing clinician is responsible for verifying the regimen and quantity.</span></div>
             </div>
