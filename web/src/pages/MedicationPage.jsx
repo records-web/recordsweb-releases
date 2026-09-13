@@ -34,6 +34,7 @@ import {
   searchGpMedicationCatalogue,
 } from '../lib/gpMedicationCatalogue'
 import { useAuth } from '../contexts/AuthContext'
+import { LICENSED_ACTION_ERROR, auditDeniedClinicalAction, canPrescribeMedication } from '../lib/clinicalPermissions'
 
 const MEDICATION_TYPES = ['Acute Meds', 'Repeat', 'Long Term Meds']
 const SPECIALIST_WARNING = 'This drug is only allowed to be prescribed by specialists. Please speak to your GP Partner for authorisation to prescribe this drug.'
@@ -232,6 +233,7 @@ export default function MedicationPage() {
   const profile = session?.profile || {}
   const currentClinician = clinicianName(profile)
   const isGpPartner = profileHasRole(profile, 'GP Partner')
+  const licensedToPrescribe = canPrescribeMedication(profile)
   const [patient, setPatient] = useState(null)
   const [rows, setRows] = useState([])
   const [filter, setFilter] = useState('')
@@ -261,12 +263,17 @@ export default function MedicationPage() {
 
   useEffect(() => {
     if (params.get('add') === '1' && editing === null) {
-      setEditing({ type: 'Acute Meds' })
+      if (licensedToPrescribe) {
+        setEditing({ type: 'Acute Meds' })
+      } else {
+        setPageError(LICENSED_ACTION_ERROR)
+        auditDeniedClinicalAction({ action: 'medication.add', patientId, profile, source: 'medication-url' }).catch(() => {})
+      }
       const next = new URLSearchParams(params)
       next.delete('add')
       setParams(next, { replace: true })
     }
-  }, [params, editing, setParams])
+  }, [params, editing, setParams, licensedToPrescribe, patientId, profile.id, profile.role])
 
   useEffect(() => {
     if (!contextMenu) return undefined
@@ -312,10 +319,20 @@ export default function MedicationPage() {
     action(selectedMedication)
   }
 
+  function openAddMedication(source = 'medication-toolbar') {
+    setPageError('')
+    if (!licensedToPrescribe) {
+      setPageError(LICENSED_ACTION_ERROR)
+      auditDeniedClinicalAction({ action: 'medication.add', patientId, profile, source }).catch(() => {})
+      return
+    }
+    setEditing({ type: 'Acute Meds' })
+  }
+
   return (
     <div>
       <ClinicalToolbar actions={[
-        { label: 'Add drug', icon: 'medication', onClick: () => setEditing({ type: 'Acute Meds' }) },
+        { label: 'Add drug', icon: 'medication', onClick: () => openAddMedication('medication-toolbar') },
         { label: 'End course', icon: 'add', disabled: !selectedMedication || selectedMedication.active === false, onClick: () => runSelected(setCancelTarget) },
         { label: 'Reauthorise', icon: 'medication', disabled: !selectedMedication, onClick: () => runSelected(setReauthoriseTarget) },
         { label: viewMode === 'current' ? 'Current / Past' : 'Current only', icon: 'consult', groupStart: true, onClick: () => setViewMode((current) => current === 'current' ? 'all' : 'current') },
@@ -385,7 +402,13 @@ export default function MedicationPage() {
           onSave={async (payload, pin) => {
             const cleanPayload = { ...payload, type: normaliseMedicationType(payload.type), authoriser: currentClinician }
             if (editing.id) await updateMedication(editing.id, patientId, cleanPayload, pin)
-            else await createMedication(patientId, cleanPayload, pin)
+            else {
+              if (!licensedToPrescribe) {
+                await auditDeniedClinicalAction({ action: 'medication.add', patientId, profile, source: 'medication-submit' }).catch(() => {})
+                throw new Error(LICENSED_ACTION_ERROR)
+              }
+              await createMedication(patientId, cleanPayload, pin)
+            }
             setEditing(null)
             await load()
           }}

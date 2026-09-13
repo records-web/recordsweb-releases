@@ -8,6 +8,7 @@ import FitNoteModal from '../components/FitNoteModal'
 import DocumentDetailsModal from '../components/DocumentDetailsModal'
 import { createForPatient, getPatient, listForPatient, lockFitNoteDocument, updateForPatient } from '../lib/dataService'
 import { useAuth } from '../contexts/AuthContext'
+import { LICENSED_ACTION_ERROR, auditDeniedClinicalAction, canIssueFitNote } from '../lib/clinicalPermissions'
 
 const fields = [
   ['title', 'Document title', 'text'],
@@ -25,11 +26,12 @@ export default function DocumentsPage() {
   const [filter, setFilter] = useState('')
   const [showFilter, setShowFilter] = useState(false)
   const [editing, setEditing] = useState(null)
-  const [fitNoteOpen, setFitNoteOpen] = useState(searchParams.get('fitnote') === '1')
+  const [fitNoteOpen, setFitNoteOpen] = useState(false)
   const [selected, setSelected] = useState(null)
   const [error, setError] = useState('')
   const profile = session?.profile || {}
   const currentClinician = [profile.title, profile.first_name, profile.last_name].filter(Boolean).join(' ').trim() || profile.display_name || profile.username || 'Current clinician'
+  const licensedForFitNotes = canIssueFitNote(profile)
 
   async function load() {
     try {
@@ -47,8 +49,17 @@ export default function DocumentsPage() {
 
   useEffect(() => { load() }, [patientId])
   useEffect(() => {
-    if (searchParams.get('fitnote') === '1') setFitNoteOpen(true)
-  }, [searchParams])
+    if (searchParams.get('fitnote') !== '1') return
+    if (licensedForFitNotes) {
+      setFitNoteOpen(true)
+      return
+    }
+    setError(LICENSED_ACTION_ERROR)
+    auditDeniedClinicalAction({ action: 'fit_note.issue', patientId, profile, source: 'documents-url' }).catch(() => {})
+    const next = new URLSearchParams(searchParams)
+    next.delete('fitnote')
+    setSearchParams(next, { replace: true })
+  }, [searchParams, licensedForFitNotes, patientId, profile.id, profile.role])
 
   const filtered = useMemo(() => {
     const query = filter.trim().toLowerCase()
@@ -65,11 +76,21 @@ export default function DocumentsPage() {
     }
   }
 
+  function openFitNote(source = 'documents-toolbar') {
+    setError('')
+    if (!licensedForFitNotes) {
+      setError(LICENSED_ACTION_ERROR)
+      auditDeniedClinicalAction({ action: 'fit_note.issue', patientId, profile, source }).catch(() => {})
+      return
+    }
+    setFitNoteOpen(true)
+  }
+
   return (
     <div>
       <ClinicalToolbar actions={[
         { label: 'Add document', icon: 'add', onClick: () => setEditing({}) },
-        { label: 'Add fit note', icon: 'add', onClick: () => setFitNoteOpen(true) },
+        { label: 'Add fit note', icon: 'add', onClick: () => openFitNote('documents-toolbar') },
         { label: 'Filters', icon: 'filter', groupStart: true, onClick: () => setShowFilter((value) => !value) },
         { label: 'Print', icon: 'print', onClick: () => window.print() },
         { label: 'Search', icon: 'search', onClick: () => setShowFilter(true) },
@@ -108,6 +129,10 @@ export default function DocumentsPage() {
       </div>
       {editing !== null && <RecordEditModal title={`${editing.id ? 'Edit' : 'Add'} document`} fields={fields} record={editing} onClose={() => setEditing(null)} onSave={async (payload) => { const clean = { ...payload, document_type: editing.document_type || 'General', status: editing.status || 'Filed' }; if (editing.id) await updateForPatient('documents', editing.id, clean); else await createForPatient('documents', patientId, clean); setEditing(null); await load() }} />}
       {fitNoteOpen && patient && <FitNoteModal patient={patient} profile={profile} onClose={closeFitNote} onIssue={async (details) => {
+        if (!licensedForFitNotes) {
+          await auditDeniedClinicalAction({ action: 'fit_note.issue', patientId, profile, source: 'fit-note-submit' }).catch(() => {})
+          throw new Error(LICENSED_ACTION_ERROR)
+        }
         const createdDocument = await createForPatient('documents', patientId, {
           title: 'Statement of Fitness for Work',
           category: 'Fit Note',

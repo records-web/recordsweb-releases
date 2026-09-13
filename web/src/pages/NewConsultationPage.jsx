@@ -9,6 +9,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { CONSULTATION_TEMPLATE } from '../lib/consultationTemplate'
 import { findProblemReferenceByName } from '../lib/gpProblemCatalogue'
 import { MedicationModal } from './MedicationPage'
+import { LICENSED_ACTION_ERROR, auditDeniedClinicalAction, canIssueFitNote, canPrescribeMedication } from '../lib/clinicalPermissions'
 
 function normalizeDraftEntries(entries = {}) {
   const next = { ...entries }
@@ -35,6 +36,8 @@ export default function NewConsultationPage() {
   const profile = session?.profile || {}
   const profileRoles = Array.isArray(profile.roles) ? profile.roles : []
   const isGpPartner = profile.role === 'GP Partner' || profileRoles.includes('GP Partner')
+  const licensedToPrescribe = canPrescribeMedication(profile)
+  const licensedForFitNotes = canIssueFitNote(profile)
   const clinician = [profile.title, profile.first_name, profile.last_name].filter(Boolean).join(' ').trim() || profile.display_name || profile.username || 'Current clinician'
   const draftKey = `recordsweb-consultation-draft:${session?.user?.id || 'user'}:${patientId}`
   const [saving, setSaving] = useState(false)
@@ -141,6 +144,27 @@ export default function NewConsultationPage() {
     window.setTimeout(() => sectionRefs.current[section]?.querySelector('textarea')?.focus(), 220)
   }
 
+  function requestMedication(source = 'consultation') {
+    setError('')
+    if (!licensedToPrescribe) {
+      setError(LICENSED_ACTION_ERROR)
+      auditDeniedClinicalAction({ action: 'medication.add', patientId, profile, source }).catch(() => {})
+      return
+    }
+    setActiveSection('Medication')
+    setAddingMedication(true)
+  }
+
+  function requestFitNote(source = 'consultation') {
+    setError('')
+    if (!licensedForFitNotes) {
+      setError(LICENSED_ACTION_ERROR)
+      auditDeniedClinicalAction({ action: 'fit_note.issue', patientId, profile, source }).catch(() => {})
+      return
+    }
+    navigate(`/patients/${patientId}/documents?fitnote=1`)
+  }
+
   function medicationSummaryLine(medication) {
     const name = String(medication?.name || 'Medication').trim()
     const dose = String(medication?.dose || '').trim()
@@ -149,6 +173,10 @@ export default function NewConsultationPage() {
   }
 
   async function prescribeFromConsultation(payload, pin) {
+    if (!licensedToPrescribe) {
+      await auditDeniedClinicalAction({ action: 'medication.add', patientId, profile, source: 'consultation-submit' }).catch(() => {})
+      throw new Error(LICENSED_ACTION_ERROR)
+    }
     const saved = await createMedication(patientId, { ...payload, authoriser: clinician }, pin)
     const medication = saved || { ...payload, authoriser: clinician, id: `local-${Date.now()}` }
     setConsultationMedications((current) => {
@@ -211,8 +239,8 @@ ${medicationLines.map((line) => `- ${line}`).join('\n')}`
         { label: 'Next problem', icon: 'consult', onClick: () => jumpTo('Problem') },
         { label: 'Online visibility', icon: 'info', groupStart: true },
         { label: 'Book appointment', icon: 'appointment', groupStart: true, onClick: () => navigate(`/appointments?patient=${patientId}`) },
-        { label: 'Add medication', icon: 'medication', onClick: () => { setActiveSection('Medication'); setAddingMedication(true) } },
-        { label: 'Add fit note', icon: 'add', onClick: () => navigate(`/patients/${patientId}/documents?fitnote=1`) },
+        { label: 'Add medication', icon: 'medication', onClick: () => requestMedication('consultation-toolbar') },
+        { label: 'Add fit note', icon: 'add', onClick: () => requestFitNote('consultation-toolbar') },
       ]} />
       <PatientHeader patient={patient} />
       {error && <div className="form-error top-record-error">{error}</div>}
@@ -277,13 +305,13 @@ ${medicationLines.map((line) => `- ${line}`).join('\n')}`
                   {section === 'Document' && (
                     <div className="clinical-entry-actions">
                       <button type="button" onClick={() => navigate(`/patients/${patientId}/documents`)}>Open patient documents</button>
-                      <button type="button" onClick={() => navigate(`/patients/${patientId}/documents?fitnote=1`)}>Create fit note</button>
+                      <button type="button" onClick={() => requestFitNote('consultation-document-section')}>Create fit note</button>
                     </div>
                   )}
                   {section === 'Medication' && (
                     <div className="consult-medication-workflow">
                       <div className="clinical-entry-actions consult-medication-actions">
-                        <button type="button" className="consult-add-medication-button" onClick={() => setAddingMedication(true)}><Plus size={13}/> Add medication</button>
+                        <button type="button" className="consult-add-medication-button" onClick={() => requestMedication('consultation-medication-section')}><Plus size={13}/> Add medication</button>
                         <button type="button" onClick={() => navigate(`/patients/${patientId}/medication`)}><Pill size={13}/> Open medication record</button>
                       </div>
                       <div className="clinical-entry-hint">Prescribing here uses the same GP medicines search, dosage/quantity calculator, specialist controls and 4-digit prescribing PIN as the patient Medication record. Once authorised, the drug is added to the patient's medication record immediately.</div>
