@@ -1,5 +1,12 @@
 # RecordsWeb
 
+
+## RecordsWeb 3.7.1 — Shared Care Screen Messages
+
+Screen Messages now includes a selectable **Shared Care staff** recipient tab. Eligible staff are resolved securely from the current Shared Care workspace and grouped by organisation. Cross-organisation Screen Messages are permitted only between organisations in the same Shared Care workspace. This release also fixes dark/light contrast issues in the Screen Messages recipient controls.
+
+Run `supabase/recordsweb-3.7.1-screen-message-shared-care.sql` after the 3.6.0 Shared Care workspace migration.
+
 Version **3.7.0** introduces **Classic / Modern interface styles**. Classic remains the established dense RecordsWeb default, while Modern provides an updated presentation without changing clinical workflows, care-setting behaviour, permissions or the login UI.
 
 ## RecordsWeb 3.7.0 — Interface styles

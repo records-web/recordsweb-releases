@@ -14,19 +14,44 @@ function saveDemoMessages(rows) {
   window.dispatchEvent(new CustomEvent('recordsweb-demo-screen-message'))
 }
 
-export async function listMessageStaff({ organisationIds = [] } = {}) {
-  if (!supabaseConfigured) return (await listAccounts()).filter((x) => x.active !== false)
-  const cleanIds = [...new Set((organisationIds || []).filter(Boolean))]
-  let query = supabase
+export async function listMessageStaff() {
+  if (!supabaseConfigured) return (await listAccounts()).filter((x) => x.active !== false).map((person) => ({ ...person, recipient_scope: 'organisation' }))
+
+  const { data: directoryRows, error: directoryError } = await supabase.rpc('recordsweb_screen_message_staff_directory')
+  if (!directoryError && Array.isArray(directoryRows)) {
+    return directoryRows.map((row) => ({
+      id: row.id,
+      username: row.username,
+      title: row.title,
+      first_name: row.first_name,
+      last_name: row.last_name,
+      display_name: row.display_name,
+      role: row.role,
+      roles: row.roles || [],
+      active: row.active !== false,
+      organisation_id: row.organisation_id,
+      organisation_name: row.organisation_name,
+      organisation_code: row.organisation_code,
+      organisation_mode: row.organisation_mode,
+      recipient_scope: row.recipient_scope || 'organisation',
+      organisations: {
+        name: row.organisation_name,
+        org_code: row.organisation_code,
+        system_mode: row.organisation_mode,
+      },
+    }))
+  }
+
+  // Backwards-compatible fallback for installations where the 3.7.1 migration
+  // has not yet been applied. RLS limits this query to the current organisation.
+  const { data, error } = await supabase
     .from('profiles')
     .select('id,username,title,first_name,last_name,display_name,role,roles,active,organisation_id,organisations(name, org_code, system_mode)')
     .eq('active', true)
     .order('last_name')
     .order('first_name')
-  if (cleanIds.length > 0) query = query.in('organisation_id', cleanIds)
-  const { data, error } = await query
-  if (error) throw error
-  return data || []
+  if (error) throw (directoryError || error)
+  return (data || []).map((person) => ({ ...person, recipient_scope: 'organisation' }))
 }
 
 export async function listScreenMessages(recipientId) {
