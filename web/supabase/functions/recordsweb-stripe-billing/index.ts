@@ -823,7 +823,7 @@ Deno.serve(async (req) => {
     });
   }
 
-  if (req.method !== "POST") {
+  if (req.method !== "POST" && req.method !== "GET") {
     return json(
       {
         error: "Method not allowed.",
@@ -856,6 +856,13 @@ Deno.serve(async (req) => {
      */
 
     const stripe = new Stripe(stripeSecretKey);
+
+    if (req.method === "GET") {
+      // Public status health check. The Stripe secret remains server-side; only
+      // a boolean service result is returned to the caller.
+      await stripe.balance.retrieve();
+      return json({ ok: true, service: "stripe-billing" });
+    }
 
     /*
      * --------------------------------------------------------

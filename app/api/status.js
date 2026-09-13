@@ -1,5 +1,6 @@
 const DEFAULT_API_URL = 'https://api.recordsweb.org'
 const GITHUB_RELEASE_URL = 'https://github.com/records-web/recordsweb-releases/releases/latest'
+const STRIPE_API_URL = 'https://api.stripe.com/v1/balance'
 const TIMEOUT_MS = 6500
 
 function json(res, body, status = 200) {
@@ -39,8 +40,6 @@ function normaliseSupabaseUrl(value) {
 }
 
 async function checkWebsite() {
-  // If this handler executed successfully, the public RecordsWeb web deployment
-  // and its serverless runtime are reachable.
   return component('website', 'RecordsWeb Website', 'Platform', 'operational', null, 'Public web deployment is responding.')
 }
 
@@ -51,8 +50,6 @@ async function checkRecordsWebApi() {
       redirect: 'manual',
     })
 
-    // The API intentionally rejects GET with 405. That still proves the
-    // Cloudflare route and Supabase Edge Function are both responding.
     if (response.status === 405 || response.status === 400 || response.status === 401 || response.status === 403 || response.ok) {
       return component('api', 'RecordsWeb API & Roblox Bridge', 'Integrations', 'operational', latencyMs, 'Public API gateway is responding.')
     }
@@ -93,8 +90,6 @@ async function checkSupabaseData(baseUrl, anonKey) {
       },
     })
 
-    // PostgREST may return 200 or an access-related 4xx depending on the
-    // project's schema exposure. Any non-5xx response confirms the service is up.
     if (response.status < 500) return component('data', 'Clinical Data Service', 'Platform', 'operational', latencyMs, 'Database API is responding.')
     return component('data', 'Clinical Data Service', 'Platform', 'outage', latencyMs, `Database API returned HTTP ${response.status}.`)
   } catch (error) {
@@ -107,20 +102,102 @@ async function checkSupabaseStorage(baseUrl, anonKey) {
 
   try {
     const { response, latencyMs } = await timedFetch(`${baseUrl}/storage/v1/bucket`, {
-      headers: { apikey: anonKey },
+      headers: {
+        apikey: anonKey,
+        Authorization: `Bearer ${anonKey}`,
+      },
     })
 
-    if (response.ok || response.status === 401 || response.status === 403 || response.status === 404) {
-      // Hosted Storage deployments do not all expose the same unauthenticated
-      // status response. An auth/not-found response still proves the Storage
-      // gateway itself is alive; 5xx/network failure is treated as an outage.
+    // This endpoint is protected by Storage auth/policies. 2xx and expected 4xx
+    // responses all prove the gateway is healthy. Only rate limits, 5xx or a
+    // network failure should affect the public availability status.
+    if (response.status === 429) {
+      return component('storage', 'Document & File Storage', 'Platform', 'degraded', latencyMs, 'Storage gateway is temporarily rate limited.')
+    }
+    if (response.status < 500) {
       return component('storage', 'Document & File Storage', 'Platform', 'operational', latencyMs, 'Storage gateway is responding.')
     }
-
-    if (response.status >= 500) return component('storage', 'Document & File Storage', 'Platform', 'outage', latencyMs, `Storage gateway returned HTTP ${response.status}.`)
-    return component('storage', 'Document & File Storage', 'Platform', 'degraded', latencyMs, `Storage health returned HTTP ${response.status}.`)
+    return component('storage', 'Document & File Storage', 'Platform', 'outage', latencyMs, `Storage gateway returned HTTP ${response.status}.`)
   } catch (error) {
     return component('storage', 'Document & File Storage', 'Platform', 'outage', null, error?.name === 'AbortError' ? 'Storage check timed out.' : 'Storage gateway could not be reached.')
+  }
+}
+
+async function checkStripeBilling(baseUrl, anonKey) {
+  if (!baseUrl || !anonKey) return component('stripe', 'Stripe Billing & Payments', 'Integrations', 'unknown', null, 'Billing health check is not configured in this deployment.')
+
+  try {
+    const [stripeResult, billingResult] = await Promise.all([
+      timedFetch(STRIPE_API_URL, { method: 'GET', redirect: 'manual' }),
+      timedFetch(`${baseUrl}/functions/v1/recordsweb-stripe-billing`, {
+        method: 'GET',
+        headers: {
+          apikey: anonKey,
+          Authorization: `Bearer ${anonKey}`,
+        },
+      }),
+    ])
+
+    const stripeStatus = stripeResult.response.status
+    const billingStatus = billingResult.response.status
+    const latencyMs = Math.max(stripeResult.latencyMs, billingResult.latencyMs)
+
+    if (stripeStatus === 429 || billingStatus === 429) {
+      return component('stripe', 'Stripe Billing & Payments', 'Integrations', 'degraded', latencyMs, 'Stripe or the RecordsWeb billing service is temporarily rate limited.')
+    }
+
+    if (stripeStatus >= 500 || billingStatus >= 500) {
+      return component('stripe', 'Stripe Billing & Payments', 'Integrations', 'outage', latencyMs, `Billing health check failed (Stripe HTTP ${stripeStatus}; RecordsWeb HTTP ${billingStatus}).`)
+    }
+
+    // Stripe returns 401 without a private key, which confirms its API edge is
+    // reachable. RecordsWeb 3.7.2 returns 200 from the billing function health
+    // endpoint once the configured Stripe key has been verified.
+    if (billingResult.response.ok && stripeStatus < 500) {
+      return component('stripe', 'Stripe Billing & Payments', 'Integrations', 'operational', latencyMs, 'Stripe and the RecordsWeb billing service are responding.')
+    }
+
+    if (billingStatus === 405) {
+      return component('stripe', 'Stripe Billing & Payments', 'Integrations', 'degraded', latencyMs, 'Billing service is reachable, but its 3.7.2 health endpoint has not been deployed yet.')
+    }
+
+    return component('stripe', 'Stripe Billing & Payments', 'Integrations', 'degraded', latencyMs, `Billing service returned HTTP ${billingStatus}.`)
+  } catch (error) {
+    return component('stripe', 'Stripe Billing & Payments', 'Integrations', 'outage', null, error?.name === 'AbortError' ? 'Stripe billing check timed out.' : 'Stripe billing service could not be reached.')
+  }
+}
+
+async function checkSharedCare(baseUrl, anonKey) {
+  if (!baseUrl || !anonKey) return component('sharedcare', 'Shared Care Network', 'Integrations', 'unknown', null, 'Shared Care health check is not configured in this deployment.')
+
+  try {
+    const { response, latencyMs } = await timedFetch(`${baseUrl}/rest/v1/rpc/recordsweb_public_shared_care_health`, {
+      method: 'POST',
+      headers: {
+        apikey: anonKey,
+        Authorization: `Bearer ${anonKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: '{}',
+    })
+
+    if (response.ok) {
+      const payload = await response.json().catch(() => null)
+      if (payload?.ok === false) {
+        return component('sharedcare', 'Shared Care Network', 'Integrations', 'degraded', latencyMs, 'Shared Care schema responded but reported an unhealthy state.')
+      }
+      return component('sharedcare', 'Shared Care Network', 'Integrations', 'operational', latencyMs, 'Shared Care workspace service is responding.')
+    }
+
+    if (response.status === 404 || response.status === 400) {
+      return component('sharedcare', 'Shared Care Network', 'Integrations', 'degraded', latencyMs, 'Shared Care health endpoint is not installed. Run the 3.7.2 status migration.')
+    }
+    if (response.status >= 500) {
+      return component('sharedcare', 'Shared Care Network', 'Integrations', 'outage', latencyMs, `Shared Care service returned HTTP ${response.status}.`)
+    }
+    return component('sharedcare', 'Shared Care Network', 'Integrations', 'degraded', latencyMs, `Shared Care health returned HTTP ${response.status}.`)
+  } catch (error) {
+    return component('sharedcare', 'Shared Care Network', 'Integrations', 'outage', null, error?.name === 'AbortError' ? 'Shared Care check timed out.' : 'Shared Care service could not be reached.')
   }
 }
 
@@ -131,8 +208,6 @@ async function checkGitHubReleases() {
       redirect: 'manual',
     })
 
-    // GitHub normally responds with 200 or a redirect to the current release.
-    // The normal website endpoint avoids unauthenticated GitHub API rate limits.
     if (response.ok || [301, 302, 303, 307, 308].includes(response.status)) {
       return component('updates', 'Software Updates & Downloads', 'Integrations', 'operational', latencyMs, 'GitHub release delivery is responding.')
     }
@@ -175,6 +250,8 @@ export default async function handler(req, res) {
     checkSupabaseStorage(baseUrl, anonKey),
     checkRecordsWebApi(),
     checkGitHubReleases(),
+    checkStripeBilling(baseUrl, anonKey),
+    checkSharedCare(baseUrl, anonKey),
   ])
 
   return json(res, {

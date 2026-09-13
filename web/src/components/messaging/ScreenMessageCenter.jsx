@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react'
 import { Mail, RefreshCcw, Reply, Send, X } from 'lucide-react'
 import ModalPortal from '../ModalPortal'
 import { listMessageStaff, listScreenMessages, markScreenMessageRead, sendScreenMessages, subscribeStaffPresence, subscribeToScreenMessages } from '../../lib/staffMessaging'
+import { getSharedCareWorkspaceOverview } from '../../lib/sharedCareService'
 import { setUrgentTabState } from '../../lib/webRuntime'
 
 export default function ScreenMessageCenter({ session }) {
@@ -9,6 +10,7 @@ export default function ScreenMessageCenter({ session }) {
   const userId = session?.user?.id || profile.id
   const [messages, setMessages] = useState([])
   const [staff, setStaff] = useState([])
+  const [workspaceOverview, setWorkspaceOverview] = useState(null)
   const [onlineIds, setOnlineIds] = useState(new Set())
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState('inbox')
@@ -17,9 +19,25 @@ export default function ScreenMessageCenter({ session }) {
 
   async function load() {
     if (!userId) return
-    const [messageRows, staffRows] = await Promise.all([listScreenMessages(userId), listMessageStaff()])
+    let workspace = null
+    try {
+      workspace = await getSharedCareWorkspaceOverview()
+    } catch {
+      workspace = null
+    }
+
+    const organisationIds = [...new Set([
+      profile.organisation_id,
+      ...(Array.isArray(workspace?.members) ? workspace.members.map((member) => member.organisationId) : []),
+    ].filter(Boolean))]
+
+    const [messageRows, staffRows] = await Promise.all([
+      listScreenMessages(userId),
+      listMessageStaff({ organisationIds }),
+    ])
     setMessages(messageRows)
     setStaff(staffRows)
+    setWorkspaceOverview(workspace)
   }
 
   useEffect(() => { load().catch(() => {}) }, [userId])
@@ -51,7 +69,7 @@ export default function ScreenMessageCenter({ session }) {
     <button className={`icon-btn message-center-button ${urgentUnread ? 'urgent-unread' : ''}`} title="Screen messages" onClick={() => { setOpen(true); setTab('inbox'); load().catch(() => {}) }}>
       <Mail size={18}/>{unread > 0 && <span className="message-badge">{unread > 9 ? '9+' : unread}</span>}
     </button>
-    {open && <MessageWindow profile={{...profile,id:userId}} messages={messages} staff={staff} onlineIds={onlineIds} tab={tab} setTab={setTab} selectedMessage={selectedMessage} setSelectedMessage={setSelectedMessage} onView={viewMessage} onReload={load} onClose={() => setOpen(false)} />}
+    {open && <MessageWindow profile={{...profile,id:userId}} messages={messages} staff={staff} workspaceOverview={workspaceOverview} onlineIds={onlineIds} tab={tab} setTab={setTab} selectedMessage={selectedMessage} setSelectedMessage={setSelectedMessage} onView={viewMessage} onReload={load} onClose={() => setOpen(false)} />}
     {urgentPopup && <UrgentMessagePopup count={messages.filter((m)=>m.urgent&&!m.read_at).length || 1} onView={() => viewMessage(urgentPopup)} onClose={() => setUrgentPopup(null)} />}
   </>
 }
@@ -66,7 +84,7 @@ function UrgentMessagePopup({ count, onView, onClose }) {
   </ModalPortal>
 }
 
-function MessageWindow({ profile, messages, staff, onlineIds, tab, setTab, selectedMessage, setSelectedMessage, onView, onReload, onClose }) {
+function MessageWindow({ profile, messages, staff, workspaceOverview, onlineIds, tab, setTab, selectedMessage, setSelectedMessage, onView, onReload, onClose }) {
   const [replyMessage, setReplyMessage] = useState(null)
 
   function composeNew() {
@@ -85,15 +103,16 @@ function MessageWindow({ profile, messages, staff, onlineIds, tab, setTab, selec
       <header><strong>Screen Messages</strong><div><button title="Refresh" onClick={()=>onReload().catch(()=>{})}><RefreshCcw size={14}/></button><button onClick={onClose}><X size={15}/></button></div></header>
       <div className="screen-message-tabs"><button className={tab==='inbox'?'active':''} onClick={()=>setTab('inbox')}>Inbox</button><button className={tab==='send'?'active':''} onClick={composeNew}>Send Screen Message</button></div>
       {tab === 'send'
-        ? <SendMessageForm key={replyMessage?.id || 'new-message'} profile={profile} staff={staff} onlineIds={onlineIds} replyMessage={replyMessage} onCancelReply={() => { setReplyMessage(null); setTab('inbox') }} onSent={() => { setReplyMessage(null); setTab('inbox'); onReload().catch(()=>{}) }}/>
+        ? <SendMessageForm key={replyMessage?.id || 'new-message'} profile={profile} staff={staff} workspaceOverview={workspaceOverview} onlineIds={onlineIds} replyMessage={replyMessage} onCancelReply={() => { setReplyMessage(null); setTab('inbox') }} onSent={() => { setReplyMessage(null); setTab('inbox'); onReload().catch(()=>{}) }}/>
         : <Inbox messages={messages} selected={selectedMessage} onSelect={(m)=>{setSelectedMessage(m);onView(m)}} onReply={replyTo} />}
     </div>
   </ModalPortal>
 }
 
-function SendMessageForm({ profile, staff, onlineIds, replyMessage, onCancelReply, onSent }) {
+function SendMessageForm({ profile, staff, workspaceOverview, onlineIds, replyMessage, onCancelReply, onSent }) {
   const replySubject = replyMessage?.subject ? (String(replyMessage.subject).toLowerCase().startsWith('re:') ? replyMessage.subject : `RE: ${replyMessage.subject}`) : ''
-  const currentOrganisationId = profile.organisation_id || null
+  const currentOrganisationId = profile.organisation_id || workspaceOverview?.workspace?.currentOrganisationId || null
+  const memberMap = useMemo(() => new Map((workspaceOverview?.members || []).map((member) => [member.organisationId, member])), [workspaceOverview])
   const [subject,setSubject]=useState(replySubject)
   const [body,setBody]=useState('')
   const [urgent,setUrgent]=useState(false)
@@ -114,8 +133,6 @@ function SendMessageForm({ profile, staff, onlineIds, replyMessage, onCancelRepl
         person.display_name,
         person.username,
         person.role,
-        person.organisation_name,
-        person.organisation_code,
         person.organisations?.name,
         person.organisations?.org_code,
       ]
@@ -124,25 +141,33 @@ function SendMessageForm({ profile, staff, onlineIds, replyMessage, onCancelRepl
   [staff, query, showOffline, onlineIds, profile.id])
 
   const organisationStaff = useMemo(() => filtered.filter((person) => {
-    if (person.recipient_scope === 'shared') return false
-    if (!currentOrganisationId || !person.organisation_id) return true
+    if (!currentOrganisationId) return true
+    if (!person.organisation_id) return true
     return person.organisation_id === currentOrganisationId
   }), [filtered, currentOrganisationId])
 
+  const availableSharedCareStaff = useMemo(() => staff.filter((person) => {
+    if (person.id === profile.id) return false
+    if (!person.organisation_id || !currentOrganisationId) return false
+    if (person.organisation_id === currentOrganisationId) return false
+    return memberMap.has(person.organisation_id)
+  }), [staff, profile.id, currentOrganisationId, memberMap])
+
   const sharedCareStaff = useMemo(() => filtered.filter((person) => {
-    if (person.recipient_scope === 'shared') return true
-    if (!currentOrganisationId || !person.organisation_id) return false
-    return person.organisation_id !== currentOrganisationId
-  }), [filtered, currentOrganisationId])
+    if (!person.organisation_id || !currentOrganisationId) return false
+    if (person.organisation_id === currentOrganisationId) return false
+    return memberMap.has(person.organisation_id)
+  }), [filtered, currentOrganisationId, memberMap])
 
   const sharedCareGroups = useMemo(() => {
     const groups = new Map()
     sharedCareStaff.forEach((person) => {
       const organisationId = person.organisation_id || 'unknown'
+      const member = memberMap.get(organisationId)
       const existing = groups.get(organisationId) || {
         organisationId,
-        name: person.organisation_name || person.organisations?.name || 'Linked organisation',
-        code: person.organisation_code || person.organisations?.org_code || '',
+        name: member?.name || person.organisations?.name || 'Linked organisation',
+        code: member?.code || person.organisations?.org_code || '',
         staff: [],
       }
       existing.staff.push(person)
@@ -151,13 +176,18 @@ function SendMessageForm({ profile, staff, onlineIds, replyMessage, onCancelRepl
     return [...groups.values()]
       .map((group) => ({ ...group, staff: group.staff.sort((a, b) => formatStaffName(a).localeCompare(formatStaffName(b))) }))
       .sort((a, b) => a.name.localeCompare(b.name))
-  }, [sharedCareStaff])
+  }, [sharedCareStaff, memberMap])
+
+  useEffect(() => {
+    if (recipientTab === 'shared' && availableSharedCareStaff.length === 0) setRecipientTab('organisation')
+  }, [recipientTab, availableSharedCareStaff.length])
 
   function toggle(id){setSelected(current=>{const next=new Set(current);next.has(id)?next.delete(id):next.add(id);return next})}
   async function send(){setSending(true);setError('');try{await sendScreenMessages({sender:profile,recipientIds:[...selected],subject,body,urgent});onSent()}catch(err){setError(err.message||'Unable to send message.');setSending(false)}}
 
   function renderRecipient(person, showOrganisation = false) {
-    const orgLabel = person.organisation_name || person.organisations?.name || ''
+    const member = memberMap.get(person.organisation_id)
+    const orgLabel = member?.name || person.organisations?.name || ''
     return <label key={person.id}>
       <input type="checkbox" checked={selected.has(person.id)} onChange={()=>toggle(person.id)}/>
       <span className={`presence-dot ${onlineIds.has(person.id)?'online':'offline'}`}/>
@@ -177,7 +207,7 @@ function SendMessageForm({ profile, staff, onlineIds, replyMessage, onCancelRepl
       <strong>To:</strong>
       <div className="recipient-source-tabs">
         <button type="button" className={recipientTab==='organisation'?'active':''} onClick={() => setRecipientTab('organisation')}>Organisation staff</button>
-        <button type="button" className={recipientTab==='shared'?'active':''} onClick={() => setRecipientTab('shared')}>Shared Care staff</button>
+        <button type="button" className={recipientTab==='shared'?'active':''} onClick={() => setRecipientTab('shared')} disabled={availableSharedCareStaff.length === 0}>Shared Care staff</button>
       </div>
       <label><input type="checkbox" checked={showOffline} onChange={e=>setShowOffline(e.target.checked)}/> Show offline users</label>
     </div>
@@ -189,7 +219,7 @@ function SendMessageForm({ profile, staff, onlineIds, replyMessage, onCancelRepl
               <summary><strong>{group.name}</strong><span>{group.code ? `${group.code} · ` : ''}{group.staff.length} staff</span></summary>
               <div className="recipient-group-list">{group.staff.map((person) => renderRecipient(person, true))}</div>
             </details>)
-          : <div className="recipient-empty-state">No Shared Care staff are available in your connected workspace.</div>)
+          : <div className="recipient-empty-state">No Shared Care staff are available for this workspace.</div>)
         : (organisationStaff.length > 0
           ? organisationStaff.map((person) => renderRecipient(person))
           : <div className="recipient-empty-state">No organisation staff match your search.</div>)}

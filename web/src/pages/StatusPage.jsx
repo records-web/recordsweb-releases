@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Activity, ArrowLeft, ArrowRight, CheckCircle2, Cloud, Database, FileText, Gamepad2, Github, RefreshCw, ShieldCheck, TriangleAlert, WifiOff } from 'lucide-react'
+import { Activity, ArrowLeft, ArrowRight, CheckCircle2, Cloud, CreditCard, Database, FileText, Gamepad2, Github, RefreshCw, Share2, ShieldCheck, TriangleAlert, WifiOff } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import recordsWebWordmark from '../assets/RW-Logo.png'
 import { APP_VERSION } from '../lib/webRuntime'
@@ -21,6 +21,8 @@ const ICONS = {
   storage: FileText,
   api: Gamepad2,
   updates: Github,
+  stripe: CreditCard,
+  sharedcare: Share2,
 }
 
 function relativeTime(iso, now) {

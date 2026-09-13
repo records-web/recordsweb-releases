@@ -1,11 +1,13 @@
 # RecordsWeb
 
+## RecordsWeb 3.7.2 — Status monitoring
 
-## RecordsWeb 3.7.1 — Shared Care Screen Messages
+- Fixes the Document & File Storage status check so expected Supabase Storage 4xx authorization responses no longer cause a permanent false degraded state.
+- Adds automated Stripe Billing & Payments monitoring.
+- Adds automated Shared Care Network monitoring.
+- Adds a safe public Shared Care health RPC and a Stripe billing Edge Function health response for the public status page.
 
-Screen Messages now includes a selectable **Shared Care staff** recipient tab. Eligible staff are resolved securely from the current Shared Care workspace and grouped by organisation. Cross-organisation Screen Messages are permitted only between organisations in the same Shared Care workspace. This release also fixes dark/light contrast issues in the Screen Messages recipient controls.
-
-Run `supabase/recordsweb-3.7.1-screen-message-shared-care.sql` after the 3.6.0 Shared Care workspace migration.
+Run `supabase/recordsweb-3.7.2-status-health.sql` and redeploy `recordsweb-stripe-billing` for the new checks to report fully operational.
 
 Version **3.7.0** introduces **Classic / Modern interface styles**. Classic remains the established dense RecordsWeb default, while Modern provides an updated presentation without changing clinical workflows, care-setting behaviour, permissions or the login UI.
 
@@ -93,7 +95,7 @@ Staff login DMs now contain **only the generated RecordsWeb PNG attachment**. Th
 
 # RecordsWeb Web
 
-**Version:** 3.7.1  
+**Version:** 3.7.0  
 **Runtime:** Browser / Vite / React  
 **Deployment:** Multi-organisation
 
