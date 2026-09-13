@@ -1,4 +1,8 @@
 # RecordsWeb
+## RecordsWeb 3.8.1 — Expanded GP Medicine & Condition Catalogues
+
+RecordsWeb 3.8.1 adds every entry from the newly supplied UK GP reference PDFs to the existing client-side catalogues without de-duplicating them. This adds 500 medication reference entries and 499 condition/presentation entries while retaining all existing catalogue entries. Newly imported condition entries are marked **Unclassified** because the source PDF does not provide a clinical significance/severity classification. No database migration is required.
+
 ## RecordsWeb 3.8.0 — Platform Discord Operations
 
 RecordsWeb 3.8.0 adds a Platform Management Discord operations workspace for the official RecordsWeb Bot. Platform operators can broadcast announcements and maintenance lifecycle messages to configured community status channels, target all communities, care settings or selected communities, run connection health checks, send test messages, review delivery logs and retry failed deliveries. Community Management can separately enable or disable general platform announcements while retaining maintenance and staff-login DM controls.

@@ -26,7 +26,7 @@ export default function ProblemEditorModal({ record = {}, onClose, onSave }) {
     setForm((current) => ({
       ...current,
       name: entry.name,
-      significance: problemSignificanceFromReference(entry),
+      significance: problemSignificanceFromReference(entry, current.significance || 'Minor'),
       notes: current.notes.trim() ? current.notes : entry.description,
     }))
   }

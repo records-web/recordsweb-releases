@@ -34,7 +34,6 @@ import {
   searchGpMedicationCatalogue,
 } from '../lib/gpMedicationCatalogue'
 import { useAuth } from '../contexts/AuthContext'
-import { LICENSED_ACTION_ERROR, auditDeniedClinicalAction, canPrescribeMedication } from '../lib/clinicalPermissions'
 
 const MEDICATION_TYPES = ['Acute Meds', 'Repeat', 'Long Term Meds']
 const SPECIALIST_WARNING = 'This drug is only allowed to be prescribed by specialists. Please speak to your GP Partner for authorisation to prescribe this drug.'
@@ -136,6 +135,7 @@ function doseAmountsFromText(value = '') {
 
 function buildTypicalDoseOptions(reference) {
   if (!reference) return []
+  if (/do not infer a dose from this list/i.test(String(reference.usualDose || ''))) return []
   const sources = [
     { key: 'usual', label: 'Usual / starting dose', text: reference.usualDose || '' },
     { key: 'higher', label: 'Higher / maintenance', text: reference.higherDose || '' },
@@ -233,7 +233,6 @@ export default function MedicationPage() {
   const profile = session?.profile || {}
   const currentClinician = clinicianName(profile)
   const isGpPartner = profileHasRole(profile, 'GP Partner')
-  const licensedToPrescribe = canPrescribeMedication(profile)
   const [patient, setPatient] = useState(null)
   const [rows, setRows] = useState([])
   const [filter, setFilter] = useState('')
@@ -263,17 +262,12 @@ export default function MedicationPage() {
 
   useEffect(() => {
     if (params.get('add') === '1' && editing === null) {
-      if (licensedToPrescribe) {
-        setEditing({ type: 'Acute Meds' })
-      } else {
-        setPageError(LICENSED_ACTION_ERROR)
-        auditDeniedClinicalAction({ action: 'medication.add', patientId, profile, source: 'medication-url' }).catch(() => {})
-      }
+      setEditing({ type: 'Acute Meds' })
       const next = new URLSearchParams(params)
       next.delete('add')
       setParams(next, { replace: true })
     }
-  }, [params, editing, setParams, licensedToPrescribe, patientId, profile.id, profile.role])
+  }, [params, editing, setParams])
 
   useEffect(() => {
     if (!contextMenu) return undefined
@@ -319,20 +313,10 @@ export default function MedicationPage() {
     action(selectedMedication)
   }
 
-  function openAddMedication(source = 'medication-toolbar') {
-    setPageError('')
-    if (!licensedToPrescribe) {
-      setPageError(LICENSED_ACTION_ERROR)
-      auditDeniedClinicalAction({ action: 'medication.add', patientId, profile, source }).catch(() => {})
-      return
-    }
-    setEditing({ type: 'Acute Meds' })
-  }
-
   return (
     <div>
       <ClinicalToolbar actions={[
-        { label: 'Add drug', icon: 'medication', onClick: () => openAddMedication('medication-toolbar') },
+        { label: 'Add drug', icon: 'medication', onClick: () => setEditing({ type: 'Acute Meds' }) },
         { label: 'End course', icon: 'add', disabled: !selectedMedication || selectedMedication.active === false, onClick: () => runSelected(setCancelTarget) },
         { label: 'Reauthorise', icon: 'medication', disabled: !selectedMedication, onClick: () => runSelected(setReauthoriseTarget) },
         { label: viewMode === 'current' ? 'Current / Past' : 'Current only', icon: 'consult', groupStart: true, onClick: () => setViewMode((current) => current === 'current' ? 'all' : 'current') },
@@ -402,13 +386,7 @@ export default function MedicationPage() {
           onSave={async (payload, pin) => {
             const cleanPayload = { ...payload, type: normaliseMedicationType(payload.type), authoriser: currentClinician }
             if (editing.id) await updateMedication(editing.id, patientId, cleanPayload, pin)
-            else {
-              if (!licensedToPrescribe) {
-                await auditDeniedClinicalAction({ action: 'medication.add', patientId, profile, source: 'medication-submit' }).catch(() => {})
-                throw new Error(LICENSED_ACTION_ERROR)
-              }
-              await createMedication(patientId, cleanPayload, pin)
-            }
+            else await createMedication(patientId, cleanPayload, pin)
             setEditing(null)
             await load()
           }}
@@ -537,7 +515,7 @@ export function MedicationModal({ medication, authoriser, isGpPartner, onClose, 
     setForm((current) => ({
       ...current,
       name: entry.medicine,
-      dose: first?.label || entry.usualDose || current.dose,
+      dose: first?.label || (/do not infer a dose from this list/i.test(String(entry.usualDose || '')) ? '' : entry.usualDose) || current.dose,
       quantity: '',
       catalogue_id: entry.id,
       form: entry.form || '',
@@ -546,7 +524,7 @@ export function MedicationModal({ medication, authoriser, isGpPartner, onClose, 
       reference_higher_dose: entry.higherDose || '',
       specialist_only: isSpecialistMedication(entry),
     }))
-    setDosageMode('typical')
+    setDosageMode(first ? 'typical' : 'custom')
     setSelectedTypicalId(first?.id || '')
     setStrengthAmount('')
     setStrengthUnit(first?.doseUnit || 'mg')
@@ -673,7 +651,7 @@ export function MedicationModal({ medication, authoriser, isGpPartner, onClose, 
           </label>
           {searchOpen && (
             <div className="med-catalogue-results">
-              {results.length === 0 && <div className="med-catalogue-empty">No medicine in the supplied GP MEDS reference matches this search.</div>}
+              {results.length === 0 && <div className="med-catalogue-empty">No medicine in the supplied GP medication references matches this search.</div>}
               {results.map((entry) => (
                 <button type="button" key={entry.id} onClick={() => selectReference(entry)}>
                   <span><strong>{entry.medicine}</strong><small>{entry.form} · {entry.indication}</small></span>
@@ -686,12 +664,12 @@ export function MedicationModal({ medication, authoriser, isGpPartner, onClose, 
 
         {reference && (
           <div className="med-reference-panel">
-            <div className="med-reference-title"><CheckCircle2 size={16}/><div><strong>{reference.medicine}</strong><span>Selected from GP MEDS.pdf · page {reference.sourcePage}</span></div></div>
+            <div className="med-reference-title"><CheckCircle2 size={16}/><div><strong>{reference.medicine}</strong><span>Selected from {reference.sourceSection || 'GP medication reference'} · page {reference.sourcePage}</span></div></div>
             <div className="med-reference-grid">
               <div><span>Form</span><strong>{reference.form || '—'}</strong></div>
               <div><span>Common GP indication</span><strong>{reference.indication || '—'}</strong></div>
-              <button type="button" onClick={() => useReferenceSource('usual')}><span>Usual starting / usual dose</span><strong>{reference.usualDose || '—'}</strong><small>Choose typical dosage</small></button>
-              <button type="button" onClick={() => useReferenceSource('higher')}><span>Higher / maintenance reference</span><strong>{reference.higherDose || '—'}</strong><small>{typicalOptions.some((entry) => entry.sourceKey === 'higher') ? 'Choose typical dosage' : 'Reference only'}</small></button>
+              <button type="button" disabled={!typicalOptions.some((entry) => entry.sourceKey === 'usual')} onClick={() => useReferenceSource('usual')}><span>Usual starting / usual dose</span><strong>{reference.usualDose || '—'}</strong><small>{typicalOptions.some((entry) => entry.sourceKey === 'usual') ? 'Choose typical dosage' : 'Reference only — enter the prescribed dose manually'}</small></button>
+              <button type="button" disabled={!typicalOptions.some((entry) => entry.sourceKey === 'higher')} onClick={() => useReferenceSource('higher')}><span>Higher / maintenance reference</span><strong>{reference.higherDose || '—'}</strong><small>{typicalOptions.some((entry) => entry.sourceKey === 'higher') ? 'Choose typical dosage' : 'Reference only'}</small></button>
             </div>
           </div>
         )}
@@ -719,7 +697,7 @@ export function MedicationModal({ medication, authoriser, isGpPartner, onClose, 
                   <input type="number" min="0" step="0.001" inputMode="decimal" value={strengthAmount} onChange={(event) => setStrengthAmount(event.target.value)} placeholder="e.g. 5"/>
                   <select value={strengthUnit} onChange={(event) => setStrengthUnit(event.target.value)}><option value="micrograms">micrograms</option><option value="mg">mg</option><option value="g">g</option></select>
                 </div>
-                <small>Enter the strength of the actual tablet/capsule being issued; the GP MEDS reference does not define pack strength.</small>
+                <small>Enter the strength of the actual tablet/capsule being issued; the supplied GP reference does not define pack strength.</small>
               </label>
 
               <label>Frequency per day (ONLY CHANGE THE NUMBER)

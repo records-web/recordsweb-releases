@@ -5327,3 +5327,12 @@ html.rw-dark-mode .platform-discord-check-grid label { color:#c0d2dc; }
   .platform-discord-composer-grid label.wide { grid-column:auto; }
   .platform-discord-metrics,.platform-discord-health-grid { grid-template-columns:1fr; }
 }
+
+
+/* RecordsWeb 3.8.1 — expanded GP medicine and condition catalogues */
+.problem-reference-severity.unclassified { border-color:#b8c6cf; background:#f2f5f7; color:#5e7380; }
+.problem-reference-selected.unclassified { border-color:#c7d3da; background:#f7f9fa; }
+.problem-reference-selected.unclassified em { background:#e9eef1; color:#5e7380; }
+html.rw-dark-mode .problem-reference-severity.unclassified { border-color:#526875 !important; background:#1b2a33 !important; color:#b7c8d1 !important; }
+html.rw-dark-mode .problem-reference-selected.unclassified { border-color:#405967 !important; background:#16242c !important; }
+html.rw-dark-mode .problem-reference-selected.unclassified em { background:#22343f !important; color:#c0d1da !important; }

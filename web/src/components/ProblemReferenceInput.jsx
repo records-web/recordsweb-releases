@@ -42,14 +42,14 @@ export default function ProblemReferenceInput({ value, onChange, onSelect, place
                 <strong>{entry.name}</strong>
                 <small>{entry.description}</small>
               </span>
-              <span className={`problem-reference-severity ${entry.severity === 'Severe' ? 'severe' : 'minor'}`}>{entry.severity}</span>
+              <span className={`problem-reference-severity ${entry.severity === 'Severe' ? 'severe' : entry.severity === 'Unclassified' ? 'unclassified' : 'minor'}`}>{entry.severity}</span>
             </button>
           ))}
         </div>
       )}
 
       {selected && (
-        <div className={`problem-reference-selected ${selected.severity === 'Severe' ? 'severe' : ''}`}>
+        <div className={`problem-reference-selected ${selected.severity === 'Severe' ? 'severe' : selected.severity === 'Unclassified' ? 'unclassified' : ''}`}>
           <div>
             <strong>{selected.name}</strong>
             <span>{selected.description}</span>
