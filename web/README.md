@@ -1,4 +1,9 @@
 # RecordsWeb
+
+## RecordsWeb 3.8.2 — Patient Discord documents
+
+RecordsWeb 3.8.2 adds patient Discord IDs, automatic prescription and fit-note direct messages, generated prescription images, attached fit-note documents, selectable GP problems, and form-aware liquid/spray prescribing controls.
+
 ## RecordsWeb 3.8.1 — Expanded GP Medicine & Condition Catalogues
 
 RecordsWeb 3.8.1 adds every entry from the newly supplied UK GP reference PDFs to the existing client-side catalogues without de-duplicating them. This adds 500 medication reference entries and 499 condition/presentation entries while retaining all existing catalogue entries. Newly imported condition entries are marked **Unclassified** because the source PDF does not provide a clinical significance/severity classification. No database migration is required.
@@ -105,7 +110,7 @@ Staff login DMs now contain **only the generated RecordsWeb PNG attachment**. Th
 
 # RecordsWeb Web
 
-**Version:** 3.8.1  
+**Version:** 3.8.2  
 **Runtime:** Browser / Vite / React  
 **Deployment:** Multi-organisation
 
