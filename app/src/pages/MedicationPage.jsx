@@ -9,6 +9,7 @@ import {
   LockKeyhole,
   RotateCcw,
   Search,
+  Send,
   ShieldAlert,
   ShieldCheck,
   X,
@@ -34,6 +35,7 @@ import {
   searchGpMedicationCatalogue,
 } from '../lib/gpMedicationCatalogue'
 import { useAuth } from '../contexts/AuthContext'
+import { sendPatientPrescriptionDm } from '../lib/discordIntegrationService'
 
 const MEDICATION_TYPES = ['Acute Meds', 'Repeat', 'Long Term Meds']
 const SPECIALIST_WARNING = 'This drug is only allowed to be prescribed by specialists. Please speak to your GP Partner for authorisation to prescribe this drug.'
@@ -316,6 +318,8 @@ export default function MedicationPage() {
   const [reauthoriseTarget, setReauthoriseTarget] = useState(null)
   const [viewMode, setViewMode] = useState('current')
   const [pageError, setPageError] = useState('')
+  const [dmNotice, setDmNotice] = useState('')
+  const [dmBusyId, setDmBusyId] = useState('')
 
   async function load() {
     const [p, meds] = await Promise.all([
@@ -367,7 +371,7 @@ export default function MedicationPage() {
     event.stopPropagation()
     setSelectedMedication(medication)
     const width = 235
-    const height = 142
+    const height = 188
     setContextMenu({
       medication,
       x: Math.min(event.clientX, Math.max(8, window.innerWidth - width - 8)),
@@ -385,12 +389,36 @@ export default function MedicationPage() {
     action(selectedMedication)
   }
 
+  async function resendPrescriptionDm(medication) {
+    if (!medication?.id || dmBusyId) return
+    setPageError('')
+    setDmNotice('')
+    setDmBusyId(medication.id)
+    try {
+      const result = await sendPatientPrescriptionDm({ patientId, medicationId: medication.id, eventType: 'resent' })
+      if (result?.skipped && result.reason === 'missing_patient_discord_id') {
+        setPageError('Prescription DM could not be re-sent because this patient has no Discord ID.')
+      } else if (result?.skipped && result.reason === 'discord_not_connected') {
+        setPageError('Prescription DM could not be re-sent because this community has no Discord bot integration configured.')
+      } else if (result?.ok === false) {
+        setPageError(`Prescription DM could not be re-sent: ${result.error || 'Unknown Discord error.'}`)
+      } else {
+        setDmNotice(`Prescription DM re-sent for ${medication.name}.`)
+      }
+    } catch (error) {
+      setPageError(`Prescription DM could not be re-sent: ${error?.message || 'Unknown Discord error.'}`)
+    } finally {
+      setDmBusyId('')
+    }
+  }
+
   return (
     <div>
       <ClinicalToolbar actions={[
         { label: 'Add drug', icon: 'medication', onClick: () => setEditing({ type: 'Acute Meds' }) },
         { label: 'End course', icon: 'add', disabled: !selectedMedication || selectedMedication.active === false, onClick: () => runSelected(setCancelTarget) },
         { label: 'Reauthorise', icon: 'medication', disabled: !selectedMedication, onClick: () => runSelected(setReauthoriseTarget) },
+        { label: dmBusyId ? 'Sending DM…' : 'Re-send DM', icon: 'discord', disabled: !selectedMedication || Boolean(dmBusyId), onClick: () => runSelected(resendPrescriptionDm) },
         { label: viewMode === 'current' ? 'Current / Past' : 'Current only', icon: 'consult', groupStart: true, onClick: () => setViewMode((current) => current === 'current' ? 'all' : 'current') },
         { label: 'Drug history', icon: 'info', disabled: !selectedMedication, onClick: () => runSelected(setHistoryMedication) },
         { label: 'Search view', icon: 'search', groupStart: true },
@@ -399,6 +427,7 @@ export default function MedicationPage() {
 
       <PatientHeader patient={patient}/>
       {pageError && <div className="form-error top-record-error">{pageError}</div>}
+      {dmNotice && <div className="form-success top-record-success">{dmNotice}</div>}
       <div className="medication-page">
         <div className="med-title-row">
           <div>
@@ -446,6 +475,7 @@ export default function MedicationPage() {
           <button type="button" onClick={() => { setHistoryMedication(contextMenu.medication); setContextMenu(null) }}><History size={15}/><span><strong>Drug history</strong><small>View issue and action history</small></span></button>
           <button type="button" disabled={contextMenu.medication.active === false} onClick={() => { setCancelTarget(contextMenu.medication); setContextMenu(null) }}><Ban size={15}/><span><strong>Cancel course</strong><small>A reason is required</small></span></button>
           <button type="button" onClick={() => { setReauthoriseTarget(contextMenu.medication); setContextMenu(null) }}><RotateCcw size={15}/><span><strong>Re-authorise</strong><small>Prescribing PIN required</small></span></button>
+          <button type="button" disabled={Boolean(dmBusyId)} onClick={() => { const medication = contextMenu.medication; setContextMenu(null); resendPrescriptionDm(medication) }}><Send size={15}/><span><strong>{dmBusyId === contextMenu.medication.id ? 'Sending DM…' : 'Re-send Discord DM'}</strong><small>Send this prescription copy again</small></span></button>
         </div>
       )}
 

@@ -66,11 +66,12 @@ export async function sendPatientPrescriptionDm({ patientId, medicationId, event
   })
 }
 
-export async function sendPatientFitNoteDm({ patientId, documentId }) {
+export async function sendPatientFitNoteDm({ patientId, documentId, resend = false }) {
   return invokeDiscord({
     action: 'send-patient-fit-note-dm',
     patient_id: String(patientId || '').trim(),
     document_id: String(documentId || '').trim(),
+    resend: Boolean(resend),
   })
 }
 

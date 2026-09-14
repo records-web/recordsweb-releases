@@ -5366,3 +5366,14 @@ html.rw-dark-mode .warnings > div:not(.specialist-drug-warning) span {
 html.rw-dark-mode .warnings > div:not(.specialist-drug-warning) svg {
   color:#f4c542;
 }
+
+/* RecordsWeb 3.9.4 — patient Discord re-send controls */
+.fit-note-filed-summary { grid-template-columns: 1.4fr 1fr 1fr 1fr; }
+.fit-note-resend-cell { display:flex; flex-direction:column; justify-content:center; }
+.document-resend-dm { min-height:26px; display:inline-flex; align-items:center; justify-content:center; gap:5px; padding:0 9px; border:1px solid #8eb3c8; background:#eef8fd; color:#225c7a; font-size:9px; font-weight:700; cursor:pointer; }
+.document-resend-dm:hover:not(:disabled) { background:#dff2fb; }
+.document-resend-dm:disabled { opacity:.55; cursor:not-allowed; }
+.documents-dm-notice, .top-record-success { margin:6px 8px; }
+html.rw-dark-mode .document-resend-dm { background:#16313f; border-color:#456b7d; color:#cbe8f6; }
+html.rw-dark-mode .document-resend-dm:hover:not(:disabled) { background:#1c3d4d; }
+@media (max-width: 900px) { .fit-note-filed-summary { grid-template-columns:1fr; } }

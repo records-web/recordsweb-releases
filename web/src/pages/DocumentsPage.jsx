@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { FileText, Search } from 'lucide-react'
+import { FileText, Search, Send } from 'lucide-react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import ClinicalToolbar from '../components/ClinicalToolbar'
 import PatientHeader from '../components/PatientHeader'
@@ -29,6 +29,8 @@ export default function DocumentsPage() {
   const [fitNoteOpen, setFitNoteOpen] = useState(searchParams.get('fitnote') === '1')
   const [selected, setSelected] = useState(null)
   const [error, setError] = useState('')
+  const [notice, setNotice] = useState('')
+  const [dmBusyId, setDmBusyId] = useState('')
   const profile = session?.profile || {}
   const currentClinician = [profile.title, profile.first_name, profile.last_name].filter(Boolean).join(' ').trim() || profile.display_name || profile.username || 'Current clinician'
 
@@ -66,6 +68,29 @@ export default function DocumentsPage() {
     }
   }
 
+  async function resendFitNoteDm(document) {
+    if (!document?.id || dmBusyId) return
+    setError('')
+    setNotice('')
+    setDmBusyId(document.id)
+    try {
+      const result = await sendPatientFitNoteDm({ patientId, documentId: document.id, resend: true })
+      if (result?.skipped && result.reason === 'missing_patient_discord_id') {
+        setError('Fit note DM could not be re-sent because this patient has no Discord ID.')
+      } else if (result?.skipped && result.reason === 'discord_not_connected') {
+        setError('Fit note DM could not be re-sent because this community has no Discord bot integration configured.')
+      } else if (result?.ok === false) {
+        setError(`Fit note DM could not be re-sent: ${result.error || 'Unknown Discord error.'}`)
+      } else {
+        setNotice('Fit note PDF re-sent to the patient on Discord.')
+      }
+    } catch (discordError) {
+      setError(`Fit note DM could not be re-sent: ${discordError?.message || 'Unknown Discord error.'}`)
+    } finally {
+      setDmBusyId('')
+    }
+  }
+
   return (
     <div>
       <ClinicalToolbar actions={[
@@ -78,6 +103,7 @@ export default function DocumentsPage() {
       <PatientHeader patient={patient} />
       <div className="page-pad compact-pad documents-page">
         {error && <div className="form-error">{error}</div>}
+        {notice && <div className="form-success documents-dm-notice">{notice}</div>}
         {showFilter && <div className="record-filter-bar"><Search size={14} /><strong>Filter Documents</strong><input autoFocus value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Search documents…" /><button onClick={() => { setFilter(''); setShowFilter(false) }}>Clear</button></div>}
         <div className="documents-stream-head"><strong>Documents</strong><span>{filtered.length}</span></div>
         {filtered.length === 0 ? <div className="empty-state documents-empty">No documents found.</div> : (
@@ -99,6 +125,7 @@ export default function DocumentsPage() {
                       <div><span>Format</span><p>PDF document</p></div>
                       <div><span>Record state</span><p>{document.immutable || document.status === 'Signed' ? 'Signed / locked' : 'Issued'}</p></div>
                       <div><span>Editing</span><p>{document.immutable || document.status === 'Signed' ? 'Not permitted' : 'Pending lock'}</p></div>
+                      <div className="fit-note-resend-cell"><span>Patient DM</span><button type="button" className="document-resend-dm" disabled={Boolean(dmBusyId)} onClick={(event) => { event.stopPropagation(); resendFitNoteDm(document) }}><Send size={13}/>{dmBusyId === document.id ? 'Sending…' : 'Re-send DM'}</button></div>
                     </div>
                   )}
                 </article>
@@ -144,7 +171,7 @@ export default function DocumentsPage() {
         closeFitNote()
         await load()
       }} />}
-      {selected && <DocumentDetailsModal document={selected} patient={patient} onClose={() => setSelected(null)} />}
+      {selected && <DocumentDetailsModal document={selected} patient={patient} onClose={() => setSelected(null)} onResendFitNote={resendFitNoteDm} dmBusy={dmBusyId === selected.id} />}
     </div>
   )
 }

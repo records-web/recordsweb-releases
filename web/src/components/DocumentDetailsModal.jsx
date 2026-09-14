@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Download, LockKeyhole, Printer, X } from 'lucide-react'
+import { Download, LockKeyhole, Printer, Send, X } from 'lucide-react'
 import ModalPortal from './ModalPortal'
 import { ORGANISATION } from '../lib/demoData'
 import { listDocumentVersions } from '../lib/documentVersions'
@@ -21,7 +21,7 @@ function adjustments(details = {}) {
   ].filter(Boolean)
 }
 
-export default function DocumentDetailsModal({ document, patient, onClose }) {
+export default function DocumentDetailsModal({ document, patient, onClose, onResendFitNote, dmBusy = false }) {
   const details = document?.details || {}
   const isFitNote = document?.document_type === 'Fit Note' || document?.category === 'Fit Note'
   const locked = Boolean(document?.immutable || document?.locked_at || document?.status === 'Signed')
@@ -131,6 +131,7 @@ export default function DocumentDetailsModal({ document, patient, onClose }) {
           <footer>
             {pdfState && pdfUrl && <span className="document-pdf-state" role="status">{pdfState}</span>}
             <span className="fit-note-immutable-note"><LockKeyhole size={13} /> Once issued, this fit note cannot be edited.</span>
+            {onResendFitNote && <button className="secondary-button" disabled={dmBusy} onClick={() => onResendFitNote(document)}><Send size={14} /> {dmBusy ? 'Sending DM…' : 'Re-send DM'}</button>}
             <button className="secondary-button" onClick={printPdf}><Printer size={14} /> Print</button>
             <button className="primary-button" onClick={savePdf}><Download size={14} /> Save PDF</button>
             <button className="secondary-button" onClick={onClose}>Close</button>

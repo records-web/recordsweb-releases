@@ -1,5 +1,25 @@
 # RecordsWeb
 
+## RecordsWeb 3.9.4 — Re-send patient Discord documents
+
+Medication and fit-note records now provide controls to re-send the existing patient Discord DM without creating a new clinical record. Fit notes continue to send the filed PDF. Prescription images use the previous split prescription layout and add prescriber details only at the bottom.
+
+## RecordsWeb 3.9.3 — Prescription details layout adjustment
+
+Prescription Discord images now keep the previous split prescription layout while adding prescriber details such as name, email, role, and location in the footer areas.
+
+## RecordsWeb 3.9.2 — Prescription image redesign
+
+Prescription Discord images now use a new NHS-form inspired layout with clearer medication presentation and added prescriber details including name, email, role and location.
+
+## Fit note Discord PDF delivery rollback
+
+Fit-note Discord delivery has been returned to PDF attachments. RecordsWeb still reuses an archived PDF when available and generates/archives one when needed.
+
+## RecordsWeb 3.9.1 — Discord fit-note renderer hotfix
+
+RecordsWeb 3.9.1 removes unsupported CSS Grid from the Edge-compatible fit-note image renderer and avoids mutating the already signed `documents` row while archiving a generated PDF. The PDF remains discoverable through `fit_note_pdfs`, while Discord receives the PNG preview.
+
 ## RecordsWeb 3.9.0 — Fit note Discord image delivery
 
 RecordsWeb 3.9.0 keeps the archived fit-note PDF inside the patient record, but sends a generated PNG image preview to the patient in Discord for easier viewing. Prescription Discord image delivery remains in place.

@@ -1,5 +1,5 @@
 import React from 'react'
-import { FilePlus2, Filter, Printer, Search, Settings, Stethoscope, BookOpen, ClipboardPlus, Pill, CalendarPlus } from 'lucide-react'
+import { FilePlus2, Filter, Printer, Search, Settings, Stethoscope, BookOpen, ClipboardPlus, Pill, CalendarPlus, Send } from 'lucide-react'
 
 const icons = {
   add: FilePlus2,
@@ -12,6 +12,7 @@ const icons = {
   request: ClipboardPlus,
   medication: Pill,
   appointment: CalendarPlus,
+  discord: Send,
 }
 
 export default function ClinicalToolbar({ actions = [] }) {
