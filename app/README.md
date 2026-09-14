@@ -1,5 +1,9 @@
 # RecordsWeb
 
+## RecordsWeb 3.9.0 — Fit note Discord image delivery
+
+RecordsWeb 3.9.0 keeps the archived fit-note PDF inside the patient record, but sends a generated PNG image preview to the patient in Discord for easier viewing. Prescription Discord image delivery remains in place.
+
 
 ## RecordsWeb 3.8.5 — Discord document and dark-mode fixes
 

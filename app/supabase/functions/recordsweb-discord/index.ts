@@ -90,7 +90,7 @@ let recordsWebLogoDataUri: string | null = null
 async function getRecordsWebLogoDataUri() {
   if (recordsWebLogoDataUri) return recordsWebLogoDataUri
   const logoUrl = String(Deno.env.get('RECORDSWEB_LOGO_URL') || 'https://cdn.recordsweb.org/RW-Logo.png').trim()
-  const response = await fetch(logoUrl, { headers: { 'User-Agent': 'RecordsWeb-Bot/3.8.5' } })
+  const response = await fetch(logoUrl, { headers: { 'User-Agent': 'RecordsWeb-Bot/3.9.0' } })
   if (!response.ok) {
     throw Object.assign(new Error(`Unable to load the official RecordsWeb logo (HTTP ${response.status}).`), { status: 502 })
   }
@@ -939,6 +939,197 @@ async function renderFitNotePdf(document: any, patient: any, organisation: any) 
   return new Uint8Array(await pdf.save())
 }
 
+async function renderFitNoteImage(document: any, patient: any, organisation: any) {
+  const details = document?.details && typeof document.details === 'object' ? document.details : {}
+  const organisationName = cleanText(organisation?.name, 200) || 'RecordsWeb Community'
+  const patientName = patientFullName(patient)
+  const address = patientAddressLines(patient, 5).join(', ') || 'Not specified'
+  const period = details.period_mode === 'duration'
+    ? `${cleanText(details.duration_value, 30) || '—'} ${cleanText(details.duration_unit, 40) || ''}`.trim()
+    : `${displayDateOnly(details.period_from)} to ${displayDateOnly(details.period_to)}`
+  const adjustments = [
+    details.phased_return && 'Phased return to work',
+    details.amended_duties && 'Amended duties',
+    details.altered_hours && 'Altered hours',
+    details.workplace_adaptations && 'Workplace adaptations',
+  ].filter(Boolean)
+
+  const safeText = (value: unknown, style: Record<string, unknown> = {}) => h('div', {
+    style: { display: 'flex', color: '#111111', fontFamily: 'Arial, sans-serif', whiteSpace: 'pre-wrap', ...style },
+  }, String(value ?? ''))
+
+  const field = (label: string, value: unknown, opts: Record<string, unknown> = {}) => h('div', {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      border: '1px solid #7e8b98',
+      background: '#ffffff',
+      padding: '10px 12px',
+      minHeight: 72,
+      ...opts,
+    },
+  },
+    safeText(label, { fontSize: 13, fontWeight: 700, color: '#1f2f3f' }),
+    safeText(value || 'Not specified', { fontSize: 18, marginTop: 6, lineHeight: 1.25, color: '#111111' }),
+  )
+
+  const checkItem = (active: boolean, label: string) => h('div', {
+    style: { display: 'flex', alignItems: 'center', marginTop: 8, gap: 10 },
+  },
+    h('div', {
+      style: {
+        display: 'flex',
+        width: 18,
+        height: 18,
+        border: '2px solid #283746',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: 14,
+        fontWeight: 700,
+        color: '#111111',
+        background: '#ffffff',
+      },
+    }, active ? '✓' : ''),
+    safeText(label, { fontSize: 16, color: '#1a2430' }),
+  )
+
+  const element = h('div', {
+    style: {
+      display: 'flex',
+      width: '100%',
+      height: '100%',
+      background: '#edf2f7',
+      padding: '20px',
+      fontFamily: 'Arial, sans-serif',
+      color: '#111111',
+    },
+  },
+    h('div', {
+      style: {
+        display: 'flex',
+        flexDirection: 'column',
+        width: '100%',
+        height: '100%',
+        background: '#ffffff',
+        border: '2px solid #2a3440',
+      },
+    },
+      h('div', {
+        style: {
+          display: 'flex',
+          flexDirection: 'column',
+          padding: '12px 16px',
+          borderBottom: '2px solid #2a3440',
+          background: '#f6f8fb',
+          color: '#111111',
+        },
+      },
+        safeText('ROLEPLAY / SIMULATION ONLY — NOT A REAL STATUTORY FIT NOTE', { fontSize: 15, fontWeight: 800, letterSpacing: 0.2 }),
+        safeText('Statement of Fitness for Work', { fontSize: 28, fontWeight: 800, marginTop: 8, color: '#0f1b2a' }),
+      ),
+      h('div', { style: { display: 'flex', flex: 1, width: '100%' } },
+        h('div', {
+          style: {
+            display: 'flex',
+            flexDirection: 'column',
+            width: '56%',
+            padding: '16px',
+            borderRight: '1px solid #b8c3cf',
+            background: '#fcfdff',
+          },
+        },
+          h('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 } },
+            field("Patient's name", patientName),
+            field('I assessed your case on', displayDateOnly(details.assessed_on)),
+            field('Condition(s)', cleanText(details.condition, 4000) || 'Not specified', { gridColumn: '1 / span 2', minHeight: 86 }),
+          ),
+          safeText('I advise you that:', { fontSize: 15, fontWeight: 800, marginTop: 16, color: '#152536' }),
+          checkItem(details.advice === 'Not fit for work', 'You are not fit for work'),
+          checkItem(details.advice === 'May be fit for work', 'You may be fit for work taking account of the following advice'),
+          h('div', {
+            style: {
+              display: 'flex',
+              flexDirection: 'column',
+              marginTop: 14,
+              border: '1px solid #7e8b98',
+              background: '#ffffff',
+              padding: '10px 12px',
+            },
+          },
+            safeText("If available, and with your employer's agreement, you may benefit from:", { fontSize: 13, fontWeight: 700, color: '#1f2f3f' }),
+            adjustments.length
+              ? safeText(adjustments.join(' · '), { fontSize: 16, marginTop: 8, color: '#111111' })
+              : safeText('No workplace adjustments specified.', { fontSize: 16, marginTop: 8, color: '#111111' }),
+            safeText('Comments / functional effects', { fontSize: 13, fontWeight: 700, marginTop: 12, color: '#1f2f3f' }),
+            safeText(cleanText(details.comments, 5000) || 'Not specified', { fontSize: 15, marginTop: 6, lineHeight: 1.25 }),
+          ),
+          h('div', { style: { display: 'grid', gridTemplateColumns: '1fr', gap: 12, marginTop: 14 } },
+            field('This will be the case for / period', period || 'Not specified', { minHeight: 76 }),
+            field("Issuer's name", cleanText(details.issuer_name || document?.author, 250) || 'RecordsWeb clinician', { minHeight: 68 }),
+            field("Issuer's profession", cleanText(details.issuer_profession, 200) || 'Not specified', { minHeight: 68 }),
+          ),
+        ),
+        h('div', {
+          style: {
+            display: 'flex',
+            flexDirection: 'column',
+            width: '44%',
+            padding: '16px',
+            background: '#f7fafc',
+          },
+        },
+          safeText('What your advice means', { fontSize: 20, fontWeight: 800, color: '#0f1b2a' }),
+          safeText('“You are not fit for work” means the character may not be able to work for the period shown.', { fontSize: 15, marginTop: 8, lineHeight: 1.25 }),
+          safeText('“You may be fit for work” means a return may be possible with support such as altered hours, amended duties, workplace adaptations or a phased return.', { fontSize: 15, marginTop: 10, lineHeight: 1.25 }),
+          safeText('Your details', { fontSize: 20, fontWeight: 800, marginTop: 18, color: '#0f1b2a' }),
+          h('div', { style: { display: 'grid', gridTemplateColumns: '1fr', gap: 12, marginTop: 10 } },
+            field('Surname', String(patient?.last_name || '').toUpperCase() || 'Not specified', { minHeight: 64 }),
+            field('Other names', String(patient?.first_name || '').toUpperCase() || 'Not specified', { minHeight: 64 }),
+            field('Address', address, { minHeight: 92 }),
+            h('div', { style: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 } },
+              field('Date of birth', displayDateOnly(patient?.dob), { minHeight: 64 }),
+              field('NHS number', cleanText(patient?.nhs_number, 40) || 'Not specified', { minHeight: 64 }),
+            ),
+            field('Date of statement', displayDateOnly(details.statement_date || document?.date), { minHeight: 64 }),
+            field("Issuer's address", cleanText(details.issuer_address, 1000) || organisationName, { minHeight: 82 }),
+            field('Community', organisationName, { minHeight: 64 }),
+          ),
+          h('div', {
+            style: {
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginTop: 'auto',
+              border: '2px solid #2a3440',
+              background: '#ffffff',
+              minHeight: 42,
+            },
+          },
+            safeText('NOT VALID FOR REAL-WORLD USE', { fontSize: 16, fontWeight: 800, color: '#1a2430' }),
+          ),
+        ),
+      ),
+      h('div', {
+        style: {
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          padding: '10px 16px',
+          borderTop: '1px solid #b8c3cf',
+          background: '#f6f8fb',
+        },
+      },
+        safeText(`RecordsWeb roleplay document · ${organisationName}`, { fontSize: 12, color: '#334155' }),
+        safeText('Generated automatically for patient viewing in Discord', { fontSize: 12, color: '#334155' }),
+      ),
+    ),
+  )
+
+  const response = new ImageResponse(element as any, { width: 1400, height: 1000 })
+  if (!response.ok) throw Object.assign(new Error(`Unable to generate fit note image (HTTP ${response.status}).`), { status: 502 })
+  return new Uint8Array(await response.arrayBuffer())
+}
+
 async function fitNoteStoredAttachment(admin: any, document: any, patient: any) {
   let storagePath = cleanText(document?.storage_path, 500)
   if (!storagePath) {
@@ -1691,12 +1882,14 @@ Deno.serve(async (req) => {
         : `${displayDateOnly(details.period_from)} to ${displayDateOnly(details.period_to)}`
 
       const attachment = await ensureFitNotePdfAttachment(admin, context, document, patient)
+      const fitNoteImage = await renderFitNoteImage(document, patient, context.organisation)
+      const imageName = `${fitNoteAttachmentBaseName(document, patient)}.png`
 
       await sendPatientFileDm(String((target as any).discordUserId), {
-        content: 'A Statement of Fitness for Work has been issued on your RecordsWeb patient record. The issued fit note PDF is attached below.',
+        content: 'A Statement of Fitness for Work has been issued on your RecordsWeb patient record. A viewable fit note image is attached below. The PDF version has been filed in RecordsWeb.',
         embeds: [{
           title: 'Fit note issued',
-          description: 'The attached file contains the issued fit note document for patient viewing.',
+          description: 'The attached image shows the issued fit note. RecordsWeb has also stored the PDF version in the patient record.',
           color: 0x0F6FBD,
           fields: [
             { name: 'Advice', value: cleanText(details.advice, 1024) || 'Not specified', inline: false },
@@ -1705,18 +1898,25 @@ Deno.serve(async (req) => {
             { name: 'Statement date', value: displayDateOnly(details.statement_date || document.date), inline: true },
             { name: 'Issued by', value: cleanText(details.issuer_name || document.author, 1024) || 'RecordsWeb clinician', inline: true },
             { name: 'Community', value: `${context.organisation.name} (@${context.organisation.org_code})`, inline: false },
+            { name: 'Archived PDF', value: attachment.storage_path ? 'Saved to the patient fit-note archive.' : 'Generated and sent, but the archive path could not be confirmed.', inline: false },
           ],
           footer: { text: 'ROLEPLAY / SIMULATION ONLY · Automated RecordsWeb patient notification · Do not reply to this bot' },
           timestamp: new Date().toISOString(),
         }],
-      }, [attachment])
+      }, [{
+        bytes: fitNoteImage,
+        filename: imageName,
+        contentType: 'image/png',
+        description: 'RecordsWeb fit note image',
+      }])
 
-      await writeAudit(admin, context.profile, 'patient.discord.fit_note.sent', 'documents', document.id, 'Fit note Discord DM with attached document sent to patient.', {
+      await writeAudit(admin, context.profile, 'patient.discord.fit_note.sent', 'documents', document.id, 'Fit note Discord DM with attached image sent to patient. PDF archived in RecordsWeb.', {
         patient_id: patientId,
         discord_user_id: (target as any).discordUserId,
         attachment_source: attachment.source,
+        discord_attachment: imageName,
       })
-      return json({ ok: true, sent: true, recipient_id: (target as any).discordUserId, attachment: attachment.filename, attachment_source: attachment.source })
+      return json({ ok: true, sent: true, recipient_id: (target as any).discordUserId, attachment: imageName, attachment_source: attachment.source, archived_pdf: attachment.filename })
     }
 
     if (action === 'send-login-dm') {
@@ -1757,7 +1957,7 @@ Deno.serve(async (req) => {
         organisationName: context.organisation.name,
         organisationCode: context.organisation.org_code,
         publicUrl,
-        version: String(Deno.env.get('RECORDSWEB_VERSION') || '3.8.5'),
+        version: String(Deno.env.get('RECORDSWEB_VERSION') || '3.9.0'),
       })
 
       await writeAudit(admin, context.profile, 'account.discord_login_dm.sent', 'profile', target.id, `Sent RecordsWeb login details by Discord DM to ${target.display_name}.`, { discord_user_id: discordUserId, delivery_format: deliveryFormat, password_reset: resetPassword })
