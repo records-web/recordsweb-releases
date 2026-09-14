@@ -1,25 +1,21 @@
 export const APP_VERSION =
-  typeof __RECORDSWEB_APP_VERSION__ !== "undefined"
+  typeof __RECORDSWEB_APP_VERSION__ !== 'undefined'
     ? __RECORDSWEB_APP_VERSION__
-    : "3.8.2";
-export const APP_RUNTIME_LABEL = "Web Clinical System";
+    : '3.8.0'
+export const APP_RUNTIME_LABEL = 'Web Clinical System'
 
 export function getWebDeviceContext() {
-  const nav = globalThis.navigator;
-  const browser =
-    nav?.userAgentData?.brands?.map((item) => item.brand).join(", ") ||
-    nav?.userAgent ||
-    "Web browser";
+  const nav = globalThis.navigator
+  const browser = nav?.userAgentData?.brands?.map((item) => item.brand).join(', ') || nav?.userAgent || 'Web browser'
   return {
     appVersion: APP_VERSION,
-    deviceName: "RecordsWeb web browser",
-    platform:
-      [nav?.platform, browser].filter(Boolean).join(" · ") || "Web browser",
-  };
+    deviceName: 'RecordsWeb web browser',
+    platform: [nav?.platform, browser].filter(Boolean).join(' · ') || 'Web browser',
+  }
 }
 
 export function setUrgentTabState(active) {
-  if (typeof document === "undefined") return;
-  const normal = "RecordsWeb";
-  document.title = active ? "(!) RecordsWeb — Urgent Message" : normal;
+  if (typeof document === 'undefined') return
+  const normal = 'RecordsWeb'
+  document.title = active ? '(!) RecordsWeb — Urgent Message' : normal
 }
