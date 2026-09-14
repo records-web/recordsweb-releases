@@ -1,5 +1,9 @@
 # RecordsWeb
 
+## RecordsWeb 3.9.14 — Maintenance-aware public status
+
+The public status page now reads the live platform maintenance state and shows scheduled maintenance separately from service outages. Public pages and the restricted Platform Management area remain accessible while clinical/community staff access is blocked.
+
 ## RecordsWeb 3.9.13 — Shared Care screen messages
 
 The Screen Messages recipient picker can now select staff from active Shared Care partner organisations. A security-definer directory RPC exposes only permitted active staff, and screen-message RLS now permits the addressed recipient to read and acknowledge cross-community messages.

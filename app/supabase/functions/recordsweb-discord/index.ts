@@ -147,7 +147,7 @@ let recordsWebLogoDataUri: string | null = null
 async function getRecordsWebLogoDataUri() {
   if (recordsWebLogoDataUri) return recordsWebLogoDataUri
   const logoUrl = String(Deno.env.get('RECORDSWEB_LOGO_URL') || 'https://cdn.recordsweb.org/RW-Logo.png').trim()
-  const response = await fetch(logoUrl, { headers: { 'User-Agent': 'RecordsWeb-Bot/3.9.13' } })
+  const response = await fetch(logoUrl, { headers: { 'User-Agent': 'RecordsWeb-Bot/3.9.14' } })
   if (!response.ok) {
     throw Object.assign(new Error(`Unable to load the official RecordsWeb logo (HTTP ${response.status}).`), { status: 502 })
   }
@@ -1883,7 +1883,7 @@ Deno.serve(async (req) => {
         organisationName: context.organisation.name,
         organisationCode: context.organisation.org_code,
         publicUrl,
-        version: String(Deno.env.get('RECORDSWEB_VERSION') || '3.9.13'),
+        version: String(Deno.env.get('RECORDSWEB_VERSION') || '3.9.14'),
       })
 
       await writeAudit(admin, context.profile, 'account.discord_login_dm.sent', 'profile', target.id, `Sent RecordsWeb login details by Discord DM to ${target.display_name}.`, { discord_user_id: discordUserId, delivery_format: deliveryFormat, password_reset: resetPassword })

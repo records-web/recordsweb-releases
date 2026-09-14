@@ -50,9 +50,9 @@ export default function MaintenanceGate({ children }) {
   }, [session])
 
   useEffect(() => {
-    // Platform maintenance applies to every community account, including local
-    // community management. The restricted website operator area is outside
-    // this gate and is the only place that can end platform maintenance.
+    // Platform maintenance applies to every clinical/community staff account,
+    // including local community management. Public website routes and the
+    // restricted Platform Management area are deliberately outside this gate.
     const staffMustExit = Boolean(state.enabled && session)
     if (!staffMustExit) {
       deadlineRef.current = null

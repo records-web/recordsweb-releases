@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
-import { Clock3, RefreshCcw, Wrench } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import { ArrowRight, Clock3, RefreshCcw, ShieldCheck, Wrench } from 'lucide-react'
 import { ORGANISATION } from '../../lib/demoData'
 import recordsWebIcon from '../../assets/recordsweb-update-logo.png'
 import { getInstalledOrganisationCode } from '../../lib/installation'
@@ -15,6 +16,7 @@ function formatEstimate(value) {
 }
 
 export default function MaintenanceScreen({ state, onRetry }) {
+  const navigate = useNavigate()
   const [appVersion] = useState(APP_VERSION)
   const [organisationSettings, setOrganisationSettings] = useState(() => getCachedOrganisationSettings())
 
@@ -49,9 +51,15 @@ export default function MaintenanceScreen({ state, onRetry }) {
           <div className="maintenance-heading"><Wrench size={19}/><div><h2>RecordsWeb maintenance</h2><span>The RecordsWeb platform is temporarily unavailable.</span></div></div>
           <p className="maintenance-message">{state?.message}</p>
           {state?.estimated_end_at && <div className="maintenance-estimate"><Clock3 size={13}/><span>Estimated completion: <strong>{formatEstimate(state.estimated_end_at)}</strong></span></div>}
-          <p className="maintenance-help">This maintenance period is controlled centrally by RecordsWeb. Community management accounts cannot override it.</p>
+          <p className="maintenance-help">Clinical and community staff access is temporarily blocked. The public website, service status and restricted Platform Management area remain available during maintenance.</p>
+          <div className="maintenance-public-links">
+            <button type="button" onClick={() => navigate('/status')}><ArrowRight size={13}/> Service status</button>
+            <button type="button" onClick={() => navigate('/')}><ArrowRight size={13}/> Public website</button>
+            <button type="button" onClick={() => navigate('/contact')}><ArrowRight size={13}/> Contact</button>
+            <button type="button" onClick={() => navigate('/platform-management')}><ShieldCheck size={13}/> Platform management</button>
+          </div>
           <div className="legacy-login-actions maintenance-actions">
-            <button type="button" className="legacy-signin" onClick={onRetry}><RefreshCcw size={13}/> Retry</button>
+            <button type="button" className="legacy-signin" onClick={onRetry}><RefreshCcw size={13}/> Retry clinical access</button>
           </div>
         </section>
 

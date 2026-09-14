@@ -5377,3 +5377,10 @@ html.rw-dark-mode .warnings > div:not(.specialist-drug-warning) svg {
 html.rw-dark-mode .document-resend-dm { background:#16313f; border-color:#456b7d; color:#cbe8f6; }
 html.rw-dark-mode .document-resend-dm:hover:not(:disabled) { background:#1c3d4d; }
 @media (max-width: 900px) { .fit-note-filed-summary { grid-template-columns:1fr; } }
+
+/* RecordsWeb 3.9.14 — maintenance public access */
+.maintenance-public-links { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; margin:12px 0 5px; }
+.maintenance-public-links button { min-height:31px; display:flex; align-items:center; justify-content:center; gap:6px; border:1px solid #7899ab; background:#eaf3f8; color:#28566e; font:inherit; font-size:10px; cursor:pointer; }
+.maintenance-public-links button:hover { background:#dcecf4; }
+html.rw-dark-mode .maintenance-public-links button { background:#152a34; border-color:#456b7d; color:#c2dce8; }
+@media (max-width:620px) { .maintenance-public-links { grid-template-columns:1fr; } }

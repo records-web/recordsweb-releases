@@ -115,6 +115,7 @@ function StaffRoutes() {
 export default function App() {
   return (
     <AuthProvider>
+      {/* Public routes and Platform Management deliberately remain outside StaffEnvironment/MaintenanceGate. */}
       <Routes>
         <Route path="/" element={<RootRoute />} />
         <Route path="/contact" element={<ContactPage />} />

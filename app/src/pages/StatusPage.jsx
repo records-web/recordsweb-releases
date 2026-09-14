@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Activity, ArrowLeft, ArrowRight, CheckCircle2, Cloud, CreditCard, Database, FileText, Gamepad2, Github, RefreshCw, Share2, ShieldCheck, TriangleAlert, WifiOff } from 'lucide-react'
+import { Activity, ArrowLeft, ArrowRight, CheckCircle2, Clock3, Cloud, CreditCard, Database, FileText, Gamepad2, Github, RefreshCw, Share2, ShieldCheck, TriangleAlert, WifiOff, Wrench } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import recordsWebWordmark from '../assets/RW-Logo.png'
 import { APP_VERSION } from '../lib/webRuntime'
@@ -11,6 +11,7 @@ const STATUS_META = {
   partial_outage: { label: 'Partial Outage', className: 'outage' },
   major_outage: { label: 'Major Outage', className: 'outage' },
   outage: { label: 'Outage', className: 'outage' },
+  maintenance: { label: 'Maintenance', className: 'maintenance' },
   unknown: { label: 'Check Unavailable', className: 'unknown' },
 }
 
@@ -37,7 +38,8 @@ function relativeTime(iso, now) {
   return `Updated ${new Date(iso).toLocaleString('en-GB')}`
 }
 
-function overallCopy(status) {
+function overallCopy(status, maintenance) {
+  if (status === 'maintenance') return ['Scheduled Maintenance in Progress', maintenance?.message || 'RecordsWeb clinical access is temporarily unavailable while scheduled maintenance is being carried out.']
   if (status === 'operational') return ['All Systems Operational', 'All automated RecordsWeb health checks are currently passing.']
   if (status === 'degraded') return ['Some Systems Degraded', 'One or more RecordsWeb services are responding with degraded performance.']
   if (status === 'partial_outage') return ['Partial Service Outage', 'One or more RecordsWeb services are currently unavailable.']
@@ -114,9 +116,10 @@ export default function StatusPage() {
     [state.data],
   )
 
+  const maintenance = state.data?.maintenance || { known: false, enabled: false }
   const overall = state.data?.overall || 'unknown'
   const overallMeta = STATUS_META[overall] || STATUS_META.unknown
-  const [overallTitle, overallDescription] = overallCopy(overall)
+  const [overallTitle, overallDescription] = overallCopy(overall, maintenance)
 
   return (
     <div className="public-home recordsweb-status-page">
@@ -137,18 +140,19 @@ export default function StatusPage() {
           <div>
             <span className="public-eyebrow">RECORDSWEB SERVICE STATUS</span>
             <h1>RecordsWeb Status</h1>
-            <p>Live availability for the RecordsWeb platform and connected services. Status is generated automatically from direct service checks and cannot be manually set to operational.</p>
+            <p>Live availability for the RecordsWeb platform and connected services. Service health is generated automatically from direct checks, while scheduled maintenance is read from the live RecordsWeb platform maintenance state.</p>
           </div>
           <button type="button" className="public-status-refresh" disabled={refreshing} onClick={() => load(true)}><RefreshCw size={15} className={refreshing ? 'spin' : ''}/>{refreshing ? 'Checking…' : 'Check now'}</button>
         </section>
 
         <section className={`public-status-overall ${overallMeta.className}`}>
           <div className="public-status-overall-icon">
-            {overall === 'operational' ? <CheckCircle2 size={24}/> : overall === 'unknown' ? <TriangleAlert size={24}/> : <WifiOff size={24}/>} 
+            {overall === 'maintenance' ? <Wrench size={24}/> : overall === 'operational' ? <CheckCircle2 size={24}/> : overall === 'unknown' ? <TriangleAlert size={24}/> : <WifiOff size={24}/>} 
           </div>
           <div className="public-status-overall-copy">
             <strong>{state.loading && !state.data ? 'Checking RecordsWeb services…' : overallTitle}</strong>
             <span>{state.loading && !state.data ? 'Running automated live checks.' : overallDescription}</span>
+            {maintenance.enabled && maintenance.estimatedEndAt && <small className="public-status-maintenance-estimate"><Clock3 size={13}/> Estimated completion: {new Date(maintenance.estimatedEndAt).toLocaleString('en-GB')}</small>}
           </div>
           <div className="public-status-updated">{relativeTime(state.data?.generatedAt, now)}</div>
         </section>
@@ -172,7 +176,7 @@ export default function StatusPage() {
         <section className="public-status-incidents">
           <div className="public-status-section-title"><span>AUTOMATED INCIDENTS</span><h2>Current incidents</h2></div>
           {incidentComponents.length === 0 && !state.loading ? (
-            <div className="public-status-no-incidents"><CheckCircle2 size={20}/><div><strong>No active incidents detected</strong><span>All monitored RecordsWeb components are currently responding normally.</span></div></div>
+            <div className="public-status-no-incidents"><CheckCircle2 size={20}/><div><strong>{maintenance.enabled ? 'No infrastructure incidents detected' : 'No active incidents detected'}</strong><span>{maintenance.enabled ? 'Scheduled maintenance is active, but the monitored RecordsWeb services shown above are responding normally.' : 'All monitored RecordsWeb components are currently responding normally.'}</span></div></div>
           ) : incidentComponents.length > 0 ? (
             <div className="public-status-incident-list">
               {incidentComponents.map((item) => {
@@ -187,7 +191,7 @@ export default function StatusPage() {
 
         <section className="public-status-automation-note">
           <ShieldCheck size={20}/>
-          <div><strong>Automated status reporting</strong><p>This page does not use a manual “all systems operational” switch. The displayed state is calculated from live checks against RecordsWeb infrastructure and connected service endpoints. Checks refresh automatically every 30 seconds.</p></div>
+          <div><strong>Automated status reporting</strong><p>Operational, degraded and outage states are calculated from live service checks. Scheduled maintenance is read directly from RecordsWeb platform management. The page refreshes automatically every 30 seconds.</p></div>
         </section>
       </main>
 

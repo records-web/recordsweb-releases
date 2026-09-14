@@ -4346,12 +4346,14 @@ html.rw-dark-mode .message-list > button.selected { background:#203b4a !importan
 .public-status-overall { min-height:86px; display:flex; align-items:center; gap:16px; padding:18px 22px; border:1px solid; margin-bottom:22px; box-shadow:0 5px 18px rgba(31,66,89,.06); }
 .public-status-overall.operational { background:#eaf8f0; border-color:#86cda3; color:#12643a; }
 .public-status-overall.degraded { background:#fff7df; border-color:#e2bf63; color:#775108; }
+.public-status-overall.maintenance { background:#eef5ff; border-color:#8aadd9; color:#295d91; }
 .public-status-overall.outage { background:#fff0f0; border-color:#df8e8e; color:#8d2828; }
 .public-status-overall.unknown { background:#f1f5f7; border-color:#b9cbd6; color:#526c7b; }
 .public-status-overall-icon { width:44px; height:44px; display:grid; place-items:center; border:1px solid currentColor; background:rgba(255,255,255,.48); }
 .public-status-overall-copy { display:flex; flex-direction:column; gap:4px; min-width:0; }
 .public-status-overall-copy strong { font-size:19px; }
 .public-status-overall-copy span { font-size:12px; opacity:.84; }
+.public-status-maintenance-estimate { margin-top:5px; display:flex; align-items:center; gap:5px; font-size:10px; font-weight:700; opacity:.9; }
 .public-status-updated { margin-left:auto; font-size:11px; font-weight:700; white-space:nowrap; }
 .public-status-fetch-error { display:flex; align-items:center; gap:8px; margin:-8px 0 20px; padding:10px 12px; background:#fff4f4; border:1px solid #e0a3a3; color:#8f2b2b; font-size:11px; }
 .public-status-groups { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
@@ -4377,6 +4379,7 @@ html.rw-dark-mode .message-list > button.selected { background:#203b4a !importan
 .public-status-pill { display:inline-flex; min-height:23px; align-items:center; padding:0 8px; border:1px solid; font-size:9px; font-weight:900; text-transform:uppercase; letter-spacing:.3px; white-space:nowrap; }
 .public-status-pill.operational { color:#147642; border-color:#8bcca6; background:#edf9f2; }
 .public-status-pill.degraded { color:#845908; border-color:#dec16f; background:#fff7dd; }
+.public-status-pill.maintenance { color:#295d91; border-color:#94b3da; background:#eff5ff; }
 .public-status-pill.outage { color:#9d2929; border-color:#dd9999; background:#fff0f0; }
 .public-status-pill.unknown { color:#596f7c; border-color:#bacbd5; background:#f2f6f8; }
 .public-status-incidents { margin-top:22px; background:#fff; border:1px solid #bfd3df; box-shadow:0 4px 16px rgba(31,66,89,.05); }
@@ -5474,3 +5477,10 @@ html.rw-dark-mode .warnings > div:not(.specialist-drug-warning) svg {
 html.rw-dark-mode .document-resend-dm { background:#16313f; border-color:#456b7d; color:#cbe8f6; }
 html.rw-dark-mode .document-resend-dm:hover:not(:disabled) { background:#1c3d4d; }
 @media (max-width: 900px) { .fit-note-filed-summary { grid-template-columns:1fr; } }
+
+/* RecordsWeb 3.9.14 — maintenance public access */
+.maintenance-public-links { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:7px; margin:12px 0 5px; }
+.maintenance-public-links button { min-height:31px; display:flex; align-items:center; justify-content:center; gap:6px; border:1px solid #7899ab; background:#eaf3f8; color:#28566e; font:inherit; font-size:10px; cursor:pointer; }
+.maintenance-public-links button:hover { background:#dcecf4; }
+html.rw-dark-mode .maintenance-public-links button { background:#152a34; border-color:#456b7d; color:#c2dce8; }
+@media (max-width:620px) { .maintenance-public-links { grid-template-columns:1fr; } }

@@ -201,6 +201,47 @@ async function checkSharedCare(baseUrl, anonKey) {
   }
 }
 
+async function checkPlatformMaintenance(baseUrl, anonKey) {
+  const fallback = {
+    known: false,
+    enabled: false,
+    message: '',
+    estimatedEndAt: null,
+    enabledAt: null,
+    updatedAt: null,
+  }
+
+  if (!baseUrl || !anonKey) return fallback
+
+  try {
+    const { response } = await timedFetch(`${baseUrl}/rest/v1/rpc/recordsweb_public_platform_state`, {
+      method: 'POST',
+      headers: {
+        apikey: anonKey,
+        Authorization: `Bearer ${anonKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: '{}',
+    })
+
+    if (!response.ok) return fallback
+    const payload = await response.json().catch(() => null)
+    const row = Array.isArray(payload) ? payload[0] : payload
+    if (!row || typeof row !== 'object') return fallback
+
+    return {
+      known: true,
+      enabled: Boolean(row.enabled),
+      message: String(row.message || '').trim(),
+      estimatedEndAt: row.estimated_end_at || null,
+      enabledAt: row.enabled_at || null,
+      updatedAt: row.updated_at || null,
+    }
+  } catch {
+    return fallback
+  }
+}
+
 async function checkGitHubReleases() {
   try {
     const { response, latencyMs } = await timedFetch(GITHUB_RELEASE_URL, {
@@ -243,22 +284,26 @@ export default async function handler(req, res) {
   const baseUrl = normaliseSupabaseUrl(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL)
   const anonKey = String(process.env.SUPABASE_ANON_KEY || process.env.VITE_SUPABASE_ANON_KEY || '').trim()
 
-  const components = await Promise.all([
-    checkWebsite(),
-    checkSupabaseAuth(baseUrl, anonKey),
-    checkSupabaseData(baseUrl, anonKey),
-    checkSupabaseStorage(baseUrl, anonKey),
-    checkRecordsWebApi(),
-    checkGitHubReleases(),
-    checkStripeBilling(baseUrl, anonKey),
-    checkSharedCare(baseUrl, anonKey),
+  const [components, maintenance] = await Promise.all([
+    Promise.all([
+      checkWebsite(),
+      checkSupabaseAuth(baseUrl, anonKey),
+      checkSupabaseData(baseUrl, anonKey),
+      checkSupabaseStorage(baseUrl, anonKey),
+      checkRecordsWebApi(),
+      checkGitHubReleases(),
+      checkStripeBilling(baseUrl, anonKey),
+      checkSharedCare(baseUrl, anonKey),
+    ]),
+    checkPlatformMaintenance(baseUrl, anonKey),
   ])
 
   return json(res, {
     ok: true,
     automated: true,
     generatedAt: new Date().toISOString(),
-    overall: overallStatus(components),
+    overall: maintenance.enabled ? 'maintenance' : overallStatus(components),
+    maintenance,
     components,
   })
 }
