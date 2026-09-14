@@ -16,7 +16,23 @@ function saveDemoMessages(rows) {
 
 export async function listMessageStaff({ organisationIds = [] } = {}) {
   if (!supabaseConfigured) return (await listAccounts()).filter((x) => x.active !== false)
+
   const cleanIds = [...new Set((organisationIds || []).filter(Boolean))]
+  const { data: directoryRows, error: directoryError } = await supabase.rpc('recordsweb_screen_message_staff_directory')
+  if (!directoryError) {
+    return (directoryRows || [])
+      .filter((person) => cleanIds.length === 0 || cleanIds.includes(person.organisation_id))
+      .map((person) => ({
+        ...person,
+        organisations: {
+          name: person.organisation_name || '',
+          org_code: person.organisation_code || '',
+          system_mode: person.organisation_mode || '',
+        },
+      }))
+  }
+
+  // Compatibility fallback for databases that have not run the 3.9.13 migration yet.
   let query = supabase
     .from('profiles')
     .select('id,username,title,first_name,last_name,display_name,role,roles,active,organisation_id,organisations(name, org_code, system_mode)')

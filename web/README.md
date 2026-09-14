@@ -1,5 +1,21 @@
 # RecordsWeb
 
+## RecordsWeb 3.9.13 — Shared Care screen messages
+
+The Screen Messages recipient picker can now select staff from active Shared Care partner organisations. A security-definer directory RPC exposes only permitted active staff, and screen-message RLS now permits the addressed recipient to read and acknowledge cross-community messages.
+
+## RecordsWeb 3.9.7 — Prescriber signature storage
+
+Prescription Discord images now include a scribble-style prescriber signature in the signature area. If a staff profile does not already have a saved prescriber signature, RecordsWeb generates one automatically and stores the SVG signature on that profile for future prescriptions.
+
+## RecordsWeb 3.9.6 — Prescription prescriber placement
+
+Moves the prescriber name, email, role and location into the left-hand “Signature of Prescriber” area of the existing split prescription image. The right-hand patient copy no longer duplicates those details.
+
+## RecordsWeb 3.9.5 — Fit note DM re-send hotfix
+
+Restores the fit-note PDF renderer helpers required by the Discord re-send flow. Fit-note re-sends now generate or reuse the PDF and send it to the patient without the `renderFitNotePdf is not defined` failure.
+
 ## RecordsWeb 3.9.4 — Re-send patient Discord documents
 
 Medication and fit-note records now provide controls to re-send the existing patient Discord DM without creating a new clinical record. Fit notes continue to send the filed PDF. Prescription images use the previous split prescription layout and add prescriber details only at the bottom.
@@ -139,7 +155,7 @@ Staff login DMs now contain **only the generated RecordsWeb PNG attachment**. Th
 
 # RecordsWeb Web
 
-**Version:** 3.9.4  
+**Version:** 3.9.13  
 **Runtime:** Browser / Vite / React  
 **Deployment:** Multi-organisation
 

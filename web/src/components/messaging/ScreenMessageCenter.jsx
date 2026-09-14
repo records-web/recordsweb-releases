@@ -26,14 +26,12 @@ export default function ScreenMessageCenter({ session }) {
       workspace = null
     }
 
-    const organisationIds = [...new Set([
-      profile.organisation_id,
-      ...(Array.isArray(workspace?.members) ? workspace.members.map((member) => member.organisationId) : []),
-    ].filter(Boolean))]
-
     const [messageRows, staffRows] = await Promise.all([
       listScreenMessages(userId),
-      listMessageStaff({ organisationIds }),
+      // The directory RPC securely returns this organisation plus active Shared Care partners.
+      // Do not restrict this to workspaceOverview members because older workspaces may not yet
+      // have been synchronised even though an active Shared Care link exists.
+      listMessageStaff(),
     ])
     setMessages(messageRows)
     setStaff(staffRows)
@@ -150,13 +148,13 @@ function SendMessageForm({ profile, staff, workspaceOverview, onlineIds, replyMe
     if (person.id === profile.id) return false
     if (!person.organisation_id || !currentOrganisationId) return false
     if (person.organisation_id === currentOrganisationId) return false
-    return memberMap.has(person.organisation_id)
+    return person.shared_care === true || memberMap.has(person.organisation_id)
   }), [staff, profile.id, currentOrganisationId, memberMap])
 
   const sharedCareStaff = useMemo(() => filtered.filter((person) => {
     if (!person.organisation_id || !currentOrganisationId) return false
     if (person.organisation_id === currentOrganisationId) return false
-    return memberMap.has(person.organisation_id)
+    return person.shared_care === true || memberMap.has(person.organisation_id)
   }), [filtered, currentOrganisationId, memberMap])
 
   const sharedCareGroups = useMemo(() => {
@@ -177,10 +175,6 @@ function SendMessageForm({ profile, staff, workspaceOverview, onlineIds, replyMe
       .map((group) => ({ ...group, staff: group.staff.sort((a, b) => formatStaffName(a).localeCompare(formatStaffName(b))) }))
       .sort((a, b) => a.name.localeCompare(b.name))
   }, [sharedCareStaff, memberMap])
-
-  useEffect(() => {
-    if (recipientTab === 'shared' && availableSharedCareStaff.length === 0) setRecipientTab('organisation')
-  }, [recipientTab, availableSharedCareStaff.length])
 
   function toggle(id){setSelected(current=>{const next=new Set(current);next.has(id)?next.delete(id):next.add(id);return next})}
   async function send(){setSending(true);setError('');try{await sendScreenMessages({sender:profile,recipientIds:[...selected],subject,body,urgent});onSent()}catch(err){setError(err.message||'Unable to send message.');setSending(false)}}
@@ -207,7 +201,7 @@ function SendMessageForm({ profile, staff, workspaceOverview, onlineIds, replyMe
       <strong>To:</strong>
       <div className="recipient-source-tabs">
         <button type="button" className={recipientTab==='organisation'?'active':''} onClick={() => setRecipientTab('organisation')}>Organisation staff</button>
-        <button type="button" className={recipientTab==='shared'?'active':''} onClick={() => setRecipientTab('shared')} disabled={availableSharedCareStaff.length === 0}>Shared Care staff</button>
+        <button type="button" className={recipientTab==='shared'?'active':''} onClick={() => setRecipientTab('shared')}>Shared Care staff{availableSharedCareStaff.length > 0 ? ` (${availableSharedCareStaff.length})` : ''}</button>
       </div>
       <label><input type="checkbox" checked={showOffline} onChange={e=>setShowOffline(e.target.checked)}/> Show offline users</label>
     </div>
