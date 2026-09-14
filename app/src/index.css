@@ -5342,3 +5342,27 @@ html.rw-dark-mode .platform-discord-check-grid label { color:#c0d2dc; }
 html.rw-dark-mode .problem-reference-severity.unclassified { border-color:#526875 !important; background:#1b2a33 !important; color:#b7c8d1 !important; }
 html.rw-dark-mode .problem-reference-selected.unclassified { border-color:#405967 !important; background:#16242c !important; }
 html.rw-dark-mode .problem-reference-selected.unclassified em { background:#22343f !important; color:#c0d1da !important; }
+
+
+/* RecordsWeb 3.8.5 — medication warning contrast repair */
+html.rw-dark-mode .warnings {
+  background:#0d1b23;
+  border-color:#496676;
+  color:#dce9ef;
+}
+html.rw-dark-mode .warnings > strong {
+  background:#183442;
+  color:#d9effb;
+  border-bottom:1px solid #496676;
+}
+html.rw-dark-mode .warnings > div:not(.specialist-drug-warning) {
+  background:#0f2028;
+  color:#d5e5ec;
+  border-top-color:#35515f;
+}
+html.rw-dark-mode .warnings > div:not(.specialist-drug-warning) span {
+  color:#d5e5ec;
+}
+html.rw-dark-mode .warnings > div:not(.specialist-drug-warning) svg {
+  color:#f4c542;
+}

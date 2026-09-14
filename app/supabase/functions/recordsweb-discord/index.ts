@@ -1,7 +1,7 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
 import React from 'npm:react@^19'
 import { ImageResponse } from 'npm:@vercel/og@^0'
-import { createCanvas } from 'npm:@napi-rs/canvas@0.1.65'
+import { PDFDocument, StandardFonts, rgb, degrees } from 'npm:pdf-lib@1.17.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -90,7 +90,7 @@ let recordsWebLogoDataUri: string | null = null
 async function getRecordsWebLogoDataUri() {
   if (recordsWebLogoDataUri) return recordsWebLogoDataUri
   const logoUrl = String(Deno.env.get('RECORDSWEB_LOGO_URL') || 'https://cdn.recordsweb.org/RW-Logo.png').trim()
-  const response = await fetch(logoUrl, { headers: { 'User-Agent': 'RecordsWeb-Bot/3.8.0' } })
+  const response = await fetch(logoUrl, { headers: { 'User-Agent': 'RecordsWeb-Bot/3.8.5' } })
   if (!response.ok) {
     throw Object.assign(new Error(`Unable to load the official RecordsWeb logo (HTTP ${response.status}).`), { status: 502 })
   }
@@ -489,67 +489,9 @@ function medicationQuantityText(medication: any) {
   return cleanText(medication?.quantity, 120) || 'Not specified'
 }
 
-function wrapCanvasText(ctx: any, text: string, x: number, y: number, maxWidth: number, lineHeight: number, maxLines = 2) {
-  const words = String(text || '').split(/\s+/).filter(Boolean)
-  if (!words.length) return y
-  const lines: string[] = []
-  let current = ''
-  for (const word of words) {
-    const next = current ? `${current} ${word}` : word
-    if (ctx.measureText(next).width <= maxWidth || !current) {
-      current = next
-      continue
-    }
-    lines.push(current)
-    current = word
-    if (lines.length === maxLines - 1) break
-  }
-  if (current && lines.length < maxLines) lines.push(current)
-  const consumed = lines.join(' ').split(/\s+/).filter(Boolean).length
-  const truncated = consumed < words.length
-  lines.forEach((line, index) => {
-    const output = truncated && index === lines.length - 1 ? `${line.replace(/[.,;:!\-\s]+$/, '')}…` : line
-    ctx.fillText(output, x, y + (index * lineHeight))
-  })
-  return y + ((lines.length - 1) * lineHeight)
-}
 
-function drawWatermark(ctx: any, text: string, x: number, y: number, angle = -0.55) {
-  ctx.save()
-  ctx.translate(x, y)
-  ctx.rotate(angle)
-  ctx.fillStyle = 'rgba(0, 90, 0, 0.08)'
-  ctx.font = 'bold 78px Arial'
-  ctx.fillText(text, 0, 0)
-  ctx.restore()
-}
-
-function renderPrescriptionImage(payload: { patient: any, medication: any, organisation: any, eventType: string }) {
+async function renderPrescriptionImage(payload: { patient: any, medication: any, organisation: any, eventType: string }) {
   const { patient, medication, organisation } = payload
-  const width = 1400
-  const height = 900
-  const canvas = createCanvas(width, height)
-  const ctx = canvas.getContext('2d')
-
-  ctx.fillStyle = '#efece3'
-  ctx.fillRect(0, 0, width, height)
-
-  const leftWidth = 640
-  ctx.fillStyle = '#d9ecc7'
-  ctx.fillRect(0, 0, leftWidth, height)
-
-  drawWatermark(ctx, 'NHS', 60, 120)
-  drawWatermark(ctx, 'NHS', 50, 420)
-  drawWatermark(ctx, 'NHS', 60, 740)
-
-  ctx.strokeStyle = '#617861'
-  ctx.lineWidth = 2
-  ctx.strokeRect(12, 12, width - 24, height - 24)
-  ctx.beginPath()
-  ctx.moveTo(leftWidth, 12)
-  ctx.lineTo(leftWidth, height - 12)
-  ctx.stroke()
-
   const issueDate = displayDateOnly(medication?.last_issue_date || new Date().toISOString().slice(0, 10))
   const patientName = patientFullName(patient).toUpperCase()
   const addressLines = patientAddressLines(patient)
@@ -559,133 +501,271 @@ function renderPrescriptionImage(payload: { patient: any, medication: any, organ
   const medicationName = cleanText(medication?.name, 120) || 'Medication item'
   const directions = medicationDirections(medication)
   const quantity = medicationQuantityText(medication)
+  const authoriser = cleanText(medication?.authoriser, 100) || 'RecordsWeb clinician'
 
-  function box(x: number, y: number, w: number, h: number, fill = '') {
-    if (fill) { ctx.fillStyle = fill; ctx.fillRect(x, y, w, h) }
-    ctx.strokeStyle = '#556b55'
-    ctx.lineWidth = 1.5
-    ctx.strokeRect(x, y, w, h)
+  const text = (value: unknown, style: Record<string, unknown> = {}) => h('div', {
+    style: {
+      display: 'flex',
+      color: '#111111',
+      fontFamily: 'Arial, sans-serif',
+      ...style,
+    },
+  }, String(value ?? ''))
+
+  const itemRow = (index: number, name = '', qty = '', dosage = '', right = false) => h('div', {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      position: 'relative',
+      width: '100%',
+      minHeight: right ? 126 : 116,
+      padding: right ? '16px 54px 12px 14px' : '13px 14px 10px',
+      borderTop: right ? '2px solid #474747' : '1px solid #607760',
+      background: right ? 'transparent' : 'rgba(255,255,255,0.10)',
+    },
+  },
+    text(`MEDICATION ITEM DESCRIPTION ${index}`, { fontSize: 15, fontWeight: 700 }),
+    text(name ? name.toUpperCase() : ' ', { fontSize: 20, fontWeight: 500, marginTop: 3, minHeight: 24 }),
+    text(`QUANTITY ${qty || ' '}`, { fontSize: 15, marginTop: 3 }),
+    text(dosage ? dosage.toUpperCase() : ' ', { fontSize: 15, marginTop: 2, maxWidth: right ? 520 : 490 }),
+    right ? h('div', {
+      style: {
+        display: 'flex',
+        position: 'absolute',
+        right: 12,
+        top: 25,
+        width: 28,
+        height: 28,
+        border: '2px solid #333333',
+      },
+    }) : null,
+  )
+
+  const leftAddress = addressLines.length ? addressLines.slice(0, 5) : ['']
+  const rightAddress = addressLines.length ? addressLines.slice(0, 5) : ['']
+
+  const element = h('div', {
+    style: {
+      display: 'flex',
+      width: '100%',
+      height: '100%',
+      background: '#efede4',
+      color: '#111111',
+      fontFamily: 'Arial, sans-serif',
+      padding: 10,
+    },
+  },
+    h('div', {
+      style: {
+        display: 'flex',
+        flexDirection: 'column',
+        position: 'relative',
+        width: 635,
+        height: '100%',
+        background: '#d9ecc7',
+        border: '2px solid #647764',
+        overflow: 'hidden',
+      },
+    },
+      text('NHS', { position: 'absolute', left: 36, top: 70, fontSize: 92, fontWeight: 800, color: 'rgba(42,110,52,0.08)', transform: 'rotate(-23deg)' }),
+      text('NHS', { position: 'absolute', left: 42, top: 360, fontSize: 92, fontWeight: 800, color: 'rgba(42,110,52,0.08)', transform: 'rotate(-23deg)' }),
+      text('NHS', { position: 'absolute', left: 40, top: 650, fontSize: 92, fontWeight: 800, color: 'rgba(42,110,52,0.08)', transform: 'rotate(-23deg)' }),
+      h('div', { style: { display: 'flex', width: '100%', height: 170, borderBottom: '1px solid #607760' } },
+        h('div', { style: { display: 'flex', flexDirection: 'column', width: 118, borderRight: '1px solid #607760', padding: '10px 8px' } },
+          text('Pharmacy Stamp', { fontSize: 13, fontWeight: 700 }),
+          text('Age', { fontSize: 13, fontWeight: 700, marginTop: 48 }),
+          text(age || '—', { fontSize: 21, marginTop: 5 }),
+          text('D.o.B', { fontSize: 13, fontWeight: 700, marginTop: 8 }),
+          text(displayDateOnly(patient?.dob), { fontSize: 15, marginTop: 3 }),
+        ),
+        h('div', { style: { display: 'flex', flexDirection: 'column', flex: 1, padding: '10px 12px' } },
+          text('Title, Forename, Surname & Address', { fontSize: 13, fontWeight: 700 }),
+          text(patientName, { fontSize: 19, fontWeight: 600, marginTop: 5 }),
+          ...leftAddress.map((line: string, index: number) => text(line.toUpperCase(), { fontSize: 16, marginTop: index === 0 ? 6 : 2 })),
+          h('div', { style: { display: 'flex', marginTop: 'auto', alignItems: 'center' } },
+            text('NHS Number:', { fontSize: 13, fontWeight: 700, marginRight: 8 }),
+            text(nhsNumber, { fontSize: 15 }),
+          ),
+        ),
+      ),
+      h('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%', height: 48, borderBottom: '1px solid #607760' } },
+        text('NOMINATED EPS TOKEN', { fontSize: 21, fontWeight: 700 }),
+      ),
+      h('div', { style: { display: 'flex', width: '100%', flex: 1 } },
+        h('div', { style: { display: 'flex', flexDirection: 'column', width: 557 } },
+          itemRow(1, medicationName, quantity, directions),
+          itemRow(2),
+          itemRow(3),
+          itemRow(4),
+          h('div', { style: { display: 'flex', flexDirection: 'column', flex: 1, minHeight: 120, padding: '13px 14px', borderTop: '1px solid #607760' } },
+            text('Signature of Prescriber', { fontSize: 13, fontWeight: 700 }),
+            text('PRESCRIBING TOKEN - not to be used as a prescription, even if signed by an authorised prescriber.', { fontSize: 11, marginTop: 4 }),
+            h('div', { style: { display: 'flex', marginTop: 'auto', alignItems: 'flex-end' } },
+              text('NHS', { fontSize: 30, fontWeight: 800, color: '#315f9f', marginRight: 22 }),
+              h('div', { style: { display: 'flex', flexDirection: 'column' } },
+                text(organisationName.toUpperCase(), { fontSize: 14, fontWeight: 700 }),
+                text(`ISSUED BY ${authoriser.toUpperCase()}`, { fontSize: 13, marginTop: 3 }),
+                text(`DATE ${issueDate}`, { fontSize: 13, marginTop: 3 }),
+              ),
+            ),
+          ),
+        ),
+        h('div', { style: { display: 'flex', width: 76, background: '#8fd15f', border: '1px solid #607760', alignItems: 'center', justifyContent: 'center' } },
+          text(`R${String(medication?.id || 'X').slice(-6).toUpperCase()}`, { fontSize: 18, fontWeight: 700, transform: 'rotate(-90deg)' }),
+        ),
+      ),
+    ),
+    h('div', {
+      style: {
+        display: 'flex',
+        flexDirection: 'column',
+        flex: 1,
+        height: '100%',
+        padding: '18px 18px 10px 28px',
+        border: '2px solid #c7c2b4',
+        background: '#f3f0e7',
+      },
+    },
+      h('div', { style: { display: 'flex', width: '100%', minHeight: 170 } },
+        h('div', { style: { display: 'flex', flexDirection: 'column', flex: 1 } },
+          text(patientFullName(patient), { fontSize: 20 }),
+          ...rightAddress.map((line: string, index: number) => text(line, { fontSize: 16, marginTop: index === 0 ? 5 : 2 })),
+          h('div', { style: { display: 'flex', marginTop: 6 } },
+            text('D.O.B', { fontSize: 14, marginRight: 12 }),
+            text(displayDateOnly(patient?.dob), { fontSize: 16 }),
+          ),
+        ),
+        h('div', { style: { display: 'flex', flexDirection: 'column', width: 220, alignItems: 'flex-start' } },
+          text('Date of issue', { fontSize: 14 }),
+          text(issueDate, { fontSize: 17, marginTop: 4 }),
+          text('Page 1 of (n)', { fontSize: 14, marginTop: 10 }),
+          text('NHS Number', { fontSize: 14, marginTop: 24 }),
+          text(nhsNumber, { fontSize: 16, marginTop: 4 }),
+        ),
+      ),
+      itemRow(1, medicationName, quantity, directions, true),
+      itemRow(2, '', '', '', true),
+      itemRow(3, '', '', '', true),
+      itemRow(4, '', '', '', true),
+      h('div', { style: { display: 'flex', flexDirection: 'column', marginTop: 'auto', padding: '8px 4px 0' } },
+        text(`Issued by ${authoriser} · ${organisationName}`, { fontSize: 16 }),
+        text('This RecordsWeb prescription copy is an automated patient notification for roleplay / simulation use.', { fontSize: 14, marginTop: 8, color: '#333333' }),
+        h('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'center', height: 38, border: '1px solid #7f969f', marginTop: 10 } },
+          text('PATIENTS – please read the notes overleaf', { fontSize: 17, fontWeight: 700, color: '#31546c' }),
+        ),
+      ),
+    ),
+  )
+
+  try {
+    const response = new ImageResponse(element as any, { width: 1400, height: 900 })
+    if (!response.ok) throw new Error(`HTTP ${response.status}`)
+    return new Uint8Array(await response.arrayBuffer())
+  } catch (error) {
+    console.error('Primary RecordsWeb prescription renderer failed; using the safe prescription renderer.', error)
+    return renderPrescriptionFallbackImage(payload)
   }
+}
 
-  function label(x: number, y: number, text: string, size = 14, bold = true, color = '#2e3b2e') {
-    ctx.fillStyle = color
-    ctx.font = `${bold ? 'bold ' : ''}${size}px Arial`
-    ctx.fillText(text, x, y)
-  }
 
-  function valueText(x: number, y: number, text: string, size = 20, maxWidth = 260, lineHeight = 24, maxLines = 2) {
-    ctx.fillStyle = '#111'
-    ctx.font = `${size}px Arial`
-    wrapCanvasText(ctx, text, x, y, maxWidth, lineHeight, maxLines)
-  }
+async function renderPrescriptionFallbackImage(payload: { patient: any, medication: any, organisation: any, eventType: string }) {
+  const { patient, medication, organisation } = payload
+  const issueDate = displayDateOnly(medication?.last_issue_date || new Date().toISOString().slice(0, 10))
+  const patientName = patientFullName(patient)
+  const address = patientAddressLines(patient, 4).join(', ') || 'Address not recorded'
+  const nhsNumber = cleanText(patient?.nhs_number, 30) || 'Not specified'
+  const medicationName = cleanText(medication?.name, 120) || 'Medication item'
+  const quantity = medicationQuantityText(medication)
+  const directions = medicationDirections(medication)
+  const authoriser = cleanText(medication?.authoriser, 100) || 'RecordsWeb clinician'
+  const organisationName = cleanText(organisation?.name, 120) || 'RecordsWeb Community'
 
-  box(18, 18, leftWidth - 36, 170)
-  box(18, 18, 118, 64)
-  label(24, 36, 'Pharmacy Stamp', 13)
-  box(136, 18, 82, 64)
-  label(142, 36, 'Age', 13)
-  valueText(150, 63, age || '—', 22, 50, 24, 1)
-  box(218, 18, leftWidth - 236, 64)
-  label(226, 36, 'Title, Forename, Surname & Address', 13)
-  valueText(228, 63, patientName, 20, leftWidth - 255, 22, 1)
-  ctx.font = '18px Arial'
-  ctx.fillStyle = '#111'
-  let addrY = 88
-  for (const line of addressLines.slice(0, 5)) {
-    ctx.fillText(line.toUpperCase(), 228, addrY)
-    addrY += 22
-  }
-  label(24, 100, 'D.o.B', 13)
-  valueText(24, 126, displayDateOnly(patient?.dob), 18, 100, 20, 1)
+  const safeText = (value: unknown, style: Record<string, unknown> = {}) => h('div', {
+    style: { display: 'flex', color: '#111111', fontFamily: 'Arial, sans-serif', ...style },
+  }, String(value ?? ''))
 
-  box(18, 188, leftWidth - 36, 48)
-  label(160, 218, 'NOMINATED EPS TOKEN', 22)
-  label(24, 218, "Number of days' treatment", 11)
-  label(324, 218, 'NHS Number:', 13)
-  valueText(414, 218, nhsNumber, 16, 180, 18, 1)
+  const row = (label: string, value: string) => h('div', {
+    style: { display: 'flex', width: '100%', border: '1px solid #9aa79a', background: '#ffffff' },
+  },
+    h('div', { style: { display: 'flex', width: 235, padding: '12px', background: '#dfeecd', fontWeight: 700, fontFamily: 'Arial, sans-serif', color: '#243124' } }, label),
+    h('div', { style: { display: 'flex', flex: 1, padding: '12px', fontFamily: 'Arial, sans-serif', color: '#111111' } }, value || 'Not specified'),
+  )
 
-  function drawItemBlock(x: number, y: number, w: number, index: number, itemName: string, itemQty: string, itemDirections: string, shaded = false) {
-    if (shaded) {
-      ctx.fillStyle = 'rgba(255,255,255,0.18)'
-      ctx.fillRect(x, y, w, 112)
-    }
-    ctx.strokeStyle = '#556b55'
-    ctx.strokeRect(x, y, w, 112)
-    label(x + 10, y + 22, `MEDICATION ITEM DESCRIPTION ${index}`, 14)
-    valueText(x + 10, y + 46, itemName.toUpperCase(), 18, w - 20, 20, 2)
-    label(x + 10, y + 74, `QUANTITY ${itemQty}`, 14, false, '#1e2b1e')
-    valueText(x + 10, y + 96, itemDirections.toUpperCase(), 15, w - 20, 17, 2)
-  }
+  const element = h('div', {
+    style: {
+      display: 'flex',
+      flexDirection: 'column',
+      width: '100%',
+      height: '100%',
+      padding: '26px',
+      background: '#f1efe6',
+      fontFamily: 'Arial, sans-serif',
+      color: '#111111',
+    },
+  },
+    h('div', {
+      style: {
+        display: 'flex',
+        flexDirection: 'column',
+        width: '100%',
+        height: '100%',
+        border: '3px solid #677c67',
+        background: '#f7f6ef',
+      },
+    },
+      h('div', {
+        style: {
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          padding: '18px 22px',
+          border: '1px solid #677c67',
+          background: '#d8ebc6',
+        },
+      },
+        safeText('NOMINATED EPS TOKEN', { fontSize: 28, fontWeight: 800, color: '#273827' }),
+        safeText(issueDate, { fontSize: 18, fontWeight: 700 }),
+      ),
+      h('div', { style: { display: 'flex', width: '100%', padding: '18px 22px', border: '1px solid #9aa79a', background: '#edf4e5' } },
+        h('div', { style: { display: 'flex', flexDirection: 'column', flex: 1 } },
+          safeText(patientName, { fontSize: 24, fontWeight: 800 }),
+          safeText(address, { fontSize: 17, marginTop: 5 }),
+          safeText(`D.O.B: ${displayDateOnly(patient?.dob)}`, { fontSize: 16, marginTop: 8 }),
+        ),
+        h('div', { style: { display: 'flex', flexDirection: 'column', width: 310 } },
+          safeText('NHS Number', { fontSize: 14, fontWeight: 700 }),
+          safeText(nhsNumber, { fontSize: 20, marginTop: 5 }),
+        ),
+      ),
+      h('div', { style: { display: 'flex', flexDirection: 'column', width: '100%', padding: '20px 22px' } },
+        safeText('MEDICATION ITEM DESCRIPTION 1', { fontSize: 16, fontWeight: 800 }),
+        safeText(medicationName.toUpperCase(), { fontSize: 28, fontWeight: 700, marginTop: 8 }),
+        safeText(`QUANTITY ${quantity}`, { fontSize: 19, marginTop: 12 }),
+        safeText(directions.toUpperCase(), { fontSize: 20, marginTop: 10 }),
+        h('div', { style: { display: 'flex', flexDirection: 'column', width: '100%', marginTop: 24 } },
+          row('Issue method', cleanText(medication?.method, 120) || 'Electronic R2'),
+          row('Issued by', authoriser),
+          row('Community', organisationName),
+        ),
+      ),
+      h('div', {
+        style: {
+          display: 'flex',
+          marginTop: 'auto',
+          padding: '13px 22px',
+          border: '1px solid #677c67',
+          background: '#d8ebc6',
+          fontSize: 14,
+          fontFamily: 'Arial, sans-serif',
+          color: '#334433',
+        },
+      }, 'ROLEPLAY / SIMULATION ONLY · RecordsWeb automated patient prescription copy'),
+    ),
+  )
 
-  const leftItemWidth = leftWidth - 108
-  drawItemBlock(36, 254, leftItemWidth, 1, medicationName, quantity, directions, true)
-  drawItemBlock(36, 370, leftItemWidth, 2, ' ', ' ', ' ', true)
-  drawItemBlock(36, 486, leftItemWidth, 3, ' ', ' ', ' ', true)
-  drawItemBlock(36, 602, leftItemWidth, 4, ' ', ' ', ' ', true)
-
-  box(leftWidth - 70, 236, 40, 492, '#8fd15f')
-  ctx.save()
-  ctx.translate(leftWidth - 48, 480)
-  ctx.rotate(-Math.PI / 2)
-  ctx.fillStyle = '#2d3d2d'
-  ctx.font = 'bold 22px Arial'
-  ctx.fillText(`R${String(medication?.id || 'X').slice(-6).toUpperCase()}`, 0, 0)
-  ctx.restore()
-
-  for (let row = 0; row < 5; row += 1) {
-    label(60, 742 + row * 22, 'X', 18, false, '#374737')
-  }
-  label(26, 834, 'Signature of Prescriber', 12)
-  label(26, 850, 'PRESCRIBING TOKEN - not to be used as a prescription, even if signed by an authorised prescriber.', 11, false)
-  box(18, 810, leftWidth - 36, 76)
-  label(24, 874, 'NHS', 28, true, '#2b5fa3')
-  label(120, 828, organisationName.toUpperCase(), 15)
-  label(120, 850, `ISSUED BY ${(cleanText(medication?.authoriser, 80) || 'RecordsWeb clinician').toUpperCase()}`, 14, false)
-  label(120, 870, `DATE ${issueDate}`, 14, false)
-
-  label(leftWidth + 22, 48, patientFullName(patient), 20, false, '#222')
-  let rightAddressY = 74
-  ctx.fillStyle = '#222'
-  ctx.font = '18px Arial'
-  for (const line of addressLines.slice(0, 5)) {
-    ctx.fillText(line, leftWidth + 22, rightAddressY)
-    rightAddressY += 22
-  }
-  label(width - 190, 48, 'Date of issue', 14, false, '#222')
-  label(width - 190, 72, issueDate, 17, false, '#111')
-  label(width - 190, 96, 'Page 1 of (n)', 14, false, '#222')
-  label(leftWidth + 270, 98, 'D.O.B', 14, false, '#222')
-  label(leftWidth + 356, 98, displayDateOnly(patient?.dob), 17, false, '#111')
-  label(width - 190, 152, 'NHS Number', 14, false, '#222')
-  label(width - 190, 176, nhsNumber, 17, false, '#111')
-
-  function drawRightItem(y: number, index: number, itemName: string, itemQty: string, itemDirections: string) {
-    ctx.strokeStyle = '#444'
-    ctx.lineWidth = 2
-    ctx.beginPath()
-    ctx.moveTo(leftWidth + 24, y)
-    ctx.lineTo(width - 92, y)
-    ctx.stroke()
-    label(leftWidth + 30, y + 30, `MEDICATION ITEM DESCRIPTION ${index}`, 14, false, '#222')
-    valueText(leftWidth + 30, y + 54, itemName.toUpperCase(), 18, 520, 20, 2)
-    label(leftWidth + 30, y + 80, `QUANTITY ${itemQty}`, 14, false, '#222')
-    valueText(leftWidth + 30, y + 102, itemDirections.toUpperCase(), 15, 520, 17, 2)
-    box(width - 82, y + 18, 26, 26)
-  }
-
-  drawRightItem(214, 1, medicationName, quantity, directions)
-  drawRightItem(340, 2, ' ', ' ', ' ')
-  drawRightItem(466, 3, ' ', ' ', ' ')
-  drawRightItem(592, 4, ' ', ' ', ' ')
-
-  ctx.fillStyle = '#333'
-  ctx.font = '18px Arial'
-  wrapCanvasText(ctx, `Issued by ${cleanText(medication?.authoriser, 80) || 'RecordsWeb clinician'} · ${organisationName}`, leftWidth + 26, 784, width - leftWidth - 70, 22, 2)
-  wrapCanvasText(ctx, 'This RecordsWeb prescription copy is an automated patient notification for roleplay / simulation use.', leftWidth + 26, 822, width - leftWidth - 70, 22, 3)
-  box(leftWidth + 26, 842, width - leftWidth - 52, 36)
-  label(leftWidth + 206, 867, 'PATIENTS – please read the notes overleaf', 18, true, '#30516c')
-
-  return canvas.toBuffer('image/png')
+  const response = new ImageResponse(element as any, { width: 1200, height: 760 })
+  if (!response.ok) throw Object.assign(new Error(`Unable to generate fallback prescription image (HTTP ${response.status}).`), { status: 502 })
+  return new Uint8Array(await response.arrayBuffer())
 }
 
 function fitNoteAttachmentBaseName(document: any, patient: any) {
@@ -694,21 +774,169 @@ function fitNoteAttachmentBaseName(document: any, patient: any) {
   return `RecordsWeb-Fit-Note-${surname}-${date}`
 }
 
-function buildFitNoteHtmlAttachment(document: any, patient: any, organisationName: string) {
+function pdfWrapText(font: any, text: string, size: number, maxWidth: number) {
+  const words = String(text || '').replace(/\s+/g, ' ').trim().split(' ').filter(Boolean)
+  if (!words.length) return ['']
+  const lines: string[] = []
+  let current = ''
+  for (const word of words) {
+    const next = current ? `${current} ${word}` : word
+    if (!current || font.widthOfTextAtSize(next, size) <= maxWidth) {
+      current = next
+    } else {
+      lines.push(current)
+      current = word
+    }
+  }
+  if (current) lines.push(current)
+  return lines
+}
+
+function pdfDrawWrapped(page: any, font: any, text: string, x: number, y: number, size: number, maxWidth: number, lineHeight: number, options: Record<string, unknown> = {}) {
+  const lines = pdfWrapText(font, text, size, maxWidth)
+  lines.forEach((line, index) => page.drawText(line, { x, y: y - (index * lineHeight), size, font, ...options }))
+  return y - Math.max(0, lines.length - 1) * lineHeight
+}
+
+function pdfDrawField(page: any, regular: any, bold: any, label: string, value: string, x: number, y: number, width: number, height: number) {
+  page.drawText(label, { x, y, size: 8.4, font: bold, color: rgb(0.08, 0.08, 0.08) })
+  const boxY = y - height - 5
+  page.drawRectangle({ x, y: boxY, width, height, borderColor: rgb(0.18, 0.18, 0.18), borderWidth: 0.8, color: rgb(1, 1, 1) })
+  const lines = pdfWrapText(regular, value || '—', 8.5, width - 10).slice(0, Math.max(1, Math.floor((height - 8) / 10)))
+  lines.forEach((line, index) => page.drawText(line, { x: x + 5, y: boxY + height - 11 - (index * 10), size: 8.5, font: regular, color: rgb(0.05, 0.05, 0.05) }))
+  return boxY - 10
+}
+
+function pdfCheck(page: any, bold: any, checked: boolean, label: string, x: number, y: number, width: number) {
+  page.drawRectangle({ x, y: y - 8, width: 9, height: 9, borderColor: rgb(0.1, 0.1, 0.1), borderWidth: 0.8 })
+  if (checked) page.drawText('X', { x: x + 1.6, y: y - 6.4, size: 7.5, font: bold, color: rgb(0, 0, 0) })
+  pdfDrawWrapped(page, bold, label, x + 14, y, 7.9, width - 14, 9.5, { color: rgb(0.08, 0.08, 0.08) })
+}
+
+async function renderFitNotePdf(document: any, patient: any, organisation: any) {
   const details = document?.details && typeof document.details === 'object' ? document.details : {}
-  const periodText = details.period_mode === 'duration'
-    ? `${cleanText(details.duration_value, 30) || '—'} ${cleanText(details.duration_unit, 40) || ''}`.trim()
-    : `${displayDateOnly(details.period_from)} to ${displayDateOnly(details.period_to)}`
+  const pdf = await PDFDocument.create()
+  const page = pdf.addPage([841.89, 595.28])
+  const regular = await pdf.embedFont(StandardFonts.Helvetica)
+  const bold = await pdf.embedFont(StandardFonts.HelveticaBold)
+  const { width, height } = page.getSize()
+  const margin = 24
+  const gap = 24
+  const colWidth = (width - (margin * 2) - gap) / 2
+  const leftX = margin
+  const rightX = margin + colWidth + gap
+  const organisationName = cleanText(organisation?.name, 200) || 'RecordsWeb Community'
+  const fullPatient = patientFullName(patient)
+  const addressLines = patientAddressLines(patient, 6)
   const adjustments = [
     details.phased_return && 'Phased return to work',
     details.amended_duties && 'Amended duties',
     details.altered_hours && 'Altered hours',
     details.workplace_adaptations && 'Workplace adaptations',
   ].filter(Boolean)
-  const patientName = patientFullName(patient)
-  const addressLines = patientAddressLines(patient, 6)
-  const addressHtml = (addressLines.length ? addressLines : ['Not specified']).map((line) => `<div>${formatForHtml(line)}</div>`).join('')
-  return `<!doctype html><html><head><meta charset="utf-8"><title>${formatForHtml(fitNoteAttachmentBaseName(document, patient))}</title><style>body{font-family:Arial,Helvetica,sans-serif;background:#f3f6f8;color:#111;margin:0;padding:24px}.sheet{max-width:1000px;margin:0 auto;background:#fff;border:1px solid #222;padding:26px 30px}.banner{border:2px solid #000;padding:10px 12px;font-weight:800;text-align:center;margin-bottom:18px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}.field{margin:0 0 12px}.field strong{display:block;font-size:13px;margin-bottom:4px}.box{min-height:36px;border:1px solid #333;padding:8px 10px;white-space:pre-wrap}.small{font-size:13px;color:#333}.checks div{margin:5px 0}.footer{margin-top:20px;border-top:1px solid #999;padding-top:12px;font-size:13px;color:#333}</style></head><body><div class="sheet"><div class="banner">ROLEPLAY / SIMULATION ONLY — NOT A REAL STATUTORY FIT NOTE</div><div class="grid"><section><h1 style="margin:0 0 8px;font-size:28px">Statement of Fitness for Work</h1><div class="field"><strong>Patient name</strong><div class="box">${formatForHtml(patientName)}</div></div><div class="field"><strong>Assessed on</strong><div class="box">${formatForHtml(displayDateOnly(details.assessed_on))}</div></div><div class="field"><strong>Condition(s)</strong><div class="box">${formatForHtml(cleanText(details.condition, 4000) || 'Not specified')}</div></div><div class="field"><strong>Advice</strong><div class="box">${formatForHtml(cleanText(details.advice, 200) || 'Not specified')}</div></div><div class="field"><strong>Comments, including functional effects</strong><div class="box">${formatForHtml(cleanText(details.comments, 5000) || 'Not specified')}</div></div><div class="field"><strong>Period</strong><div class="box">${formatForHtml(periodText || 'Not specified')}</div></div><div class="field"><strong>Reassessment required</strong><div class="box">${details.no_reassessment_required ? 'No further reassessment required at the end of this period.' : 'Further reassessment may be required.'}</div></div></section><section><div class="field"><strong>May benefit from</strong><div class="box checks">${adjustments.length ? adjustments.map((item) => `<div>${formatForHtml(item)}</div>`).join('') : 'No workplace adjustments specified.'}</div></div><div class="field"><strong>Date of statement</strong><div class="box">${formatForHtml(displayDateOnly(details.statement_date || document?.date))}</div></div><div class="field"><strong>Issued by</strong><div class="box">${formatForHtml(cleanText(details.issuer_name || document?.author, 200) || 'RecordsWeb clinician')}</div></div><div class="field"><strong>Issuer profession</strong><div class="box">${formatForHtml(cleanText(details.issuer_profession, 200) || 'Not specified')}</div></div><div class="field"><strong>Issuer address</strong><div class="box">${formatForHtml(cleanText(details.issuer_address, 1000) || organisationName)}</div></div><div class="field"><strong>Patient date of birth</strong><div class="box">${formatForHtml(displayDateOnly(patient?.dob))}</div></div><div class="field"><strong>Patient address</strong><div class="box">${addressHtml}</div></div><div class="field"><strong>Community</strong><div class="box">${formatForHtml(organisationName)}</div></div><div class="small">This attachment was generated automatically by RecordsWeb for patient viewing inside Discord.</div></section></div><div class="footer">RecordsWeb roleplay document · ${formatForHtml(organisationName)} · This document has no real-world validity.</div></div></body></html>`
+  const period = details.period_mode === 'duration'
+    ? `${cleanText(details.duration_value, 30) || '—'} ${cleanText(details.duration_unit, 40) || ''}`.trim()
+    : `${displayDateOnly(details.period_from)} to ${displayDateOnly(details.period_to)}`
+
+  page.drawRectangle({ x: 0, y: 0, width, height, color: rgb(1, 1, 1) })
+  page.drawText('ROLEPLAY ONLY', {
+    x: 260,
+    y: 270,
+    size: 62,
+    font: bold,
+    color: rgb(0.93, 0.93, 0.93),
+    rotate: degrees(-28),
+  })
+
+  page.drawRectangle({ x: margin, y: height - 40, width: width - margin * 2, height: 24, borderColor: rgb(0, 0, 0), borderWidth: 1.2 })
+  page.drawText('ROLEPLAY / SIMULATION ONLY — NOT A REAL STATUTORY FIT NOTE', { x: 175, y: height - 32, size: 9.4, font: bold, color: rgb(0, 0, 0) })
+
+  let ly = height - 62
+  page.drawText('Statement of Fitness for Work', { x: leftX, y: ly, size: 17, font: bold, color: rgb(0, 0, 0) })
+  ly -= 16
+  page.drawText('For roleplay use only', { x: leftX, y: ly, size: 8.5, font: bold, color: rgb(0.15, 0.15, 0.15) })
+  ly -= 15
+
+  ly = pdfDrawField(page, regular, bold, "Patient's name", fullPatient, leftX, ly, colWidth, 24)
+  ly = pdfDrawField(page, regular, bold, 'I assessed your case on', displayDateOnly(details.assessed_on), leftX, ly, colWidth, 22)
+  ly = pdfDrawField(page, regular, bold, 'Condition(s)', cleanText(details.condition, 4000) || 'Not specified', leftX, ly, colWidth, 42)
+
+  page.drawText('I advise you that:', { x: leftX, y: ly, size: 8.5, font: bold })
+  ly -= 12
+  pdfCheck(page, bold, details.advice === 'Not fit for work', 'you are not fit for work.', leftX, ly, colWidth)
+  ly -= 18
+  pdfCheck(page, bold, details.advice === 'May be fit for work', 'you may be fit for work taking account of the following advice.', leftX, ly, colWidth)
+  ly -= 24
+
+  page.drawRectangle({ x: leftX, y: ly - 72, width: colWidth, height: 72, borderColor: rgb(0.2, 0.2, 0.2), borderWidth: 0.8 })
+  page.drawText("If available, and with your employer's agreement, you may benefit from:", { x: leftX + 5, y: ly - 11, size: 7.8, font: bold })
+  const optionY = ly - 26
+  const half = colWidth / 2 - 8
+  pdfCheck(page, bold, adjustments.includes('Phased return to work'), 'phased return to work', leftX + 5, optionY, half)
+  pdfCheck(page, bold, adjustments.includes('Amended duties'), 'amended duties', leftX + colWidth / 2, optionY, half)
+  pdfCheck(page, bold, adjustments.includes('Altered hours'), 'altered hours', leftX + 5, optionY - 17, half)
+  pdfCheck(page, bold, adjustments.includes('Workplace adaptations'), 'workplace adaptations', leftX + colWidth / 2, optionY - 17, half)
+  page.drawText('Comments / functional effects:', { x: leftX + 5, y: ly - 59, size: 7.5, font: bold })
+  const commentLines = pdfWrapText(regular, cleanText(details.comments, 5000) || 'Not specified', 7.2, colWidth - 115).slice(0, 2)
+  commentLines.forEach((line, index) => page.drawText(line, { x: leftX + 110, y: ly - 59 - index * 8, size: 7.2, font: regular }))
+  ly -= 82
+
+  ly = pdfDrawField(page, regular, bold, 'This will be the case for / period', period || 'Not specified', leftX, ly, colWidth, 24)
+  pdfCheck(page, bold, Boolean(details.no_reassessment_required), 'I will not need to assess your fitness for work again at the end of this period.', leftX, ly + 1, colWidth)
+  ly -= 22
+  ly = pdfDrawField(page, regular, bold, "Issuer's name", cleanText(details.issuer_name || document?.author, 250) || 'RecordsWeb clinician', leftX, ly, colWidth, 20)
+  ly = pdfDrawField(page, regular, bold, "Issuer's profession", cleanText(details.issuer_profession, 200) || 'Not specified', leftX, ly, colWidth, 20)
+  ly = pdfDrawField(page, regular, bold, 'Date of statement', displayDateOnly(details.statement_date || document?.date), leftX, ly, colWidth, 20)
+  ly = pdfDrawField(page, regular, bold, "Issuer's address", cleanText(details.issuer_address, 1000) || organisationName, leftX, ly, colWidth, 28)
+
+  let ry = height - 62
+  page.drawText('What your advice means', { x: rightX, y: ry, size: 14, font: bold })
+  ry -= 18
+  page.drawText('‘You are not fit for work’', { x: rightX, y: ry, size: 9, font: bold })
+  ry -= 11
+  ry = pdfDrawWrapped(page, regular, 'This indicates, for the roleplay scenario, that the character may not be able to work for the period shown.', rightX, ry, 8, colWidth, 10, { color: rgb(0.1, 0.1, 0.1) }) - 16
+  page.drawText('‘You may be fit for work’', { x: rightX, y: ry, size: 9, font: bold })
+  ry -= 11
+  ry = pdfDrawWrapped(page, regular, 'This indicates that a return to work may be possible with support such as altered hours, amended duties, workplace adaptations or a phased return.', rightX, ry, 8, colWidth, 10, { color: rgb(0.1, 0.1, 0.1) }) - 18
+
+  page.drawLine({ start: { x: rightX, y: ry }, end: { x: rightX + colWidth, y: ry }, thickness: 0.8, color: rgb(0.2, 0.2, 0.2) })
+  ry -= 16
+  page.drawText('Your details — Please use BLOCK CAPITALS', { x: rightX, y: ry, size: 10, font: bold })
+  ry -= 14
+  ry = pdfDrawField(page, regular, bold, 'Surname', String(patient?.last_name || '').toUpperCase(), rightX, ry, colWidth, 20)
+  ry = pdfDrawField(page, regular, bold, 'Other names', String(patient?.first_name || '').toUpperCase(), rightX, ry, colWidth, 20)
+  ry = pdfDrawField(page, regular, bold, 'Address', addressLines.join('\n') || 'Not specified', rightX, ry, colWidth, 45)
+  ry = pdfDrawField(page, regular, bold, 'Date of birth', displayDateOnly(patient?.dob), rightX, ry, colWidth * 0.48, 20)
+  const nhsX = rightX + colWidth * 0.52
+  page.drawText('NHS number', { x: nhsX, y: ry + 35, size: 8.4, font: bold })
+  page.drawRectangle({ x: nhsX, y: ry + 10, width: colWidth * 0.48, height: 20, borderColor: rgb(0.18, 0.18, 0.18), borderWidth: 0.8 })
+  page.drawText(cleanText(patient?.nhs_number, 40) || 'Not specified', { x: nhsX + 5, y: ry + 16, size: 8.5, font: regular })
+  ry -= 4
+  ry = pdfDrawField(page, regular, bold, 'Community', organisationName, rightX, ry, colWidth, 22)
+
+  page.drawText('What you need to do now', { x: rightX, y: ry, size: 10, font: bold })
+  ry -= 12
+  const todo = [
+    'Use this document only inside the RecordsWeb roleplay or simulation.',
+    'Do not present it to an employer, benefits service, healthcare provider or other real organisation.',
+    'For real sickness certification, use the appropriate official healthcare process.',
+  ]
+  for (const item of todo) {
+    page.drawText('•', { x: rightX + 2, y: ry, size: 8, font: bold })
+    ry = pdfDrawWrapped(page, regular, item, rightX + 13, ry, 7.8, colWidth - 13, 9.5) - 11
+  }
+
+  page.drawRectangle({ x: rightX, y: Math.max(42, ry - 22), width: colWidth, height: 22, borderColor: rgb(0, 0, 0), borderWidth: 1 })
+  page.drawText('NOT VALID FOR REAL-WORLD USE', { x: rightX + 100, y: Math.max(49, ry - 15), size: 9, font: bold })
+
+  page.drawLine({ start: { x: margin, y: 24 }, end: { x: width - margin, y: 24 }, thickness: 0.5, color: rgb(0.65, 0.65, 0.65) })
+  page.drawText(`RecordsWeb roleplay document · ${organisationName}`, { x: margin, y: 10, size: 6.8, font: regular, color: rgb(0.25, 0.25, 0.25) })
+  page.drawText('ROLEPLAY ONLY · SIMULATION DOCUMENT', { x: width - 205, y: 10, size: 6.8, font: bold, color: rgb(0.1, 0.1, 0.1) })
+
+  pdf.setTitle(`RecordsWeb Fit Note - ${fullPatient}`)
+  pdf.setSubject('RecordsWeb roleplay Statement of Fitness for Work')
+  pdf.setCreator('RecordsWeb')
+  return new Uint8Array(await pdf.save())
 }
 
 async function fitNoteStoredAttachment(admin: any, document: any, patient: any) {
@@ -723,19 +951,70 @@ async function fitNoteStoredAttachment(admin: any, document: any, patient: any) 
   try {
     const { data, error } = await admin.storage.from('recordsweb-documents').download(storagePath)
     if (error || !data) return null
-    const bytes = new Uint8Array(await data.arrayBuffer())
     const isPdf = /\.pdf$/i.test(storagePath) || /pdf/i.test(String(data.type || ''))
+    if (!isPdf) return null
     return {
-      bytes,
-      filename: `${fitNoteAttachmentBaseName(document, patient)}.${isPdf ? 'pdf' : 'bin'}`,
-      contentType: isPdf ? 'application/pdf' : (data.type || 'application/octet-stream'),
-      description: 'RecordsWeb fit note document',
-      source: isPdf ? 'pdf' : 'stored',
+      bytes: new Uint8Array(await data.arrayBuffer()),
+      filename: `${fitNoteAttachmentBaseName(document, patient)}.pdf`,
+      contentType: 'application/pdf',
+      description: 'RecordsWeb fit note PDF',
+      source: 'archived_pdf',
+      storage_path: storagePath,
     }
   } catch {
     return null
   }
 }
+
+async function ensureFitNotePdfAttachment(admin: any, context: any, document: any, patient: any) {
+  const existing = await fitNoteStoredAttachment(admin, document, patient)
+  if (existing) return existing
+
+  const bytes = await renderFitNotePdf(document, patient, context.organisation)
+  const storagePath = `${context.organisation.id}/${patient.id}/fit-notes/${document.id}.pdf`
+  let archived = false
+  let archiveError = ''
+
+  try {
+    const { error: uploadError } = await admin.storage
+      .from('recordsweb-documents')
+      .upload(storagePath, bytes, { contentType: 'application/pdf', upsert: true, cacheControl: '0' })
+    if (uploadError) throw uploadError
+
+    const { error: rowError } = await admin
+      .from('fit_note_pdfs')
+      .upsert({
+        document_id: document.id,
+        patient_id: patient.id,
+        storage_path: storagePath,
+        mime_type: 'application/pdf',
+        file_size: bytes.byteLength,
+      }, { onConflict: 'document_id' })
+    if (rowError) throw rowError
+
+    const { error: documentError } = await admin
+      .from('documents')
+      .update({ storage_path: storagePath })
+      .eq('id', document.id)
+    if (documentError) throw documentError
+
+    archived = true
+  } catch (error) {
+    archiveError = error instanceof Error ? error.message : 'Unable to archive generated fit note PDF.'
+    console.warn('RecordsWeb generated the fit note PDF but could not archive it before Discord delivery.', error)
+  }
+
+  return {
+    bytes,
+    filename: `${fitNoteAttachmentBaseName(document, patient)}.pdf`,
+    contentType: 'application/pdf',
+    description: 'RecordsWeb issued fit note PDF',
+    source: archived ? 'generated_pdf_archived' : 'generated_pdf_unarchived',
+    storage_path: archived ? storagePath : null,
+    archive_error: archiveError || null,
+  }
+}
+
 
 async function patientDiscordTarget(admin: any, context: any, patientId: string) {
   if (!patientId) return { error: 'Patient is required.', status: 400 }
@@ -1349,7 +1628,7 @@ Deno.serve(async (req) => {
       if (!medication) return json({ error: 'Medication record not found.' }, 404)
 
       const title = eventType === 'reauthorised' ? 'Prescription re-authorised' : 'Prescription issued'
-      const prescriptionImage = renderPrescriptionImage({ patient, medication, organisation: context.organisation, eventType })
+      const prescriptionImage = await renderPrescriptionImage({ patient, medication, organisation: context.organisation, eventType })
       const fileName = `RecordsWeb-Prescription-${String(patient?.last_name || 'Patient').replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'Patient'}-${String(medication?.last_issue_date || new Date().toISOString().slice(0, 10)).slice(0, 10)}.png`
 
       await sendPatientFileDm(String((target as any).discordUserId), {
@@ -1411,21 +1690,10 @@ Deno.serve(async (req) => {
         ? `${cleanText(details.duration_value, 30) || '—'} ${cleanText(details.duration_unit, 40) || ''}`.trim()
         : `${displayDateOnly(details.period_from)} to ${displayDateOnly(details.period_to)}`
 
-      let attachment = await fitNoteStoredAttachment(admin, document, patient)
-      if (!attachment) {
-        attachment = {
-          bytes: new TextEncoder().encode(buildFitNoteHtmlAttachment(document, patient, context.organisation.name)),
-          filename: `${fitNoteAttachmentBaseName(document, patient)}.html`,
-          contentType: 'text/html; charset=utf-8',
-          description: 'RecordsWeb fit note document (HTML fallback)',
-          source: 'html_fallback',
-        }
-      }
+      const attachment = await ensureFitNotePdfAttachment(admin, context, document, patient)
 
       await sendPatientFileDm(String((target as any).discordUserId), {
-        content: attachment.source === 'pdf'
-          ? 'A Statement of Fitness for Work has been issued on your RecordsWeb patient record. Your fit note document is attached below.'
-          : 'A Statement of Fitness for Work has been issued on your RecordsWeb patient record. Your fit note document is attached below as a generated HTML document because no archived PDF was available.',
+        content: 'A Statement of Fitness for Work has been issued on your RecordsWeb patient record. The issued fit note PDF is attached below.',
         embeds: [{
           title: 'Fit note issued',
           description: 'The attached file contains the issued fit note document for patient viewing.',
@@ -1489,7 +1757,7 @@ Deno.serve(async (req) => {
         organisationName: context.organisation.name,
         organisationCode: context.organisation.org_code,
         publicUrl,
-        version: String(Deno.env.get('RECORDSWEB_VERSION') || '3.8.2'),
+        version: String(Deno.env.get('RECORDSWEB_VERSION') || '3.8.5'),
       })
 
       await writeAudit(admin, context.profile, 'account.discord_login_dm.sent', 'profile', target.id, `Sent RecordsWeb login details by Discord DM to ${target.display_name}.`, { discord_user_id: discordUserId, delivery_format: deliveryFormat, password_reset: resetPassword })

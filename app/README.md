@@ -1,5 +1,10 @@
 # RecordsWeb
 
+
+## RecordsWeb 3.8.5 — Discord document and dark-mode fixes
+
+RecordsWeb 3.8.5 fixes dark-mode prescribing warning contrast, makes prescription Discord image generation resilient with a safe fallback renderer, and ensures fit-note Discord delivery is always a PDF attachment. Existing archived fit-note PDFs are sent unchanged; when one is missing, RecordsWeb generates, archives, and sends the same PDF file.
+
 ## RecordsWeb 3.8.2 — Patient Discord documents
 
 RecordsWeb 3.8.2 adds patient Discord IDs, automatic prescription and fit-note direct messages, generated prescription images, attached fit-note documents, selectable GP problems, and form-aware liquid/spray prescribing controls.
