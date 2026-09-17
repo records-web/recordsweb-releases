@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import { Building2, CheckCircle2, Clock3, History, KeyRound, LockKeyhole, LogOut, ShieldCheck, UserRound } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import Panel from '../components/Panel'
+import SecurityCentrePanel from '../components/security/SecurityCentrePanel'
 import { useAuth } from '../contexts/AuthContext'
 import { changeOwnPassword } from '../lib/supabase'
 import { hasRecoveryCode, setRecoveryCode } from '../lib/recoverySecurity'
@@ -116,7 +117,7 @@ export default function SecurityPage() {
       <div className="page-title-row">
         <div>
           <h1>Account &amp; Security</h1>
-          <p>Review your RecordsWeb account, password and prescribing PIN.</p>
+          <p>Review your RecordsWeb account, passwords, security PIN, active sessions and prescribing controls.</p>
         </div>
       </div>
 
@@ -188,6 +189,7 @@ export default function SecurityPage() {
           </div>
         </Panel>
       </div>
+          <SecurityCentrePanel />
     </div>
   )
 }

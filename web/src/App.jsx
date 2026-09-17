@@ -36,6 +36,7 @@ import AppShell from './components/AppShell'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import MaintenanceGate from './components/maintenance/MaintenanceGate'
 import AccountAccessGuard from './components/security/AccountAccessGuard'
+import PatientSecurityGate from './components/security/PatientSecurityGate'
 import WebUpdateManager from './components/WebUpdateManager'
 import InstallationGate from './components/installation/InstallationGate'
 
@@ -80,17 +81,17 @@ function StaffRoutes() {
         <AppShell>
           <Routes>
             <Route path="patients" element={<PatientSearchPage />} />
-            <Route path="patients/:patientId" element={<PatientSummaryPage />} />
-            <Route path="patients/:patientId/consultations" element={<ConsultationsPage />} />
-            <Route path="patients/:patientId/consultations/new" element={<NewConsultationPage />} />
-            <Route path="patients/:patientId/medication" element={<MedicationPage />} />
-            <Route path="patients/:patientId/problems" element={<ProblemsPage />} />
-            <Route path="patients/:patientId/investigations" element={<InvestigationsPage />} />
-            <Route path="patients/:patientId/care-history" element={<CareHistoryPage />} />
-            <Route path="patients/:patientId/diary" element={<DiaryPage />} />
-            <Route path="patients/:patientId/documents" element={<DocumentsPage />} />
-            <Route path="patients/:patientId/referrals" element={<ReferralsPage />} />
-            <Route path="patients/:patientId/shared-care" element={<SharedCarePatientPage />} />
+            <Route path="patients/:patientId" element={<PatientSecurityGate section="summary"><PatientSummaryPage /></PatientSecurityGate>} />
+            <Route path="patients/:patientId/consultations" element={<PatientSecurityGate section="consultations"><ConsultationsPage /></PatientSecurityGate>} />
+            <Route path="patients/:patientId/consultations/new" element={<PatientSecurityGate section="consultations.new"><NewConsultationPage /></PatientSecurityGate>} />
+            <Route path="patients/:patientId/medication" element={<PatientSecurityGate section="medication"><MedicationPage /></PatientSecurityGate>} />
+            <Route path="patients/:patientId/problems" element={<PatientSecurityGate section="problems"><ProblemsPage /></PatientSecurityGate>} />
+            <Route path="patients/:patientId/investigations" element={<PatientSecurityGate section="investigations"><InvestigationsPage /></PatientSecurityGate>} />
+            <Route path="patients/:patientId/care-history" element={<PatientSecurityGate section="care-history"><CareHistoryPage /></PatientSecurityGate>} />
+            <Route path="patients/:patientId/diary" element={<PatientSecurityGate section="diary"><DiaryPage /></PatientSecurityGate>} />
+            <Route path="patients/:patientId/documents" element={<PatientSecurityGate section="documents"><DocumentsPage /></PatientSecurityGate>} />
+            <Route path="patients/:patientId/referrals" element={<PatientSecurityGate section="referrals"><ReferralsPage /></PatientSecurityGate>} />
+            <Route path="patients/:patientId/shared-care" element={<PatientSecurityGate section="shared-care"><SharedCarePatientPage /></PatientSecurityGate>} />
             <Route path="shared-care" element={<SharedCareWorkspacePage />} />
             <Route path="hospital/ward-board" element={<HospitalWorkspacePage view="ward" />} />
             <Route path="hospital/admissions" element={<HospitalWorkspacePage view="admissions" />} />

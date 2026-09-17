@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld('recordsWebDesktop', {
   electronVersion: process.versions.electron,
   getAppInfo: () => ipcRenderer.invoke('recordsweb:get-app-info'),
   getDeviceInfo: () => ipcRenderer.invoke('recordsweb:get-device-info'),
+  getDeviceIdentity: () => ipcRenderer.invoke('recordsweb:device-identity'),
   getInstallConfigSync: () => ipcRenderer.sendSync('recordsweb:get-install-config-sync'),
   getInstallConfig: () => ipcRenderer.invoke('recordsweb:get-install-config'),
   setInstallConfig: (payload) => ipcRenderer.invoke('recordsweb:set-install-config', payload),

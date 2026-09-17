@@ -28,6 +28,7 @@ import {
   updateMedication,
 } from '../lib/dataService'
 import { hasPrescribingPin, setPrescribingPin } from '../lib/prescribingSecurity'
+import { requireSecurityStepUp } from '../lib/securityService'
 import {
   GP_MEDICATION_CATALOGUE_SOURCE_NOTE,
   isSpecialistMedication,
@@ -766,6 +767,7 @@ export function MedicationModal({ medication, authoriser, isGpPartner, onClose, 
         await setPrescribingPin({ newPin: pin })
         setPinConfigured(true)
       }
+      await requireSecurityStepUp('medication.prescribe', 'Enter your 6-digit RecordsWeb Security PIN to authorise this medication change.')
       await onSave({ ...form, quantity: effectiveQuantity, specialist_only: specialist }, pin)
     } catch (err) {
       setError(err.message || 'Unable to authorise this medication.')

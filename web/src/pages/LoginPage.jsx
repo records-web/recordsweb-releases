@@ -9,6 +9,7 @@ import { applyOrganisationSettings, getCachedOrganisationSettings, loadOrganisat
 import AccountRecoveryModal from '../components/security/AccountRecoveryModal'
 import OrganisationChangeModal from '../components/installation/OrganisationChangeModal'
 import { APP_RUNTIME_LABEL, APP_VERSION } from '../lib/webRuntime'
+import { preflightLogin, recordLoginResult, registerSecuritySession } from '../lib/securityService'
 
 export default function LoginPage() {
   const [username, setUsername] = useState(() => {
@@ -96,10 +97,17 @@ export default function LoginPage() {
     setNotice('')
 
     try {
+      const loginName = normaliseLoginName(username)
+      const preflight = await preflightLogin({ email: loginName, organisationCode })
+      if (preflight?.allowed === false) throw new Error(preflight.message || 'RecordsWeb access is currently restricted.')
       const result = await signInRecordsWeb({ username, password })
+      await recordLoginResult({ email: loginName, organisationCode, success: true, userId: result?.user?.id })
+      await registerSecuritySession({ appVersion: APP_VERSION })
       login(result)
       navigate(location.state?.from?.pathname || '/', { replace: true })
     } catch (err) {
+      const loginName = normaliseLoginName(username)
+      await recordLoginResult({ email: loginName, organisationCode, success: false, failureCode: err?.code || 'invalid_credentials' })
       const message = String(err?.message || '')
       setError(/rpc\(|\.catch|TypeError|schema cache/i.test(message) ? 'Unable to sign in. Please check your username and password and try again.' : (message || 'Unable to sign in.'))
     } finally {

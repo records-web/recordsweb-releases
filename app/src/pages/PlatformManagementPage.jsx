@@ -17,6 +17,7 @@ import {
   Save,
   ServerCog,
   ShieldCheck,
+  ShieldAlert,
   UserCheck,
   UserPlus,
   Wrench,
@@ -25,6 +26,7 @@ import {
 import { useNavigate } from 'react-router-dom'
 import recordsWebLogo from '../assets/recordsweb-update-logo.png'
 import PlatformDiscordPanel from '../components/platform/PlatformDiscordPanel'
+import PlatformSecurityPanel from '../components/platform/PlatformSecurityPanel'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase, supabaseConfigured } from '../lib/supabase'
 import { APP_VERSION } from '../lib/webRuntime'
@@ -708,6 +710,7 @@ export default function PlatformManagementPage() {
           <button className={section === 'communities' ? 'active' : ''} onClick={() => setSection('communities')}><Building2 size={14}/> Communities</button>
           <button className={section === 'billing' ? 'active' : ''} onClick={() => setSection('billing')}><CreditCard size={14}/> Billing</button>
           <button className={section === 'discord' ? 'active' : ''} onClick={() => setSection('discord')}><Bot size={14}/> Discord</button>
+          <button className={section === 'security' ? 'active' : ''} onClick={() => setSection('security')}><ShieldAlert size={14}/> Security &amp; Moderation</button>
           <button onClick={() => navigate('/review-request')}><FileCheck2 size={14}/> Review requests</button>
         </div>
 
@@ -717,6 +720,7 @@ export default function PlatformManagementPage() {
           <button onClick={() => setSection('communities')}><Building2 size={22}/><div><strong>Community management</strong><span>Create, edit, enable or disable RecordsWeb communities and manage reserved operators.</span></div></button>
           <button onClick={() => setSection('billing')}><CreditCard size={22}/><div><strong>Subscriptions & billing</strong><span>Set monthly pricing, billing status, dates and optional organisation services.</span></div></button>
           <button onClick={() => setSection('discord')}><Bot size={22}/><div><strong>Discord operations</strong><span>Broadcast maintenance and platform notices to every configured community status channel.</span></div></button>
+          <button onClick={() => setSection('security')}><ShieldAlert size={22}/><div><strong>Security &amp; moderation</strong><span>Review security telemetry and apply account, IP and device restrictions across RecordsWeb.</span></div></button>
           <button onClick={() => navigate('/review-request')}><FileCheck2 size={22}/><div><strong>Access requests</strong><span>Review communities requesting a RecordsWeb deployment.</span></div></button>
           <div><ServerCog size={22}/><div><strong>Operator-only controls</strong><span>Community managers cannot access or change these platform-wide settings.</span></div></div>
         </section>}
@@ -725,6 +729,7 @@ export default function PlatformManagementPage() {
         {section === 'communities' && <CommunitiesPanel operatorAccountEmail={operatorSession?.user?.email || ''} />}
         {section === 'billing' && <CommunityBillingPanel />}
         {section === 'discord' && <PlatformDiscordPanel />}
+        {section === 'security' && <PlatformSecurityPanel />}
       </main>
       <footer className="review-request-footer"><span>RecordsWeb · Restricted platform operator area</span><span>Version {APP_VERSION}</span></footer>
     </div>

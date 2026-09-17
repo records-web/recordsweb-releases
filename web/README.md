@@ -1,5 +1,9 @@
 # RecordsWeb
 
+## RecordsWeb 4.0.0 — Security & Trust
+
+Major security release adding session controls, platform moderation, account/IP/device restrictions, restricted-record break-glass access, security PIN step-up, patient-access auditing, Discord-link verification and platform support sessions.
+
 ## RecordsWeb 3.9.14 — Maintenance-aware public status
 
 The public status page now reads the live platform maintenance state and shows scheduled maintenance separately from service outages. Public pages and the restricted Platform Management area remain accessible while clinical/community staff access is blocked.
@@ -159,7 +163,7 @@ Staff login DMs now contain **only the generated RecordsWeb PNG attachment**. Th
 
 # RecordsWeb Web
 
-**Version:** 3.9.14  
+**Version:** 4.0.0  
 **Runtime:** Browser / Vite / React  
 **Deployment:** Multi-organisation
 

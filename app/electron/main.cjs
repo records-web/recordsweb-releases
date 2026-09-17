@@ -4,6 +4,7 @@ const path = require('node:path')
 const fs = require('node:fs')
 const os = require('node:os')
 const { spawnSync } = require('node:child_process')
+const { deviceIdentity } = require('./deviceIdentity.cjs')
 
 const APP_NAME = 'RecordsWeb'
 const APP_ID = 'uk.recordsweb.desktop'
@@ -403,7 +404,9 @@ function registerDesktopIpc() {
     return writeInstallationConfig(payload)
   })
 
-  ipcMain.handle('recordsweb:get-app-info', () => ({
+  ipcMain.handle('recordsweb:device-identity', () => deviceIdentity())
+
+ipcMain.handle('recordsweb:get-app-info', () => ({
     name: APP_NAME,
     version: app.getVersion(),
     isPackaged: app.isPackaged,

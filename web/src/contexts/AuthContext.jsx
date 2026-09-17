@@ -3,6 +3,7 @@ import { demoUser, ORGANISATION, updateRuntimeOrganisation } from '../lib/demoDa
 import { signOut as supabaseSignOut } from '../lib/supabase'
 import { recordAudit, setDemoAuditActor } from '../lib/auditService'
 import { endStaffSession, heartbeatStaffSession, startStaffSession } from '../lib/staffSessions'
+import { heartbeatSecuritySession, getSecuritySessionId, revokeMySecuritySession, setSecuritySessionId } from '../lib/securityService'
 
 const AuthContext = createContext(null)
 
@@ -21,6 +22,16 @@ export function AuthProvider({ children }) {
     const heartbeat = () => {
       if (!live) return
       heartbeatStaffSession().catch((error) => console.warn('RecordsWeb staff session heartbeat failed:', error))
+      heartbeatSecuritySession().catch(async (error) => {
+        const message = String(error?.message || '')
+        console.warn('RecordsWeb security heartbeat failed:', error)
+        if (/revoked|expired|no longer active|suspended|banned/i.test(message)) {
+          try { sessionStorage.setItem('recordsweb-login-notice', message || 'Your RecordsWeb session ended for security reasons.') } catch {}
+          await supabaseSignOut().catch(() => {})
+          setSecuritySessionId('')
+          setSession(null)
+        }
+      })
     }
     const timer = window.setInterval(heartbeat, 30000)
     window.addEventListener('focus', heartbeat)
@@ -71,6 +82,9 @@ export function AuthProvider({ children }) {
       try {
         await recordAudit({ action: 'account.logout', entityType: 'session', description: 'Signed out of RecordsWeb.', metadata: { reason } }).catch(() => {})
         await endStaffSession(reason).catch(() => {})
+        const securitySessionId = getSecuritySessionId()
+        if (securitySessionId) await revokeMySecuritySession(securitySessionId, reason).catch(() => {})
+        setSecuritySessionId('')
         await supabaseSignOut()
       } finally {
         setSession(null)

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Check, Copy, Handshake, Link2, PauseCircle, RefreshCw, Save, ShieldCheck, Unlink, X } from 'lucide-react'
+import { requireSecurityStepUp } from '../../lib/securityService'
 import {
   getSharedCareCode,
   listSharedCareLinks,
@@ -121,6 +122,7 @@ export default function SharedCarePanel() {
     if ((status === 'revoked' || status === 'suspended') && !window.confirm(`${action[0].toUpperCase()}${action.slice(1)} Shared Care with ${link.partner_name}?`)) return
     setBusy(true); setError(''); setNotice('')
     try {
+      await requireSecurityStepUp('shared_care.create', 'Enter your 6-digit RecordsWeb Security PIN to change this Shared Care relationship.')
       await setSharedCareLinkStatus(link.link_id, status)
       setNotice(`Shared Care with ${link.partner_name} ${status === 'active' ? 'resumed' : status}.`)
       await load()
@@ -131,6 +133,7 @@ export default function SharedCarePanel() {
   async function savePermissions(linkId, permissions) {
     setBusy(true); setError(''); setNotice('')
     try {
+      await requireSecurityStepUp('staff.permissions.manage', 'Enter your 6-digit RecordsWeb Security PIN to change Shared Care permissions.')
       await updateSharedCarePermissions(linkId, permissions)
       setNotice('Shared Care permissions updated.')
       await load()
