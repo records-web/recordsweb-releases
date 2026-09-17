@@ -5388,3 +5388,125 @@ html.rw-dark-mode .maintenance-public-links button { background:#152a34; border-
 
 /* RecordsWeb 4.0 security centre */
 .recordsweb-security-centre{margin-top:18px;display:grid;gap:14px}.security-centre-section{border:1px solid #c8d5db;background:#f8fbfc;padding:14px}.security-centre-section>header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px}.security-centre-section h3{margin:0;font-size:15px}.security-centre-section p{margin:3px 0 0;color:#60717a;font-size:11px}.security-session-list{display:grid;gap:7px}.security-session-row{display:grid;grid-template-columns:24px 1fr auto;align-items:center;gap:10px;border:1px solid #d7e1e5;background:#fff;padding:10px}.security-session-row div:nth-child(2){display:grid;gap:2px}.security-session-row span,.security-session-row small{font-size:10px;color:#697b84}.patient-security-gate{min-height:300px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:30px}.patient-security-gate.blocked{max-width:620px;margin:40px auto;border:1px solid #d4a45a;background:#fff8e8}.patient-security-gate h2,.patient-security-gate p{margin:0}.platform-security-panel{display:grid;gap:16px}.platform-security-ban-form,.platform-security-ban-list{border:1px solid #cad6dc;background:#fff;padding:14px}.platform-security-ban-form h3,.platform-security-ban-list h3{margin:0 0 12px}.platform-form-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.platform-form-grid label{display:grid;gap:5px;font-size:10px;font-weight:700}.platform-form-grid .wide{grid-column:1/-1}.platform-form-grid input,.platform-form-grid select,.platform-form-grid textarea{width:100%;box-sizing:border-box}.platform-security-ban-list{display:grid;gap:7px}.platform-security-ban-row{display:grid;grid-template-columns:24px minmax(160px,1fr) minmax(220px,1fr) auto;gap:10px;align-items:center;border:1px solid #d7e1e5;padding:10px}.platform-security-ban-row.revoked{opacity:.62}.platform-security-ban-row small{display:block;color:#6b7d86;font-size:9px;margin-top:2px}@media(max-width:800px){.platform-form-grid{grid-template-columns:1fr}.platform-security-ban-row{grid-template-columns:24px 1fr}.platform-security-ban-row>div:nth-child(3),.platform-security-ban-row>div:nth-child(4){grid-column:2}}
+
+
+/* RecordsWeb 4.0.1 — Security & Moderation dark-mode + readability hotfix */
+.platform-alert {
+  margin:0 14px;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-height:36px;
+  padding:8px 10px;
+  border:1px solid #b8ceda;
+  background:#eef6fa;
+  color:#365d71;
+  font-size:10px;
+}
+.platform-alert.bad {
+  border-color:#d3a1a1;
+  background:#fff1f1;
+  color:#8d3434;
+}
+.platform-alert > span { flex:1; }
+.platform-alert button {
+  min-height:27px;
+  border:1px solid #98b6c7;
+  background:#f5fafc;
+  color:#315d74;
+  padding:0 9px;
+  cursor:pointer;
+}
+.platform-security-ban-form > p {
+  margin:-6px 0 4px;
+  color:#718995;
+  font-size:10px;
+  line-height:1.45;
+}
+.platform-security-ban-form .platform-form-grid {
+  padding:0;
+}
+.platform-security-ban-form .platform-panel-actions {
+  margin-top:8px;
+  padding:10px 0 0;
+}
+.platform-security-ban-form .platform-panel-actions.wide {
+  margin-top:0;
+}
+.platform-security-ban-list .platform-empty {
+  border-top:1px solid #c4d5de;
+  background:#f8fbfc;
+}
+.platform-security-ban-row {
+  background:#fbfdfe;
+}
+.platform-security-ban-row > div:nth-child(2),
+.platform-security-ban-row > div:nth-child(3) {
+  min-width:0;
+}
+.platform-security-ban-row span {
+  overflow-wrap:anywhere;
+}
+
+html.rw-dark-mode .platform-security-ban-form,
+html.rw-dark-mode .platform-security-ban-list {
+  background:#121e25;
+  border-color:#355668;
+  color:#d6e5ec;
+}
+html.rw-dark-mode .platform-security-ban-form h3,
+html.rw-dark-mode .platform-security-ban-list h3 {
+  color:#d8e9f0;
+}
+html.rw-dark-mode .platform-security-ban-form > p {
+  color:#8eabb9;
+}
+html.rw-dark-mode .platform-security-ban-form .platform-form-grid label {
+  color:#b8d0db;
+}
+html.rw-dark-mode .platform-security-ban-form .platform-form-grid input,
+html.rw-dark-mode .platform-security-ban-form .platform-form-grid select,
+html.rw-dark-mode .platform-security-ban-form .platform-form-grid textarea {
+  background:#0e1a21;
+  color:#d9e8ef;
+  border:1px solid #406072;
+}
+html.rw-dark-mode .platform-security-ban-form .platform-form-grid input::placeholder,
+html.rw-dark-mode .platform-security-ban-form .platform-form-grid textarea::placeholder {
+  color:#71909f;
+  opacity:1;
+}
+html.rw-dark-mode .platform-security-ban-form input[type="datetime-local"] {
+  color-scheme:dark;
+}
+html.rw-dark-mode .platform-security-ban-form .platform-panel-actions {
+  border-color:#2d4958;
+}
+html.rw-dark-mode .platform-security-ban-row {
+  background:#0f1b22;
+  border-color:#2d4958;
+  color:#c8dce5;
+}
+html.rw-dark-mode .platform-security-ban-row small {
+  color:#829daa;
+}
+html.rw-dark-mode .platform-security-ban-list .platform-empty {
+  background:#0f1b22;
+  border-color:#2d4958;
+  color:#829daa;
+}
+html.rw-dark-mode .platform-alert {
+  background:#142731;
+  border-color:#3b6072;
+  color:#c7dde7;
+}
+html.rw-dark-mode .platform-alert.bad {
+  background:#2b181a;
+  border-color:#75474b;
+  color:#efb2b5;
+}
+html.rw-dark-mode .platform-alert button {
+  background:#182b35;
+  border-color:#456b7d;
+  color:#c6dce7;
+}

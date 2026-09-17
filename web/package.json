@@ -2,7 +2,7 @@
   "name": "recordsweb-web",
   "productName": "RecordsWeb Web",
   "private": true,
-  "version": "4.0.0",
+  "version": "4.0.1",
   "description": "RecordsWeb multi-organisation browser clinical records platform",
   "type": "module",
   "scripts": {

@@ -59,15 +59,26 @@ async function getAuthContext(admin: any, req: Request) {
   return { user: userData.user, profile }
 }
 
-async function isPlatformOperator(admin: any, userId: string) {
-  const { data, error } = await admin.rpc('recordsweb_is_platform_operator', {}, { headers: {} })
-  // RPC above executes as service role if called directly, so instead use a profile-based
-  // compatibility check matching RecordsWeb's platform-management model.
-  if (!error && typeof data === 'boolean') return data
-  const { data: profile } = await admin.from('profiles').select('username,role,roles,is_management').eq('id', userId).maybeSingle()
-  const roles = [profile?.role, ...(Array.isArray(profile?.roles) ? profile.roles : [])].filter(Boolean).map((x: string) => x.toLowerCase())
-  const username = clean(profile?.username, 200).toLowerCase()
-  return username.endsWith('@recordsweb.org') && (profile?.is_management === true || roles.some((r: string) => /platform|founder|owner|administrator/.test(r)))
+const PLATFORM_OPERATOR_EMAIL_PATTERN = /^(?:gus\.farnsworth|alfie\.james)@[a-z]{2}\.[a-z]{2}$/i
+
+function normaliseOrganisationCode(value: unknown) {
+  return clean(value, 32).toUpperCase()
+}
+
+function isPlatformOperator(context: any) {
+  const email = clean(context?.user?.email, 320).toLowerCase()
+  const relation = context?.profile?.organisations
+  const organisation = Array.isArray(relation) ? relation[0] : relation
+  const organisationCode = normaliseOrganisationCode(organisation?.org_code)
+  const emailCode = (email.split('@')[1] || '').toUpperCase()
+
+  return Boolean(
+    context?.profile?.active === true &&
+    organisation?.active === true &&
+    PLATFORM_OPERATOR_EMAIL_PATTERN.test(email) &&
+    organisationCode &&
+    organisationCode === emailCode
+  )
 }
 
 async function securityEvent(admin: any, values: any) {
@@ -343,7 +354,7 @@ Deno.serve(async (req) => {
       return json({ ok: true })
     }
 
-    const platform = await isPlatformOperator(admin, context.user.id)
+    const platform = isPlatformOperator(context)
     if (action.startsWith('platform-') && !platform) return json({ error: 'RecordsWeb platform operator permission is required.' }, 403)
 
     if (action === 'platform-security-overview') {
