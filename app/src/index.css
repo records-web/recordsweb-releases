@@ -5510,3 +5510,97 @@ html.rw-dark-mode .platform-alert button {
   border-color:#456b7d;
   color:#c6dce7;
 }
+
+/* RecordsWeb 4.0.2 — platform-wide session management */
+.platform-security-hint {
+  align-self:end;
+  min-height:34px;
+  display:flex;
+  align-items:center;
+  padding:7px 9px;
+  border:1px solid #bfd3de;
+  background:#eef7fb;
+  color:#4e6d7d;
+  font-size:9px;
+  line-height:1.4;
+}
+.platform-security-hint strong { color:#245b78; }
+.platform-sessions-panel { display:grid; gap:14px; }
+.platform-session-metrics { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:10px; padding:0 14px; }
+.platform-session-metrics>div { min-height:62px; display:flex; flex-direction:column; justify-content:center; padding:9px 12px; border:1px solid #b8ccd7; background:#f8fbfd; }
+.platform-session-metrics strong { color:#234f68; font-size:20px; }
+.platform-session-metrics span { color:#728996; font-size:9px; }
+.platform-session-toolbar { display:grid; grid-template-columns:minmax(260px,1fr) 180px 190px; gap:9px; padding:0 14px; }
+.platform-session-toolbar label { display:grid; gap:4px; color:#496c7e; font-size:9px; font-weight:700; }
+.platform-session-toolbar select,.platform-session-toolbar input { min-height:32px; border:1px solid #9fb9c8; background:#fff; color:#284657; padding:6px 8px; font:10px "Segoe UI",Arial,sans-serif; }
+.platform-session-search { position:relative; }
+.platform-session-search svg { position:absolute; left:9px; bottom:9px; color:#6d8998; pointer-events:none; }
+.platform-session-search input { padding-left:29px; }
+.platform-session-help { margin:0 14px; display:grid; grid-template-columns:auto 1fr; gap:8px; align-items:center; border:1px solid #b8ccd7; background:#eef7fb; padding:9px 11px; color:#516f7e; font-size:9px; }
+.platform-session-help strong { color:#245b78; }
+.platform-session-list { margin:0 14px; border:1px solid #b8ccd7; overflow:auto; }
+.platform-session-row { min-width:1180px; display:grid; grid-template-columns:1.2fr 1fr 1.1fr 1.35fr 1.15fr .7fr 1.2fr; gap:10px; align-items:center; min-height:72px; padding:8px 9px; border-bottom:1px solid #dce6eb; background:#fff; }
+.platform-session-row:last-child { border-bottom:0; }
+.platform-session-row.head { min-height:32px; background:#edf5f8; color:#466b7e; font-size:9px; font-weight:700; }
+.platform-session-row>div { min-width:0; }
+.platform-session-row strong,.platform-session-row span,.platform-session-row small { display:block; overflow-wrap:anywhere; }
+.platform-session-row strong { color:#2b5369; font-size:9px; }
+.platform-session-row span { color:#506d7c; font-size:9px; }
+.platform-session-row small { color:#7b929e; font-size:8px; margin-top:2px; }
+.platform-client-badge { width:max-content; display:inline-flex !important; align-items:center; gap:5px; padding:3px 7px; border:1px solid #b7cbd5; background:#f0f7fa; color:#355f75 !important; border-radius:10px; font-weight:700; }
+.platform-client-badge.electron { border-color:#8ebce0; background:#edf7ff; color:#176fa9 !important; }
+.platform-client-badge.website { border-color:#a8d0bd; background:#eef9f3; color:#287452 !important; }
+.platform-session-row>div:nth-child(4)>span { display:flex; align-items:center; gap:5px; }
+.platform-hash-button { margin-top:5px; max-width:100%; display:flex; align-items:center; gap:5px; border:0; background:transparent; color:#31728f; padding:0; font:8px Consolas,monospace; cursor:pointer; text-align:left; }
+.platform-hash-button:disabled { color:#80939d; cursor:default; }
+.platform-session-status { width:max-content; border-radius:10px; padding:3px 7px; text-transform:capitalize; font-weight:700; }
+.platform-session-status.active { background:#e8f6ee; color:#2b7c4b; }
+.platform-session-status.revoked { background:#fdebec; color:#a83d43; }
+.platform-session-status.ended,.platform-session-status.expired { background:#f0f2f3; color:#667781; }
+.platform-session-actions { display:flex; flex-wrap:wrap; gap:5px; }
+.platform-session-actions button,.platform-session-pagination button { min-height:27px; display:inline-flex; align-items:center; justify-content:center; gap:5px; padding:0 8px; border:1px solid #9eb9c7; background:#f5fafc; color:#315d74; font-size:8px; cursor:pointer; }
+.platform-session-actions button:hover:not(:disabled),.platform-session-pagination button:hover:not(:disabled) { background:#e5f2f8; }
+.platform-session-closed { display:flex !important; align-items:center; gap:4px; color:#718691 !important; }
+.platform-session-pagination { margin:0 14px 14px; display:flex; align-items:center; justify-content:space-between; gap:12px; color:#718995; font-size:9px; }
+.platform-session-pagination>div { display:flex; gap:6px; }
+
+html.rw-dark-mode .platform-security-hint,
+html.rw-dark-mode .platform-session-help,
+html.rw-dark-mode .platform-session-metrics>div,
+html.rw-dark-mode .platform-session-list,
+html.rw-dark-mode .platform-session-row { background:#121e25; border-color:#355668; color:#c8d9e2; }
+html.rw-dark-mode .platform-security-hint strong,
+html.rw-dark-mode .platform-session-help strong,
+html.rw-dark-mode .platform-session-metrics strong,
+html.rw-dark-mode .platform-session-row strong { color:#e0eef4; }
+html.rw-dark-mode .platform-security-hint,
+html.rw-dark-mode .platform-session-help,
+html.rw-dark-mode .platform-session-metrics span,
+html.rw-dark-mode .platform-session-row span,
+html.rw-dark-mode .platform-session-row small,
+html.rw-dark-mode .platform-session-pagination { color:#9eb4c0; }
+html.rw-dark-mode .platform-session-row.head { background:#192b34; color:#c1d5de; }
+html.rw-dark-mode .platform-session-toolbar label { color:#b9ced8; }
+html.rw-dark-mode .platform-session-toolbar select,
+html.rw-dark-mode .platform-session-toolbar input { background:#0d171d; border-color:#3c5969; color:#e0edf3; }
+html.rw-dark-mode .platform-client-badge { background:#182a33; border-color:#456777; color:#c8dce5 !important; }
+html.rw-dark-mode .platform-client-badge.electron { background:#123047; border-color:#39749b; color:#bfe4fb !important; }
+html.rw-dark-mode .platform-client-badge.website { background:#173029; border-color:#3d705d; color:#c3ead8 !important; }
+html.rw-dark-mode .platform-hash-button { color:#7bc6e7; }
+html.rw-dark-mode .platform-session-status.active { background:#163728; color:#a5dfbd; }
+html.rw-dark-mode .platform-session-status.revoked { background:#3a2023; color:#efb3b7; }
+html.rw-dark-mode .platform-session-status.ended,
+html.rw-dark-mode .platform-session-status.expired { background:#253139; color:#a8bbc5; }
+html.rw-dark-mode .platform-session-actions button,
+html.rw-dark-mode .platform-session-pagination button { background:#192a33; border-color:#416172; color:#c9dbe4; }
+html.rw-dark-mode .platform-session-actions button:hover:not(:disabled),
+html.rw-dark-mode .platform-session-pagination button:hover:not(:disabled) { background:#203743; }
+
+@media (max-width:900px) {
+  .platform-session-metrics { grid-template-columns:repeat(2,minmax(0,1fr)); }
+  .platform-session-toolbar { grid-template-columns:1fr; }
+}
+@media (max-width:620px) {
+  .platform-session-metrics { grid-template-columns:1fr; }
+  .platform-session-help { grid-template-columns:1fr; }
+}

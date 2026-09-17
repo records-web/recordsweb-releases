@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Activity,
   ArrowLeft,
@@ -10,6 +10,7 @@ import {
   FileCheck2,
   LogOut,
   KeyRound,
+  Laptop,
   Pencil,
   Power,
   RefreshCw,
@@ -27,11 +28,13 @@ import { useNavigate } from 'react-router-dom'
 import recordsWebLogo from '../assets/recordsweb-update-logo.png'
 import PlatformDiscordPanel from '../components/platform/PlatformDiscordPanel'
 import PlatformSecurityPanel from '../components/platform/PlatformSecurityPanel'
+import PlatformSessionsPanel from '../components/platform/PlatformSessionsPanel'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase, supabaseConfigured } from '../lib/supabase'
 import { APP_VERSION } from '../lib/webRuntime'
 import { applyRecordsWebProductBrand } from '../lib/organisationSettings'
 import { validateRecordsWebPassword } from '../lib/passwordPolicy'
+import { getSecuritySessionId, heartbeatSecuritySession, registerSecuritySession, revokeMySecuritySession, setSecuritySessionId } from '../lib/securityService'
 import {
   PLATFORM_OPERATOR_EMAIL_FORMAT,
   createPlatformCommunity,
@@ -640,45 +643,136 @@ export default function PlatformManagementPage() {
   const [authReady, setAuthReady] = useState(false)
   const [operatorSession, setOperatorSession] = useState(null)
   const [serverAuthorised, setServerAuthorised] = useState(false)
-  const [section, setSection] = useState('overview')
+  const [section, setSection] = useState(() => {
+    try {
+      const stored = sessionStorage.getItem('recordsweb-platform-section') || ''
+      return ['overview','maintenance','releases','communities','billing','discord','sessions','security'].includes(stored) ? stored : 'overview'
+    } catch { return 'overview' }
+  })
   const [authError, setAuthError] = useState('')
+  const [securityPrefill, setSecurityPrefill] = useState(null)
+  const verifiedOperatorRef = useRef('')
 
   const clientAuthorised = isPlatformOperator(operatorSession)
   const authorised = clientAuthorised && serverAuthorised
 
   useEffect(() => {
+    try { sessionStorage.setItem('recordsweb-platform-section', section) } catch {}
+  }, [section])
+
+  useEffect(() => {
     let live = true
+    let verificationRun = 0
     if (!supabaseConfigured || !supabase) { setAuthReady(true); return undefined }
-    getPlatformOperatorSession().then(async (session) => {
+
+    const verifySession = async (session, force = false) => {
       if (!live) return
       setOperatorSession(session)
-      if (isPlatformOperator(session)) {
-        try { setServerAuthorised(await verifyPlatformOperator()) }
-        catch (err) { if (live) setAuthError(err?.message || 'Unable to verify platform access.') }
+      const userId = session?.user?.id || ''
+      if (!isPlatformOperator(session)) {
+        verifiedOperatorRef.current = ''
+        setServerAuthorised(false)
+        setAuthReady(true)
+        return
       }
-    }).catch(() => {}).finally(() => { if (live) setAuthReady(true) })
-    const { data } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (!force && verifiedOperatorRef.current === userId) {
+        setAuthReady(true)
+        return
+      }
+
+      const run = ++verificationRun
+      try {
+        const allowed = await verifyPlatformOperator()
+        if (!live || run !== verificationRun) return
+        setServerAuthorised(allowed)
+        verifiedOperatorRef.current = allowed ? userId : ''
+        setAuthError(allowed ? '' : 'This account is not authorised for RecordsWeb Platform Management.')
+      } catch (err) {
+        if (!live || run !== verificationRun) return
+        verifiedOperatorRef.current = ''
+        setServerAuthorised(false)
+        setAuthError(err?.message || 'Unable to verify platform access.')
+      } finally {
+        if (live && run === verificationRun) setAuthReady(true)
+      }
+    }
+
+    getPlatformOperatorSession()
+      .then((session) => verifySession(session, true))
+      .catch((err) => { if (live) { setAuthError(err?.message || 'Unable to read platform session.'); setAuthReady(true) } })
+
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
       if (!live) return
-      setOperatorSession(session)
-      setServerAuthorised(false)
-      if (isPlatformOperator(session)) {
-        try { setServerAuthorised(await verifyPlatformOperator()) }
-        catch (err) { if (live) setAuthError(err?.message || 'Unable to verify platform access.') }
+      const userId = session?.user?.id || ''
+      const alreadyVerified = Boolean(userId && verifiedOperatorRef.current === userId)
+
+      // Supabase refreshes access tokens when a hidden tab/window becomes active.
+      // Keep Platform Management mounted and authorised during TOKEN_REFRESHED so
+      // changing tabs never looks like a page refresh or resets the active panel.
+      if (alreadyVerified && ['TOKEN_REFRESHED','SIGNED_IN','USER_UPDATED'].includes(event)) {
+        setOperatorSession(session)
+        setAuthReady(true)
+        return
       }
-      setAuthReady(true)
+
+      // Run Supabase/RPC work outside the auth callback itself.
+      window.setTimeout(() => verifySession(session, true), 0)
     })
+
     return () => { live = false; data?.subscription?.unsubscribe?.() }
   }, [])
+
+  useEffect(() => {
+    if (!authorised || !operatorSession?.user?.id) return undefined
+    let live = true
+
+    const ensureHeartbeat = async () => {
+      try {
+        if (getSecuritySessionId()) await heartbeatSecuritySession()
+        else await registerSecuritySession({ appVersion: APP_VERSION, deviceName: 'RecordsWeb Platform Management' })
+      } catch (error) {
+        if (!live) return
+        const message = String(error?.message || '')
+        if (/revoked|expired|no longer active|suspended|banned/i.test(message)) {
+          setSecuritySessionId('')
+          verifiedOperatorRef.current = ''
+          setServerAuthorised(false)
+          setOperatorSession(null)
+          setAuthError(message || 'Your RecordsWeb Platform Management session ended for security reasons.')
+          await signOutPlatformOperator().catch(() => {})
+          return
+        }
+        // A stale local security-session id can survive a crash. Clear it and
+        // create a new session only for non-security transport/lookup failures.
+        setSecuritySessionId('')
+        try { await registerSecuritySession({ appVersion: APP_VERSION, deviceName: 'RecordsWeb Platform Management' }) } catch {}
+      }
+    }
+
+    ensureHeartbeat()
+    const timer = window.setInterval(ensureHeartbeat, 30000)
+    return () => { live = false; window.clearInterval(timer) }
+  }, [authorised, operatorSession?.user?.id])
 
   async function signedIn(session) {
     setOperatorSession(session)
     setAuthError('')
-    try { setServerAuthorised(await verifyPlatformOperator()) }
-    catch (err) { setAuthError(err?.message || 'Unable to verify platform access.') }
+    try {
+      const allowed = await verifyPlatformOperator()
+      setServerAuthorised(allowed)
+      verifiedOperatorRef.current = allowed ? (session?.user?.id || '') : ''
+    } catch (err) {
+      verifiedOperatorRef.current = ''
+      setServerAuthorised(false)
+      setAuthError(err?.message || 'Unable to verify platform access.')
+    }
   }
 
   async function logoutOperator() {
+    const sessionId = getSecuritySessionId()
+    if (sessionId) await revokeMySecuritySession(sessionId, 'platform_operator_signed_out').catch(() => {})
     await signOutPlatformOperator().catch(() => {})
+    verifiedOperatorRef.current = ''
     setOperatorSession(null)
     setServerAuthorised(false)
     navigate('/')
@@ -710,6 +804,7 @@ export default function PlatformManagementPage() {
           <button className={section === 'communities' ? 'active' : ''} onClick={() => setSection('communities')}><Building2 size={14}/> Communities</button>
           <button className={section === 'billing' ? 'active' : ''} onClick={() => setSection('billing')}><CreditCard size={14}/> Billing</button>
           <button className={section === 'discord' ? 'active' : ''} onClick={() => setSection('discord')}><Bot size={14}/> Discord</button>
+          <button className={section === 'sessions' ? 'active' : ''} onClick={() => setSection('sessions')}><Laptop size={14}/> User sessions</button>
           <button className={section === 'security' ? 'active' : ''} onClick={() => setSection('security')}><ShieldAlert size={14}/> Security &amp; Moderation</button>
           <button onClick={() => navigate('/review-request')}><FileCheck2 size={14}/> Review requests</button>
         </div>
@@ -720,6 +815,7 @@ export default function PlatformManagementPage() {
           <button onClick={() => setSection('communities')}><Building2 size={22}/><div><strong>Community management</strong><span>Create, edit, enable or disable RecordsWeb communities and manage reserved operators.</span></div></button>
           <button onClick={() => setSection('billing')}><CreditCard size={22}/><div><strong>Subscriptions & billing</strong><span>Set monthly pricing, billing status, dates and optional organisation services.</span></div></button>
           <button onClick={() => setSection('discord')}><Bot size={22}/><div><strong>Discord operations</strong><span>Broadcast maintenance and platform notices to every configured community status channel.</span></div></button>
+          <button onClick={() => setSection('sessions')}><Laptop size={22}/><div><strong>User sessions</strong><span>Inspect website and Electron sessions, copy device hashes and revoke access across RecordsWeb.</span></div></button>
           <button onClick={() => setSection('security')}><ShieldAlert size={22}/><div><strong>Security &amp; moderation</strong><span>Review security telemetry and apply account, IP and device restrictions across RecordsWeb.</span></div></button>
           <button onClick={() => navigate('/review-request')}><FileCheck2 size={22}/><div><strong>Access requests</strong><span>Review communities requesting a RecordsWeb deployment.</span></div></button>
           <div><ServerCog size={22}/><div><strong>Operator-only controls</strong><span>Community managers cannot access or change these platform-wide settings.</span></div></div>
@@ -729,7 +825,8 @@ export default function PlatformManagementPage() {
         {section === 'communities' && <CommunitiesPanel operatorAccountEmail={operatorSession?.user?.email || ''} />}
         {section === 'billing' && <CommunityBillingPanel />}
         {section === 'discord' && <PlatformDiscordPanel />}
-        {section === 'security' && <PlatformSecurityPanel />}
+        {section === 'sessions' && <PlatformSessionsPanel onCreateRestriction={(prefill) => { setSecurityPrefill({ ...prefill, requestedAt: Date.now() }); setSection('security') }} />}
+        {section === 'security' && <PlatformSecurityPanel prefill={securityPrefill} />}
       </main>
       <footer className="review-request-footer"><span>RecordsWeb · Restricted platform operator area</span><span>Version {APP_VERSION}</span></footer>
     </div>

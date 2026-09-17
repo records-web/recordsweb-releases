@@ -58,6 +58,8 @@ export async function registerSecuritySession({ appVersion = '', deviceName = ''
     appVersion,
     deviceName: deviceName || device.name,
     platform: device.platform,
+    clientType: device.source === 'desktop-machine-id' ? 'electron' : 'website',
+    deviceSource: device.source || null,
   })
   if (result?.session?.id) setSecuritySessionId(result.session.id)
   return result
@@ -109,6 +111,14 @@ export async function getPlatformSecurityOverview() {
 export async function listPlatformBans() {
   const result = await invokeSecurity({ action: 'platform-list-bans' })
   return result.bans || []
+}
+
+export async function listPlatformSessions({ page = 1, pageSize = 50, status = 'active', clientType = 'all' } = {}) {
+  return invokeSecurity({ action: 'platform-list-sessions', page, pageSize, status, clientType })
+}
+
+export async function revokePlatformSession(targetSessionId, reason) {
+  return invokeSecurity({ action: 'platform-revoke-session', targetSessionId, reason })
 }
 
 export async function createPlatformBan(payload) {

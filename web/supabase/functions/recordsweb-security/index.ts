@@ -240,6 +240,7 @@ Deno.serve(async (req) => {
         device_hash: deviceHash,
         device_name: clean(body.deviceName, 120) || null,
         platform: clean(body.platform, 80) || null,
+        client_type: ['website','electron'].includes(clean(body.clientType, 20).toLowerCase()) ? clean(body.clientType, 20).toLowerCase() : (String(userAgent || '').toLowerCase().includes('electron/') ? 'electron' : 'website'),
         app_version: clean(body.appVersion, 40) || null,
         user_agent: userAgent,
         ip_address: ip,
@@ -356,6 +357,107 @@ Deno.serve(async (req) => {
 
     const platform = isPlatformOperator(context)
     if (action.startsWith('platform-') && !platform) return json({ error: 'RecordsWeb platform operator permission is required.' }, 403)
+
+    if (action === 'platform-list-sessions') {
+      const page = Math.max(1, Math.min(100000, Number(body.page) || 1))
+      const pageSize = Math.max(10, Math.min(100, Number(body.pageSize) || 50))
+      const status = ['active','all','revoked','ended'].includes(clean(body.status, 20).toLowerCase()) ? clean(body.status, 20).toLowerCase() : 'active'
+      const clientType = ['website','electron'].includes(clean(body.clientType, 20).toLowerCase()) ? clean(body.clientType, 20).toLowerCase() : 'all'
+      const now = new Date().toISOString()
+
+      let query = admin.from('recordsweb_security_sessions').select('*', { count: 'exact' }).order('last_seen_at', { ascending: false })
+      if (clientType !== 'all') query = query.eq('client_type', clientType)
+      if (status === 'active') query = query.is('revoked_at', null).is('ended_at', null).or(`expires_at.is.null,expires_at.gt.${now}`)
+      else if (status === 'revoked') query = query.not('revoked_at', 'is', null)
+      else if (status === 'ended') query = query.or(`ended_at.not.is.null,expires_at.lte.${now}`)
+
+      const from = (page - 1) * pageSize
+      const to = from + pageSize - 1
+      const { data: sessions, error, count } = await query.range(from, to)
+      if (error) throw error
+
+      const userIds = Array.from(new Set((sessions || []).map((row: any) => row.user_id).filter(Boolean)))
+      let profiles: any[] = []
+      if (userIds.length) {
+        const profileResult = await admin
+          .from('profiles')
+          .select('id,organisation_id,username,display_name,role,active,organisations(id,name,org_code)')
+          .in('id', userIds)
+        if (profileResult.error) throw profileResult.error
+        profiles = profileResult.data || []
+      }
+      const profileById = new Map(profiles.map((profile: any) => [profile.id, profile]))
+      const enriched = (sessions || []).map((row: any) => {
+        const profile: any = profileById.get(row.user_id) || null
+        const relation = profile?.organisations
+        const organisation = Array.isArray(relation) ? relation[0] : relation
+        const username = clean(profile?.username, 320)
+        const orgCode = clean(organisation?.org_code, 64)
+        const fallbackType = String(row.user_agent || '').toLowerCase().includes('electron/') ? 'electron' : 'website'
+        return {
+          ...row,
+          client_type: row.client_type || fallbackType,
+          username: username || null,
+          login_name: username ? (username.includes('@') || !orgCode ? username : `${username}@${orgCode}`) : null,
+          display_name: clean(profile?.display_name, 240) || null,
+          role: clean(profile?.role, 160) || null,
+          user_active: profile?.active !== false,
+          organisation_name: clean(organisation?.name, 240) || null,
+          organisation_code: orgCode || null,
+        }
+      })
+
+      const activeBase = () => admin.from('recordsweb_security_sessions').select('id', { count: 'exact', head: true }).is('revoked_at', null).is('ended_at', null).or(`expires_at.is.null,expires_at.gt.${now}`)
+      const [activeCount, websiteCount, electronCount, revokedCount] = await Promise.all([
+        activeBase(),
+        activeBase().eq('client_type', 'website'),
+        activeBase().eq('client_type', 'electron'),
+        admin.from('recordsweb_security_sessions').select('id', { count: 'exact', head: true }).not('revoked_at', 'is', null),
+      ])
+
+      return json({
+        ok: true,
+        sessions: enriched,
+        page,
+        pageSize,
+        total: count || 0,
+        summary: {
+          active: activeCount.count || 0,
+          website: websiteCount.count || 0,
+          electron: electronCount.count || 0,
+          revoked: revokedCount.count || 0,
+        },
+      })
+    }
+
+    if (action === 'platform-revoke-session') {
+      const targetSessionId = clean(body.targetSessionId || body.target_session_id, 80)
+      const reason = clean(body.reason, 1000)
+      if (!targetSessionId || reason.length < 3) return json({ error: 'Session and revocation reason are required.' }, 400)
+      const { data: targetSession, error: lookupError } = await admin.from('recordsweb_security_sessions').select('*').eq('id', targetSessionId).maybeSingle()
+      if (lookupError) throw lookupError
+      if (!targetSession) return json({ error: 'RecordsWeb session was not found.' }, 404)
+      const { error } = await admin.from('recordsweb_security_sessions').update({
+        revoked_at: new Date().toISOString(),
+        revoked_by: context.user.id,
+        revoke_reason: reason,
+      }).eq('id', targetSessionId).is('revoked_at', null)
+      if (error) throw error
+      await securityEvent(admin, {
+        organisation_id: targetSession.organisation_id,
+        actor_id: context.user.id,
+        actor_name: context.profile.display_name,
+        actor_role: context.profile.role,
+        action: 'platform.session.revoked',
+        severity: 'high',
+        entity_type: 'security_session',
+        entity_id: targetSessionId,
+        session_id: targetSessionId,
+        reason,
+        metadata: { target_user_id: targetSession.user_id, client_type: targetSession.client_type || null },
+      })
+      return json({ ok: true })
+    }
 
     if (action === 'platform-security-overview') {
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()

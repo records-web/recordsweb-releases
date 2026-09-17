@@ -1,8 +1,8 @@
 export const APP_VERSION =
   typeof __RECORDSWEB_APP_VERSION__ !== 'undefined'
     ? __RECORDSWEB_APP_VERSION__
-    : '4.0.1'
-export const APP_RUNTIME_LABEL = 'Web Clinical System'
+    : '4.0.2'
+export const APP_RUNTIME_LABEL = 'Desktop Clinical System'
 
 export function getWebDeviceContext() {
   const nav = globalThis.navigator

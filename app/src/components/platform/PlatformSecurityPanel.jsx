@@ -7,7 +7,7 @@ function fmt(value) {
   try { return new Date(value).toLocaleString() } catch { return String(value) }
 }
 
-export default function PlatformSecurityPanel() {
+export default function PlatformSecurityPanel({ prefill }) {
   const [overview, setOverview] = useState(null)
   const [bans, setBans] = useState([])
   const [loading, setLoading] = useState(true)
@@ -16,6 +16,21 @@ export default function PlatformSecurityPanel() {
   const [support, setSupport] = useState({ organisationId: '', reason: '', reference: '' })
   const [supportSession, setSupportSession] = useState(null)
   const activeBans = useMemo(() => bans.filter((row) => !row.revoked_at), [bans])
+
+  useEffect(() => {
+    if (!prefill?.banType) return
+    setForm((current) => ({
+      ...current,
+      banType: prefill.banType,
+      userId: prefill.userId ?? current.userId,
+      email: prefill.email ?? current.email,
+      ip: prefill.ip ?? current.ip,
+      deviceHash: prefill.deviceHash ?? current.deviceHash,
+    }))
+    window.requestAnimationFrame(() => {
+      document.querySelector('.platform-security-ban-form')?.scrollIntoView?.({ behavior: 'smooth', block: 'start' })
+    })
+  }, [prefill])
 
   async function load() {
     setLoading(true); setError('')
@@ -92,7 +107,7 @@ export default function PlatformSecurityPanel() {
         <label>Scope<select value={form.scope} onChange={(e)=>setForm({...form,scope:e.target.value})}><option value="platform">Entire RecordsWeb platform</option><option value="organisation">Single organisation</option></select></label>{form.scope === 'organisation' && <label>Organisation UUID<input required value={form.organisationId} onChange={(e)=>setForm({...form,organisationId:e.target.value})} placeholder="Organisation ID"/></label>}
         {form.banType === 'account' && <><label>User UUID<input value={form.userId} onChange={(e)=>setForm({...form,userId:e.target.value})} placeholder="Optional if email supplied"/></label><label>Email / username<input value={form.email} onChange={(e)=>setForm({...form,email:e.target.value})} placeholder="user@ORG.CODE"/></label></>}
         {form.banType === 'ip' && <label>IP / CIDR<input value={form.ip} onChange={(e)=>setForm({...form,ip:e.target.value})} placeholder="203.0.113.10"/></label>}
-        {form.banType === 'device' && <label>Device hash<input value={form.deviceHash} onChange={(e)=>setForm({...form,deviceHash:e.target.value})} placeholder="SHA-256 device hash"/></label>}
+        {form.banType === 'device' && <><label>Device hash<input value={form.deviceHash} onChange={(e)=>setForm({...form,deviceHash:e.target.value})} placeholder="SHA-256 device hash"/></label><div className="platform-security-hint wide">Device hashes are available in <strong>User sessions</strong>. Open a session to copy its hash or use <strong>Ban device</strong> to fill this field automatically.</div></>}
         <label>Expiry<input type="datetime-local" value={form.expiresAt} onChange={(e)=>setForm({...form,expiresAt:e.target.value})}/></label>
         <label className="wide">Moderation reason<textarea required value={form.reason} onChange={(e)=>setForm({...form,reason:e.target.value})} placeholder="Reason visible in moderation history"/></label>
         <label className="wide">Internal note<textarea value={form.internalNote} onChange={(e)=>setForm({...form,internalNote:e.target.value})} placeholder="Optional internal RecordsWeb note"/></label>
