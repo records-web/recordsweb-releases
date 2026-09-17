@@ -33,6 +33,7 @@ const FEATURES = [
 export default function PublicHomePage() {
   const navigate = useNavigate()
   const [publicTheme, setPublicTheme] = useState(() => localStorage.getItem('recordsweb-public-theme') || (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'))
+  const [legalAccepted, setLegalAccepted] = useState(false)
   useEffect(() => {
     applyRecordsWebProductBrand()
     const hadDarkClass = document.documentElement.classList.contains('rw-dark-mode')
@@ -75,6 +76,7 @@ export default function PublicHomePage() {
       )
       setForm(INITIAL_FORM)
       setLogoFile(null)
+      setLegalAccepted(false)
       formRef.current?.reset()
     } catch (err) {
       setError(err?.message || 'Unable to submit the request.')
@@ -170,6 +172,7 @@ export default function PublicHomePage() {
             </div>
 
             <label className="public-authorised-check"><input type="checkbox" checked={form.authorisedContact} onChange={(e) => update('authorisedContact', e.target.checked)} required /><span>I confirm that I am authorised to request RecordsWeb access for this community.</span></label>
+            <label className="public-authorised-check public-legal-consent"><input type="checkbox" checked={legalAccepted} onChange={(e) => setLegalAccepted(e.target.checked)} required /><span>I have read and agree to the <a href="#/terms" target="_blank" rel="noreferrer">Terms of Service</a> and acknowledge the <a href="#/privacy" target="_blank" rel="noreferrer">Privacy Policy</a>.</span></label>
             {error && <div className="public-request-message error">{error}</div>}
             {success && <div className="public-request-message success"><CheckCircle2 size={16}/>{success}</div>}
             <div className="public-request-actions"><button type="submit" className="public-primary" disabled={busy}><Send size={15}/>{busy ? 'Submitting…' : 'Submit request'}</button></div>
@@ -177,7 +180,7 @@ export default function PublicHomePage() {
         </section>
       </main>
 
-      <footer className="public-home-footer"><span>RecordsWeb · Multi-organisation clinical records platform</span><div className="public-home-footer-actions"><button type="button" onClick={() => navigate('/pricing')}>Pricing</button><button type="button" onClick={() => navigate('/status')}>Status</button><button type="button" onClick={() => navigate('/contact')}>Contact Us</button><span>Version {APP_VERSION}</span></div></footer>
+      <footer className="public-home-footer"><span>RecordsWeb · Roleplay records platform</span><div className="public-home-footer-actions"><button type="button" onClick={() => navigate('/pricing')}>Pricing</button><button type="button" onClick={() => navigate('/status')}>Status</button><button type="button" onClick={() => navigate('/privacy')}>Privacy</button><button type="button" onClick={() => navigate('/terms')}>Terms</button><button type="button" onClick={() => navigate('/contact')}>Contact Us</button><span>Version {APP_VERSION}</span></div></footer>
     </div>
   )
 }

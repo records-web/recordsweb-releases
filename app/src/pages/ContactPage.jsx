@@ -89,7 +89,7 @@ export default function ContactPage() {
         </form>
       </main>
 
-      <footer className="public-home-footer"><span>RecordsWeb · Contact</span><span>Version {APP_VERSION}</span></footer>
+      <footer className="public-home-footer"><span>RecordsWeb · Contact</span><div className="public-home-footer-actions"><button type="button" onClick={() => navigate('/privacy')}>Privacy</button><button type="button" onClick={() => navigate('/terms')}>Terms</button><span>Version {APP_VERSION}</span></div></footer>
     </div>
   )
 }

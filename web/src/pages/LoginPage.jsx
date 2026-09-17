@@ -195,6 +195,7 @@ export default function LoginPage() {
         <div className="legacy-copyright">
           RecordsWeb · {organisationName}. Prototype clinical software. Do not use with live patient data until security, information-governance and clinical-safety requirements have been completed.
         </div>
+        <div className="legacy-login-legal"><button type="button" onClick={() => navigate('/privacy')}>Privacy Policy</button><span>·</span><button type="button" onClick={() => navigate('/terms')}>Terms of Service</button></div>
         {recoveryMode && <AccountRecoveryModal mode={recoveryMode} onClose={() => setRecoveryMode('')} />}
         {changeOrganisationOpen && <OrganisationChangeModal onClose={() => setChangeOrganisationOpen(false)} />}
       </div>

@@ -5604,3 +5604,42 @@ html.rw-dark-mode .platform-session-pagination button:hover:not(:disabled) { bac
   .platform-session-metrics { grid-template-columns:1fr; }
   .platform-session-help { grid-template-columns:1fr; }
 }
+
+
+/* RecordsWeb 4.0.3 — published legal policies */
+.legal-policy-main { width:min(1040px,calc(100% - 36px))!important; margin:0 auto!important; padding:48px 0 66px; }
+.legal-policy-page .public-home-header nav button { display:inline-flex; align-items:center; justify-content:center; gap:6px; }
+.legal-policy-hero { padding:0 0 30px; border-bottom:1px solid #bdd3e2; }
+.legal-policy-hero h1 { margin:0; color:#173f59; font-size:38px; line-height:1.08; letter-spacing:-1px; }
+.legal-policy-hero>p { max-width:760px; margin:12px 0 0; color:#60798a; font-size:12px; line-height:1.65; }
+.legal-roleplay-notice { max-width:820px; display:flex; align-items:flex-start; gap:10px; margin-top:20px; padding:13px 14px; border:1px solid #a9cadf; background:#f5fbff; color:#42647a; }
+.legal-roleplay-notice>svg { flex:0 0 auto; margin-top:1px; color:#0f73b5; }
+.legal-roleplay-notice>div { display:flex; flex-direction:column; gap:3px; }
+.legal-roleplay-notice strong { color:#315d79; font-size:11px; }
+.legal-roleplay-notice span { font-size:10px; line-height:1.55; }
+.legal-policy-document { margin-top:28px; padding:30px 34px; border:1px solid #b8d0e0; background:#fff; box-shadow:0 7px 24px rgba(32,65,92,.06); color:#405d70; }
+.legal-policy-document h2 { margin:31px 0 10px; padding-top:4px; color:#24536f; font-size:18px; line-height:1.25; border-top:1px solid #e3edf3; padding-top:24px; }
+.legal-policy-document h2:first-child { margin-top:0; border-top:0; padding-top:0; }
+.legal-policy-document h3 { margin:21px 0 8px; color:#315d79; font-size:13px; }
+.legal-policy-document p { margin:0 0 12px; font-size:11px; line-height:1.72; }
+.legal-policy-document ul { margin:7px 0 15px 21px; padding:0; }
+.legal-policy-document li { margin:5px 0; padding-left:2px; font-size:11px; line-height:1.62; }
+.legal-policy-document strong { color:#294f68; }
+.public-legal-consent { margin-top:11px!important; }
+.public-legal-consent a { color:#0f6fbd; font-weight:800; text-decoration:underline; text-underline-offset:2px; }
+.public-legal-consent a:hover { color:#09528d; }
+.legacy-login-legal { display:flex; justify-content:center; gap:10px; margin-top:7px; font-size:9px; }
+.legacy-login-legal button { border:0; background:transparent; padding:0; color:#2269ab; text-decoration:underline; text-underline-offset:2px; cursor:pointer; font:inherit; }
+.legacy-login-legal button:hover { color:#0f548f; }
+.public-home.public-theme-dark .legal-policy-hero { border-color:#345565; }
+.public-home.public-theme-dark .legal-policy-hero h1 { color:#d9ebf5; }
+.public-home.public-theme-dark .legal-policy-hero>p { color:#a9bfcb; }
+.public-home.public-theme-dark .legal-roleplay-notice { background:#172a34; border-color:#3f6073; color:#aec3ce; }
+.public-home.public-theme-dark .legal-roleplay-notice strong { color:#cae1ee; }
+.public-home.public-theme-dark .legal-policy-document { background:#101d24; border-color:#355366; color:#b5cad5; box-shadow:none; }
+.public-home.public-theme-dark .legal-policy-document h2 { color:#8bc9ea; border-color:#294554; }
+.public-home.public-theme-dark .legal-policy-document h3 { color:#b9d7e7; }
+.public-home.public-theme-dark .legal-policy-document strong { color:#d9e9f1; }
+.public-home.public-theme-dark .public-legal-consent a { color:#69b9e7; }
+html.rw-dark-mode .legacy-login-legal button { color:#79bde7; }
+@media (max-width:620px) { .legal-policy-main { width:min(100% - 24px,1040px)!important; padding-top:30px; } .legal-policy-hero h1 { font-size:31px; } .legal-policy-document { padding:21px 18px; } }

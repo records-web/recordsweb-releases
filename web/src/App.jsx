@@ -5,6 +5,7 @@ import PublicHomePage from './pages/PublicHomePage'
 import ContactPage from './pages/ContactPage'
 import StatusPage from './pages/StatusPage'
 import PricingPage from './pages/PricingPage'
+import LegalPolicyPage from './pages/LegalPolicyPage'
 import StripeCheckoutPage from './pages/StripeCheckoutPage'
 import BillingCompletePage from './pages/BillingCompletePage'
 import ReviewRequestPage from './pages/ReviewRequestPage'
@@ -122,6 +123,8 @@ export default function App() {
         <Route path="/contact" element={<ContactPage />} />
         <Route path="/pricing" element={<PricingPage />} />
         <Route path="/status" element={<StatusPage />} />
+        <Route path="/privacy" element={<LegalPolicyPage type="privacy" />} />
+        <Route path="/terms" element={<LegalPolicyPage type="terms" />} />
         <Route path="/billing/complete" element={<BillingCompletePage />} />
         <Route path="/billing/checkout" element={<Protected><ManagementOnly><StripeCheckoutPage /></ManagementOnly></Protected>} />
         <Route path="/billing/checkout/return" element={<Protected><ManagementOnly><StripeCheckoutPage returnMode /></ManagementOnly></Protected>} />

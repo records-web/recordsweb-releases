@@ -97,7 +97,7 @@ export default function PricingPage() {
         </section>
       </main>
 
-      <footer className="public-home-footer"><span>RecordsWeb · Pricing</span><div className="public-home-footer-actions"><button type="button" onClick={() => navigate('/status')}>Status</button><button type="button" onClick={() => navigate('/contact')}>Contact Us</button><span>Version {APP_VERSION}</span></div></footer>
+      <footer className="public-home-footer"><span>RecordsWeb · Pricing</span><div className="public-home-footer-actions"><button type="button" onClick={() => navigate('/status')}>Status</button><button type="button" onClick={() => navigate('/privacy')}>Privacy</button><button type="button" onClick={() => navigate('/terms')}>Terms</button><button type="button" onClick={() => navigate('/contact')}>Contact Us</button><span>Version {APP_VERSION}</span></div></footer>
     </div>
   )
 }
