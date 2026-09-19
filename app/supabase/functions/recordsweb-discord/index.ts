@@ -8,7 +8,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const DISCORD_API = 'https://discord.com/api/v10'
 const BOT_PERMISSIONS = '19456' // View Channel + Send Messages + Embed Links
 const OPERATOR_EMAIL_PATTERN = /^(?:gus\.farnsworth|alfie\.james)@[a-z]{2}\.[a-z]{2}$/i
 
@@ -34,6 +33,61 @@ function snowflake(value: unknown, label: string) {
 
 function cleanText(value: unknown, max = 500) {
   return String(value ?? '').trim().slice(0, max)
+}
+
+
+function bytesToBase64(bytes: Uint8Array) {
+  let binary = ''
+  const chunkSize = 0x8000
+  for (let offset = 0; offset < bytes.length; offset += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(offset, Math.min(bytes.length, offset + chunkSize)))
+  }
+  return btoa(binary)
+}
+
+function queuedAttachment(file: DiscordUploadFile) {
+  return {
+    filename: file.filename,
+    content_type: file.contentType,
+    description: file.description || file.filename,
+    base64: bytesToBase64(file.bytes),
+  }
+}
+
+async function enqueueDiscordJob(admin: any, input: {
+  organisationId?: string | null
+  deliveryId?: string | null
+  jobType: 'channel_message' | 'dm_message'
+  targetGuildId?: string | null
+  targetChannelId?: string | null
+  targetUserId?: string | null
+  payload: Record<string, unknown>
+  createdBy?: string | null
+  priority?: number
+  maxAttempts?: number
+}) {
+  const row = {
+    organisation_id: input.organisationId || null,
+    delivery_id: input.deliveryId || null,
+    job_type: input.jobType,
+    target_guild_id: input.targetGuildId || null,
+    target_channel_id: input.targetChannelId || null,
+    target_user_id: input.targetUserId || null,
+    payload: input.payload || {},
+    priority: Number(input.priority || 100),
+    max_attempts: Number(input.maxAttempts || 3),
+    created_by: input.createdBy || null,
+    status: 'pending',
+    available_at: new Date().toISOString(),
+  }
+  const { data, error } = await admin.from('recordsweb_discord_jobs').insert(row).select('id,status,created_at').single()
+  if (error) {
+    if (/does not exist|schema cache|recordsweb_discord_jobs/i.test(error.message || '')) {
+      throw new Error('RecordsWeb 4.1 Discord worker is not installed. Run supabase/recordsweb-4.1.0-discord-worker.sql.')
+    }
+    throw error
+  }
+  return data
 }
 
 const COMMON_PASSWORDS = new Set(['password123','password1','qwerty123','letmein123','welcome123','recordsweb1','groveway123','changeme123','admin12345','1234567890'])
@@ -362,72 +416,6 @@ type DiscordUploadFile = {
   description?: string
 }
 
-async function discordMultipartFilesRequest(path: string, payload: Record<string, unknown>, files: DiscordUploadFile[]) {
-  const token = requiredEnv('RECORDSWEB_DISCORD_BOT_TOKEN')
-  const form = new FormData()
-  form.append('payload_json', JSON.stringify({
-    ...payload,
-    attachments: files.map((file, index) => ({
-      id: index,
-      filename: file.filename,
-      description: file.description || file.filename,
-    })),
-    allowed_mentions: { parse: [] },
-  }))
-  files.forEach((file, index) => {
-    form.append(`files[${index}]`, new Blob([file.bytes], { type: file.contentType }), file.filename)
-  })
-  const response = await fetch(`${DISCORD_API}${path}`, {
-    method: 'POST',
-    headers: { Authorization: `Bot ${token}` },
-    body: form,
-  })
-  const raw = await response.text()
-  let data: any = null
-  try { data = raw ? JSON.parse(raw) : null } catch { data = raw }
-  if (!response.ok) {
-    const detail = data?.message || (typeof data === 'string' ? data : '') || `Discord returned HTTP ${response.status}.`
-    const error = new Error(detail) as Error & { status?: number, code?: unknown }
-    error.status = response.status
-    error.code = data?.code
-    throw error
-  }
-  return data
-}
-
-async function discordMultipartRequest(path: string, payload: Record<string, unknown>, imageBytes: Uint8Array, filename: string) {
-  return discordMultipartFilesRequest(path, payload, [{
-    bytes: imageBytes,
-    filename,
-    contentType: 'image/png',
-    description: 'RecordsWeb generated image',
-  }])
-}
-
-async function sendRecordsWebLoginImageDm(payload: {
-  discordUserId: string
-  username: string
-  temporaryPassword: string
-  organisationName: string
-  organisationCode: string
-  publicUrl: string
-  version: string
-}) {
-  const dm = await discordRequest('/users/@me/channels', {
-    method: 'POST',
-    body: JSON.stringify({ recipient_id: payload.discordUserId }),
-  })
-  const image = await renderRecordsWebLoginCard(payload)
-  const filename = 'recordsweb-login-details.png'
-
-  // v3.4.2 deliberately sends ONLY the generated RecordsWeb image.
-  // No Discord content, embed, fields or fallback credential message is sent.
-  return discordMultipartRequest(`/channels/${String(dm.id)}/messages`, {
-    attachments: [{ id: 0, filename, description: 'RecordsWeb temporary login details' }],
-  }, image, filename)
-}
-
-
 function formatDiscordDate(value: unknown) {
   if (!value) return 'Not specified'
   const date = new Date(String(value))
@@ -435,66 +423,41 @@ function formatDiscordDate(value: unknown) {
   return `<t:${Math.floor(date.getTime() / 1000)}:F> (<t:${Math.floor(date.getTime() / 1000)}:R>)`
 }
 
-async function discordRequest(path: string, init: RequestInit = {}) {
-  const token = requiredEnv('RECORDSWEB_DISCORD_BOT_TOKEN')
-  const response = await fetch(`${DISCORD_API}${path}`, {
-    ...init,
-    headers: {
-      Authorization: `Bot ${token}`,
-      'Content-Type': 'application/json',
-      ...(init.headers || {}),
-    },
-  })
-  const raw = await response.text()
-  let data: any = null
-  try { data = raw ? JSON.parse(raw) : null } catch { data = raw }
-  if (!response.ok) {
-    const detail = data?.message || (typeof data === 'string' ? data : '') || `Discord returned HTTP ${response.status}.`
-    const error = new Error(detail) as Error & { status?: number, code?: unknown }
-    error.status = response.status
-    error.code = data?.code
-    throw error
-  }
-  return data
+async function discoverGuild(admin: any, guildId: string) {
+  const { data: guild, error: guildError } = await admin
+    .from('recordsweb_discord_guild_cache')
+    .select('guild_id,guild_name,icon,last_seen_at')
+    .eq('guild_id', guildId)
+    .maybeSingle()
+  if (guildError) throw guildError
+  if (!guild) throw Object.assign(new Error('RecordsWeb Bot is not currently connected to that Discord server.'), { status: 404 })
+  const { data: channelRows, error: channelError } = await admin
+    .from('recordsweb_discord_channel_cache')
+    .select('channel_id,channel_name,channel_type,position,last_seen_at')
+    .eq('guild_id', guildId)
+    .in('channel_type', [0, 5])
+    .order('position')
+    .order('channel_name')
+  if (channelError) throw channelError
+  const channels = (channelRows || []).map((channel: any) => ({
+    id: String(channel.channel_id),
+    name: String(channel.channel_name || 'channel'),
+    type: Number(channel.channel_type || 0),
+  }))
+  return { guild: { id: String(guild.guild_id), name: String(guild.guild_name || 'Discord server'), icon: guild.icon || null }, channels }
 }
 
-async function getBotIdentity() {
-  const bot = await discordRequest('/users/@me')
-  const clientId = String(Deno.env.get('RECORDSWEB_DISCORD_CLIENT_ID') || bot?.id || '').trim()
-  return {
-    id: String(bot?.id || ''),
-    username: String(bot?.username || 'RecordsWeb Bot'),
-    discriminator: String(bot?.discriminator || '0'),
-    avatar: bot?.avatar || null,
-    client_id: clientId,
-    invite_url: clientId
-      ? `https://discord.com/oauth2/authorize?client_id=${encodeURIComponent(clientId)}&permissions=${BOT_PERMISSIONS}&scope=bot%20applications.commands`
-      : '',
-  }
-}
-
-async function discoverGuild(guildId: string) {
-  const guild = await discordRequest(`/guilds/${guildId}`)
-  const allChannels = await discordRequest(`/guilds/${guildId}/channels`)
-  const channels = (Array.isArray(allChannels) ? allChannels : [])
-    .filter((channel: any) => [0, 5].includes(Number(channel.type)))
-    .sort((a: any, b: any) => Number(a.position || 0) - Number(b.position || 0) || String(a.name || '').localeCompare(String(b.name || '')))
-    .map((channel: any) => ({ id: String(channel.id), name: String(channel.name || 'channel'), type: Number(channel.type) }))
-  return { guild: { id: String(guild.id), name: String(guild.name || 'Discord server'), icon: guild.icon || null }, channels }
-}
-
-async function verifyChannel(guildId: string, channelId: string) {
-  const channel = await discordRequest(`/channels/${channelId}`)
-  if (String(channel?.guild_id || '') !== guildId) throw new Error('The selected channel does not belong to that Discord server.')
-  if (![0, 5].includes(Number(channel?.type))) throw new Error('Choose a Discord text or announcement channel for maintenance messages.')
-  return { id: String(channel.id), name: String(channel.name || 'channel'), type: Number(channel.type) }
-}
-
-async function sendMessage(channelId: string, payload: Record<string, unknown>) {
-  return discordRequest(`/channels/${channelId}/messages`, {
-    method: 'POST',
-    body: JSON.stringify({ ...payload, allowed_mentions: { parse: [] } }),
-  })
+async function verifyChannel(admin: any, guildId: string, channelId: string) {
+  const { data: channel, error } = await admin
+    .from('recordsweb_discord_channel_cache')
+    .select('channel_id,guild_id,channel_name,channel_type,last_seen_at')
+    .eq('channel_id', channelId)
+    .maybeSingle()
+  if (error) throw error
+  if (!channel) throw Object.assign(new Error('RecordsWeb Bot cannot currently see that Discord channel.'), { status: 404 })
+  if (String(channel.guild_id || '') !== guildId) throw new Error('The selected channel does not belong to that Discord server.')
+  if (![0, 5].includes(Number(channel.channel_type))) throw new Error('Choose a Discord text or announcement channel for RecordsWeb messages.')
+  return { id: String(channel.channel_id), name: String(channel.channel_name || 'channel'), type: Number(channel.channel_type) }
 }
 
 
@@ -1119,23 +1082,6 @@ async function patientDiscordTarget(admin: any, context: any, patientId: string)
   return { patient, discordUserId: snowflake(patient.discord_user_id, 'Patient Discord User ID') }
 }
 
-async function openDiscordDmChannel(discordUserId: string) {
-  return discordRequest('/users/@me/channels', {
-    method: 'POST',
-    body: JSON.stringify({ recipient_id: discordUserId }),
-  })
-}
-
-async function sendPatientDm(discordUserId: string, payload: Record<string, unknown>) {
-  const dm = await openDiscordDmChannel(discordUserId)
-  return sendMessage(String(dm.id), payload)
-}
-
-async function sendPatientFileDm(discordUserId: string, payload: Record<string, unknown>, files: DiscordUploadFile[]) {
-  const dm = await openDiscordDmChannel(discordUserId)
-  return discordMultipartFilesRequest(`/channels/${String(dm.id)}/messages`, payload, files)
-}
-
 async function writeAudit(admin: any, caller: any, action: string, entityType: string, entityId: string | null, description: string, metadata: Record<string, unknown> = {}) {
   try {
     await admin.from('audit_log').insert({
@@ -1211,12 +1157,42 @@ function platformOperator(context: any) {
   return Boolean(OPERATOR_EMAIL_PATTERN.test(email) && orgCode && orgCode === emailCode)
 }
 
-async function botStatusSafe() {
-  try { return { configured: true, bot: await getBotIdentity(), error: '' } }
-  catch (error) {
-    const message = error instanceof Error ? error.message : 'RecordsWeb Bot is unavailable.'
-    if (/RECORDSWEB_DISCORD_BOT_TOKEN|configuration error/i.test(message)) return { configured: false, bot: null, error: message }
-    return { configured: true, bot: null, error: message }
+async function botStatusSafe(admin: any) {
+  try {
+    const { data, error } = await admin.from('recordsweb_discord_bot_state').select('*').eq('id', 'primary').maybeSingle()
+    if (error) {
+      if (/does not exist|schema cache|recordsweb_discord_bot_state/i.test(error.message || '')) {
+        return { configured: false, bot: null, error: 'RecordsWeb 4.1 Discord worker is not installed.' }
+      }
+      throw error
+    }
+    if (!data?.last_heartbeat_at) return { configured: true, bot: null, error: 'RecordsWeb Bot has not reported a heartbeat yet.' }
+    const ageMs = Date.now() - new Date(data.last_heartbeat_at).getTime()
+    if (!Number.isFinite(ageMs) || ageMs > 150000) {
+      return { configured: true, bot: null, error: 'RecordsWeb Bot is offline or its heartbeat is stale.' }
+    }
+    const clientId = String(data.client_id || data.bot_user_id || '').trim()
+    return {
+      configured: true,
+      bot: {
+        id: String(data.bot_user_id || ''),
+        username: String(data.username || 'RecordsWeb Bot'),
+        discriminator: String(data.discriminator || '0'),
+        avatar: data.avatar || null,
+        client_id: clientId,
+        invite_url: clientId ? `https://discord.com/oauth2/authorize?client_id=${encodeURIComponent(clientId)}&permissions=${BOT_PERMISSIONS}&scope=bot%20applications.commands` : '',
+        host_name: String(data.host_name || ''),
+        version: String(data.version || ''),
+        guild_count: Number(data.guild_count || 0),
+        websocket_ping_ms: Number(data.websocket_ping_ms || 0),
+        process_uptime_seconds: Number(data.process_uptime_seconds || 0),
+        started_at: data.started_at || null,
+        last_heartbeat_at: data.last_heartbeat_at,
+      },
+      error: '',
+    }
+  } catch (error) {
+    return { configured: true, bot: null, error: error instanceof Error ? error.message : 'RecordsWeb Bot is unavailable.' }
   }
 }
 
@@ -1362,7 +1338,7 @@ async function createPlatformBroadcast(admin: any, context: any, input: any) {
 async function deliverPlatformBroadcast(admin: any, context: any, broadcast: any, forcedOrganisationIds: string[] | null = null) {
   const integrations = await platformIntegrationRows(admin)
   const targets = integrations.filter((row: any) => targetIntegration(row, broadcast, forcedOrganisationIds))
-  let sent = 0
+  let queued = 0
   let failed = 0
   let skipped = 0
   const failures: Array<{ organisation_id: string, error: string }> = []
@@ -1384,43 +1360,51 @@ async function deliverPlatformBroadcast(admin: any, context: any, broadcast: any
       continue
     }
 
+    const { data: delivery, error: deliveryError } = await admin.from('recordsweb_discord_deliveries').insert({
+      broadcast_id: broadcast.id,
+      organisation_id: row.organisation_id,
+      guild_id: row.guild_id,
+      guild_name: row.guild_name || '',
+      channel_id: row.channel_id,
+      channel_name: row.channel_name || '',
+      status: 'pending',
+    }).select('id').single()
+    if (deliveryError) throw deliveryError
+
     try {
-      const result = await sendMessage(String(row.channel_id), { embeds: [discordBroadcastEmbed(broadcast, org, context.profile.display_name || '')] })
-      sent += 1
-      await admin.from('recordsweb_discord_deliveries').insert({
-        broadcast_id: broadcast.id,
-        organisation_id: row.organisation_id,
-        guild_id: row.guild_id,
-        guild_name: row.guild_name || '',
-        channel_id: row.channel_id,
-        channel_name: row.channel_name || '',
-        status: 'sent',
-        discord_message_id: String(result?.id || ''),
-        delivered_at: new Date().toISOString(),
+      await enqueueDiscordJob(admin, {
+        organisationId: row.organisation_id,
+        deliveryId: delivery.id,
+        jobType: 'channel_message',
+        targetGuildId: String(row.guild_id || ''),
+        targetChannelId: String(row.channel_id || ''),
+        payload: {
+          content: '',
+          embeds: [discordBroadcastEmbed(broadcast, org, context.profile.display_name || '')],
+          allowed_mentions: { parse: [] },
+          kind: 'platform_broadcast',
+          broadcast_id: broadcast.id,
+        },
+        createdBy: context.profile.id,
+        priority: String(broadcast.severity || '') === 'critical' ? 10 : 50,
       })
-      await admin.from('recordsweb_discord_integrations').update({ last_notification_at: new Date().toISOString(), last_error: null, updated_at: new Date().toISOString() }).eq('organisation_id', row.organisation_id)
+      queued += 1
     } catch (error) {
       failed += 1
-      const message = error instanceof Error ? error.message : 'Discord notification failed.'
+      const message = error instanceof Error ? error.message : 'Unable to queue Discord notification.'
       failures.push({ organisation_id: String(row.organisation_id), error: message })
-      await admin.from('recordsweb_discord_deliveries').insert({
-        broadcast_id: broadcast.id,
-        organisation_id: row.organisation_id,
-        guild_id: row.guild_id,
-        guild_name: row.guild_name || '',
-        channel_id: row.channel_id,
-        channel_name: row.channel_name || '',
-        status: 'failed',
-        error: message.slice(0, 1000),
-      })
-      await admin.from('recordsweb_discord_integrations').update({ last_error: message.slice(0, 500), updated_at: new Date().toISOString() }).eq('organisation_id', row.organisation_id)
+      await admin.from('recordsweb_discord_deliveries').update({ status: 'failed', error: message.slice(0, 1000) }).eq('id', delivery.id)
     }
   }
 
-  const finalStatus = failed === 0 ? 'sent' : sent > 0 ? 'partial' : 'failed'
-  await admin.from('recordsweb_discord_broadcasts').update({ status: finalStatus, sent_at: new Date().toISOString(), updated_at: new Date().toISOString() }).eq('id', broadcast.id)
-  await writeAudit(admin, context.profile, 'platform.discord.broadcast.sent', 'discord_broadcast', broadcast.id, `Sent ${broadcast.broadcast_type} Discord broadcast to ${sent} community channel(s); ${failed} failed; ${skipped} skipped.`, { sent, failed, skipped, broadcast_type: broadcast.broadcast_type })
-  return { ok: failed === 0, broadcast_id: broadcast.id, sent, failed, skipped, failures }
+  const finalStatus = queued > 0 ? 'queued' : failed > 0 ? 'failed' : 'sent'
+  await admin.from('recordsweb_discord_broadcasts').update({
+    status: finalStatus,
+    sent_at: queued > 0 ? null : new Date().toISOString(),
+    updated_at: new Date().toISOString(),
+  }).eq('id', broadcast.id)
+  await writeAudit(admin, context.profile, 'platform.discord.broadcast.queued', 'discord_broadcast', broadcast.id, `Queued ${broadcast.broadcast_type} Discord broadcast for ${queued} community channel(s); ${failed} could not be queued; ${skipped} skipped.`, { queued, failed, skipped, broadcast_type: broadcast.broadcast_type })
+  return { ok: failed === 0, broadcast_id: broadcast.id, queued, sent: 0, failed, skipped, failures }
 }
 
 
@@ -1474,7 +1458,7 @@ Deno.serve(async (req) => {
 
     if (action === 'broadcast-maintenance') {
       if (!platformOperator(context)) return json({ error: 'RecordsWeb platform operator permission is required.' }, 403)
-      const botState = await botStatusSafe()
+      const botState = await botStatusSafe(admin)
       if (!botState.configured || !botState.bot) return json({ ok: false, configured: botState.configured, error: botState.error || 'RecordsWeb Bot is unavailable.', sent: 0, failed: 0 }, 200)
       const enabled = Boolean(body.enabled)
       const broadcast = await createPlatformBroadcast(admin, context, {
@@ -1493,7 +1477,7 @@ Deno.serve(async (req) => {
 
     if (action === 'platform-overview') {
       if (!platformOperator(context)) return json({ error: 'RecordsWeb platform operator permission is required.' }, 403)
-      const botState = await botStatusSafe()
+      const botState = await botStatusSafe(admin)
       const integrations = await platformIntegrationRows(admin)
       const { count: activeCommunityCount } = await admin.from('organisations').select('id', { count: 'exact', head: true }).eq('active', true)
       const midnight = new Date(); midnight.setUTCHours(0, 0, 0, 0)
@@ -1560,14 +1544,14 @@ Deno.serve(async (req) => {
 
     if (action === 'platform-health-check') {
       if (!platformOperator(context)) return json({ error: 'RecordsWeb platform operator permission is required.' }, 403)
-      const botState = await botStatusSafe()
+      const botState = await botStatusSafe(admin)
       if (!botState.configured || !botState.bot) return json({ error: botState.error || 'RecordsWeb Bot is unavailable.' }, 503)
       const rows = await platformIntegrationRows(admin)
       let failed = 0
       const results: any[] = []
       for (const row of rows) {
         try {
-          const channel = await verifyChannel(String(row.guild_id), String(row.channel_id))
+          const channel = await verifyChannel(admin, String(row.guild_id), String(row.channel_id))
           const now = new Date().toISOString()
           await admin.from('recordsweb_discord_integrations').update({ channel_name: channel.name, verified_at: now, last_health_check_at: now, last_error: null, updated_at: now }).eq('organisation_id', row.organisation_id)
           results.push({ organisation_id: row.organisation_id, ok: true })
@@ -1590,23 +1574,31 @@ Deno.serve(async (req) => {
       const row = rows.find((item: any) => String(item.organisation_id) === organisationId)
       if (!row) return json({ error: 'That community does not have a configured Discord status channel.' }, 404)
       const org = relationOne(row.organisations)
-      const result = await sendMessage(String(row.channel_id), { embeds: [{
-        title: 'RecordsWeb Platform Management test',
-        description: 'This is a test message from RecordsWeb Platform Management. This channel is configured correctly for platform notices.',
-        color: 0x0F6FBD,
-        fields: [{ name: 'Community', value: `${org?.name || 'RecordsWeb community'} (@${org?.org_code || 'XX.XX'})`, inline: false }],
-        footer: { text: `RecordsWeb Platform Operations · ${context.profile.display_name || 'Operator'}` },
-        timestamp: new Date().toISOString(),
-      }] })
+      const job = await enqueueDiscordJob(admin, {
+        organisationId: row.organisation_id,
+        jobType: 'channel_message',
+        targetGuildId: String(row.guild_id || ''),
+        targetChannelId: String(row.channel_id),
+        payload: { embeds: [{
+          title: 'RecordsWeb Platform Management test',
+          description: 'This is a test message from RecordsWeb Platform Management. This channel is configured correctly for platform notices.',
+          color: 0x0F6FBD,
+          fields: [{ name: 'Community', value: `${org?.name || 'RecordsWeb community'} (@${org?.org_code || 'XX.XX'})`, inline: false }],
+          footer: { text: `RecordsWeb Platform Operations · ${context.profile.display_name || 'Operator'}` },
+          timestamp: new Date().toISOString(),
+        }], kind: 'platform_test' },
+        createdBy: context.profile.id,
+        priority: 20,
+      })
       const now = new Date().toISOString()
-      await admin.from('recordsweb_discord_integrations').update({ verified_at: now, last_health_check_at: now, last_error: null, updated_at: now }).eq('organisation_id', row.organisation_id)
-      await writeAudit(admin, context.profile, 'platform.discord.test', 'organisation', row.organisation_id, `Sent a platform Discord test to ${org?.name || 'community'} #${row.channel_name || row.channel_id}.`)
-      return json({ ok: true, message_id: String(result?.id || '') })
+      await admin.from('recordsweb_discord_integrations').update({ last_health_check_at: now, last_error: null, updated_at: now }).eq('organisation_id', row.organisation_id)
+      await writeAudit(admin, context.profile, 'platform.discord.test.queued', 'organisation', row.organisation_id, `Queued a platform Discord test for ${org?.name || 'community'} #${row.channel_name || row.channel_id}.`)
+      return json({ ok: true, queued: true, job_id: job.id })
     }
 
     if (action === 'platform-broadcast') {
       if (!platformOperator(context)) return json({ error: 'RecordsWeb platform operator permission is required.' }, 403)
-      const botState = await botStatusSafe()
+      const botState = await botStatusSafe(admin)
       if (!botState.configured || !botState.bot) return json({ error: botState.error || 'RecordsWeb Bot is unavailable.' }, 503)
       const broadcast = await createPlatformBroadcast(admin, context, body)
       return json(await deliverPlatformBroadcast(admin, context, broadcast))
@@ -1626,20 +1618,79 @@ Deno.serve(async (req) => {
         if (orgId && !latest.has(orgId)) latest.set(orgId, String(row.status || ''))
       }
       const failedOrganisationIds = [...latest.entries()].filter(([, status]) => status === 'failed').map(([orgId]) => orgId)
-      if (!failedOrganisationIds.length) return json({ ok: true, sent: 0, failed: 0, skipped: 0, message: 'There are no failed deliveries to retry.' })
+      if (!failedOrganisationIds.length) return json({ ok: true, queued: 0, sent: 0, failed: 0, skipped: 0, message: 'There are no failed deliveries to retry.' })
       return json(await deliverPlatformBroadcast(admin, context, broadcast, failedOrganisationIds))
+    }
+
+    if (action === 'platform-commands') {
+      if (!platformOperator(context)) return json({ error: 'RecordsWeb platform operator permission is required.' }, 403)
+      const { data, error } = await admin.from('recordsweb_discord_commands').select('*').order('name')
+      if (error) {
+        if (/does not exist|schema cache/i.test(error.message || '')) return json({ error: 'RecordsWeb 4.1 Discord commands are not installed. Run the 4.1.0 Discord worker migration.' }, 500)
+        throw error
+      }
+      return json({ commands: data || [] })
+    }
+
+    if (action === 'platform-save-command') {
+      if (!platformOperator(context)) return json({ error: 'RecordsWeb platform operator permission is required.' }, 403)
+      const id = cleanText(body.id, 80)
+      const name = cleanText(body.name, 32).toLowerCase()
+      const description = cleanText(body.description, 100)
+      const response = cleanText(body.response, 1900)
+      const responseMode = body.response_mode === 'embed' ? 'embed' : 'text'
+      const reserved = new Set(['ping', 'status', 'recordsweb', 'help'])
+      if (!/^[a-z0-9_-]{1,32}$/.test(name)) return json({ error: 'Command names may contain only lowercase letters, numbers, hyphens and underscores.' }, 400)
+      if (reserved.has(name)) return json({ error: `/${name} is a built-in RecordsWeb Bot command.` }, 400)
+      if (!description) return json({ error: 'Enter a command description.' }, 400)
+      if (!response) return json({ error: 'Enter the command response.' }, 400)
+      const row = {
+        name,
+        description,
+        response,
+        response_mode: responseMode,
+        ephemeral: body.ephemeral === true,
+        enabled: body.enabled !== false,
+        show_in_help: body.show_in_help !== false,
+        accent_color: Math.max(0, Math.min(16777215, Number(body.accent_color || 0x0F6FBD))),
+        created_by: context.profile.id,
+        created_by_name: context.profile.display_name || context.user.email || 'Platform operator',
+        updated_at: new Date().toISOString(),
+      }
+      let query
+      if (id) query = admin.from('recordsweb_discord_commands').update(row).eq('id', id).select('*').single()
+      else query = admin.from('recordsweb_discord_commands').insert(row).select('*').single()
+      const { data, error } = await query
+      if (error) {
+        if (/duplicate|unique|23505/i.test(error.message || '')) return json({ error: `A /${name} command already exists.` }, 409)
+        throw error
+      }
+      await writeAudit(admin, context.profile, id ? 'platform.discord.command.updated' : 'platform.discord.command.created', 'discord_command', data.id, `${id ? 'Updated' : 'Created'} Discord command /${name}.`, { name, enabled: row.enabled })
+      return json({ ok: true, command: data, sync_window_seconds: 60 })
+    }
+
+    if (action === 'platform-delete-command') {
+      if (!platformOperator(context)) return json({ error: 'RecordsWeb platform operator permission is required.' }, 403)
+      const id = cleanText(body.id, 80)
+      if (!id) return json({ error: 'Command id is required.' }, 400)
+      const { data: existing } = await admin.from('recordsweb_discord_commands').select('id,name').eq('id', id).maybeSingle()
+      if (!existing) return json({ error: 'Command not found.' }, 404)
+      const { error } = await admin.from('recordsweb_discord_commands').delete().eq('id', id)
+      if (error) throw error
+      await writeAudit(admin, context.profile, 'platform.discord.command.deleted', 'discord_command', id, `Deleted Discord command /${existing.name}.`, { name: existing.name })
+      return json({ ok: true, sync_window_seconds: 60 })
     }
 
     if (!context.profile.is_management) return json({ error: 'Management permission is required.' }, 403)
 
     if (action === 'status') {
-      const botState = await botStatusSafe()
+      const botState = await botStatusSafe(admin)
       const integration = await getIntegration(admin, context.profile.organisation_id)
       let channels: any[] = []
       let liveError = ''
       if (botState.configured && botState.bot && integration?.guild_id) {
         try {
-          const discovered = await discoverGuild(String(integration.guild_id))
+          const discovered = await discoverGuild(admin, String(integration.guild_id))
           channels = discovered.channels
         } catch (error) {
           liveError = error instanceof Error ? error.message : 'Discord server verification failed.'
@@ -1649,20 +1700,20 @@ Deno.serve(async (req) => {
     }
 
     if (action === 'discover-server') {
-      const botState = await botStatusSafe()
+      const botState = await botStatusSafe(admin)
       if (!botState.configured || !botState.bot) return json({ error: botState.error || 'RecordsWeb Bot is not configured.' }, 503)
       const guildId = snowflake(body.guild_id, 'Discord Server ID')
-      const discovered = await discoverGuild(guildId)
+      const discovered = await discoverGuild(admin, guildId)
       return json({ configured: true, bot: botState.bot, ...discovered })
     }
 
     if (action === 'save-integration') {
-      const botState = await botStatusSafe()
+      const botState = await botStatusSafe(admin)
       if (!botState.configured || !botState.bot) return json({ error: botState.error || 'RecordsWeb Bot is not configured.' }, 503)
       const guildId = snowflake(body.guild_id, 'Discord Server ID')
       const channelId = snowflake(body.channel_id, 'Discord Channel ID')
-      const discovered = await discoverGuild(guildId)
-      const channel = await verifyChannel(guildId, channelId)
+      const discovered = await discoverGuild(admin, guildId)
+      const channel = await verifyChannel(admin, guildId, channelId)
       const now = new Date().toISOString()
       const row = {
         organisation_id: context.profile.organisation_id,
@@ -1694,15 +1745,19 @@ Deno.serve(async (req) => {
       const { error } = await admin.from('recordsweb_discord_integrations').delete().eq('organisation_id', context.profile.organisation_id)
       if (error) throw error
       await writeAudit(admin, context.profile, 'discord.integration.disconnected', 'organisation', context.profile.organisation_id, 'Disconnected the community from RecordsWeb Bot.', { guild_id: existing?.guild_id || null, channel_id: existing?.channel_id || null })
-      const botState = await botStatusSafe()
+      const botState = await botStatusSafe(admin)
       return json({ ...botState, integration: null, channels: [] })
     }
 
     if (action === 'send-test') {
       const integration = await getIntegration(admin, context.profile.organisation_id)
       if (!integration?.channel_id) return json({ error: 'Connect a Discord server and RecordsWeb status channel first.' }, 400)
-      await sendMessage(String(integration.channel_id), {
-        embeds: [{
+      const job = await enqueueDiscordJob(admin, {
+        organisationId: context.profile.organisation_id,
+        jobType: 'channel_message',
+        targetGuildId: String(integration.guild_id || ''),
+        targetChannelId: String(integration.channel_id),
+        payload: { embeds: [{
           title: 'RecordsWeb Bot connected',
           description: 'This channel is configured to receive RecordsWeb platform announcements, incidents and maintenance notifications.',
           color: 0x0F6FBD,
@@ -1711,13 +1766,15 @@ Deno.serve(async (req) => {
             { name: 'Channel', value: `#${integration.channel_name || 'configured-channel'}`, inline: true },
             { name: 'Automatic notifications', value: integration.maintenance_notifications ? 'Enabled' : 'Disabled', inline: true },
           ],
-          footer: { text: `Test sent by ${context.profile.display_name}` },
+          footer: { text: `Test queued by ${context.profile.display_name}` },
           timestamp: new Date().toISOString(),
-        }],
+        }], kind: 'community_test' },
+        createdBy: context.profile.id,
+        priority: 30,
       })
-      await admin.from('recordsweb_discord_integrations').update({ verified_at: new Date().toISOString(), last_error: null, updated_at: new Date().toISOString() }).eq('organisation_id', context.profile.organisation_id)
-      await writeAudit(admin, context.profile, 'discord.integration.test', 'organisation', context.profile.organisation_id, `Sent a RecordsWeb Bot test message to #${integration.channel_name || integration.channel_id}.`)
-      return json({ ok: true })
+      await admin.from('recordsweb_discord_integrations').update({ last_error: null, updated_at: new Date().toISOString() }).eq('organisation_id', context.profile.organisation_id)
+      await writeAudit(admin, context.profile, 'discord.integration.test.queued', 'organisation', context.profile.organisation_id, `Queued a RecordsWeb Bot test message for #${integration.channel_name || integration.channel_id}.`)
+      return json({ ok: true, queued: true, job_id: job.id })
     }
 
     if (action === 'send-patient-prescription-dm') {
@@ -1751,38 +1808,45 @@ Deno.serve(async (req) => {
       const prescriptionImage = await renderPrescriptionImage({ patient, medication, medicationItems, organisation: context.organisation, eventType, prescriber: { ...prescriber, signature_data_uri: signature.dataUri } })
       const fileName = `RecordsWeb-Prescription-${String(patient?.last_name || 'Patient').replace(/[^A-Za-z0-9_-]+/g, '-').replace(/^-+|-+$/g, '') || 'Patient'}-${String(medication?.last_issue_date || new Date().toISOString().slice(0, 10)).slice(0, 10)}.png`
 
-      await sendPatientFileDm(String((target as any).discordUserId), {
-        content: eventType === 'reauthorised'
-          ? 'A prescription on your RecordsWeb patient record has been re-authorised. Your prescription copy is attached below.'
-          : eventType === 'resent'
-            ? 'A copy of your prescription has been re-sent from RecordsWeb. The prescription image is attached below.'
-            : 'A new prescription has been issued on your RecordsWeb patient record. Your prescription copy is attached below.',
-        embeds: [{
-          title,
-          description: 'The attached prescription copy was generated automatically by RecordsWeb for patient viewing in Discord.',
-          color: 0x0F6FBD,
-          fields: [
-            { name: medicationItems.length > 1 ? 'Medications' : 'Medication', value: medicationItems.map((item: any, index: number) => `${index + 1}. ${cleanText(item?.name, 180) || 'Medication item'} — ${medicationQuantityText(item)}`).join('\n').slice(0, 1024), inline: false },
-            { name: 'Items', value: String(medicationItems.length), inline: true },
-            { name: 'Issue date', value: displayDateOnly(medication.last_issue_date), inline: true },
-            { name: 'Community', value: `${context.organisation.name} (@${context.organisation.org_code})`, inline: false },
-          ],
-          footer: { text: 'ROLEPLAY / SIMULATION ONLY · Automated RecordsWeb patient notification · Do not reply to this bot' },
-          timestamp: new Date().toISOString(),
-        }],
-      }, [{
-        bytes: prescriptionImage,
-        filename: fileName,
-        contentType: 'image/png',
-        description: 'RecordsWeb prescription image',
-      }])
+      const job = await enqueueDiscordJob(admin, {
+        organisationId: context.profile.organisation_id,
+        jobType: 'dm_message',
+        targetUserId: String((target as any).discordUserId),
+        payload: {
+          content: eventType === 'reauthorised'
+            ? 'A prescription on your RecordsWeb patient record has been re-authorised. Your prescription copy is attached below.'
+            : eventType === 'resent'
+              ? 'A copy of your prescription has been re-sent from RecordsWeb. The prescription image is attached below.'
+              : 'A new prescription has been issued on your RecordsWeb patient record. Your prescription copy is attached below.',
+          embeds: [{
+            title,
+            description: 'The attached prescription copy was generated automatically by RecordsWeb for patient viewing in Discord.',
+            color: 0x0F6FBD,
+            fields: [
+              { name: medicationItems.length > 1 ? 'Medications' : 'Medication', value: medicationItems.map((item: any, index: number) => `${index + 1}. ${cleanText(item?.name, 180) || 'Medication item'} — ${medicationQuantityText(item)}`).join('\n').slice(0, 1024), inline: false },
+              { name: 'Items', value: String(medicationItems.length), inline: true },
+              { name: 'Issue date', value: displayDateOnly(medication.last_issue_date), inline: true },
+              { name: 'Community', value: `${context.organisation.name} (@${context.organisation.org_code})`, inline: false },
+            ],
+            footer: { text: 'ROLEPLAY / SIMULATION ONLY · Automated RecordsWeb patient notification · Do not reply to this bot' },
+            timestamp: new Date().toISOString(),
+          }],
+          attachments: [queuedAttachment({ bytes: prescriptionImage, filename: fileName, contentType: 'image/png', description: 'RecordsWeb prescription image' })],
+          allowed_mentions: { parse: [] },
+          kind: 'patient_prescription',
+          redact_after_delivery: true,
+        },
+        createdBy: context.profile.id,
+        priority: 40,
+      })
 
-      await writeAudit(admin, context.profile, `patient.discord.prescription.${eventType}`, 'medications', medication.id, `${title} Discord DM with prescription image sent to patient.`, {
+      await writeAudit(admin, context.profile, `patient.discord.prescription.${eventType}.queued`, 'medications', medication.id, `${title} Discord DM with prescription image queued for patient.`, {
         patient_id: patientId,
         discord_user_id: (target as any).discordUserId,
         medication_item_count: medicationItems.length,
+        job_id: job.id,
       })
-      return json({ ok: true, sent: true, recipient_id: (target as any).discordUserId, event_type: eventType, attachment: fileName })
+      return json({ ok: true, queued: true, sent: false, job_id: job.id, recipient_id: (target as any).discordUserId, event_type: eventType, attachment: fileName })
     }
 
     if (action === 'send-patient-fit-note-dm') {
@@ -1816,33 +1880,45 @@ Deno.serve(async (req) => {
 
       const attachment = await ensureFitNotePdfAttachment(admin, context, document, patient)
 
-      await sendPatientFileDm(String((target as any).discordUserId), {
-        content: resend
-          ? 'Your Statement of Fitness for Work has been re-sent from RecordsWeb. The fit note PDF is attached below.'
-          : 'A Statement of Fitness for Work has been issued on your RecordsWeb patient record. The issued fit note PDF is attached below.',
-        embeds: [{
-          title: resend ? 'Fit note re-sent' : 'Fit note issued',
-          description: 'The attached PDF is the issued fit note document from the patient record.',
-          color: 0x0F6FBD,
-          fields: [
-            { name: 'Advice', value: cleanText(details.advice, 1024) || 'Not specified', inline: false },
-            { name: 'Condition(s)', value: cleanText(details.condition, 1024) || 'Not specified', inline: false },
-            { name: 'Period', value: period || 'Not specified', inline: false },
-            { name: 'Statement date', value: displayDateOnly(details.statement_date || document.date), inline: true },
-            { name: 'Issued by', value: cleanText(details.issuer_name || document.author, 1024) || 'RecordsWeb clinician', inline: true },
-            { name: 'Community', value: `${context.organisation.name} (@${context.organisation.org_code})`, inline: false },
-          ],
-          footer: { text: 'ROLEPLAY / SIMULATION ONLY · Automated RecordsWeb patient notification · Do not reply to this bot' },
-          timestamp: new Date().toISOString(),
-        }],
-      }, [attachment])
+      const job = await enqueueDiscordJob(admin, {
+        organisationId: context.profile.organisation_id,
+        jobType: 'dm_message',
+        targetUserId: String((target as any).discordUserId),
+        payload: {
+          content: resend
+            ? 'Your Statement of Fitness for Work has been re-sent from RecordsWeb. The fit note PDF is attached below.'
+            : 'A Statement of Fitness for Work has been issued on your RecordsWeb patient record. The issued fit note PDF is attached below.',
+          embeds: [{
+            title: resend ? 'Fit note re-sent' : 'Fit note issued',
+            description: 'The attached PDF is the issued fit note document from the patient record.',
+            color: 0x0F6FBD,
+            fields: [
+              { name: 'Advice', value: cleanText(details.advice, 1024) || 'Not specified', inline: false },
+              { name: 'Condition(s)', value: cleanText(details.condition, 1024) || 'Not specified', inline: false },
+              { name: 'Period', value: period || 'Not specified', inline: false },
+              { name: 'Statement date', value: displayDateOnly(details.statement_date || document.date), inline: true },
+              { name: 'Issued by', value: cleanText(details.issuer_name || document.author, 1024) || 'RecordsWeb clinician', inline: true },
+              { name: 'Community', value: `${context.organisation.name} (@${context.organisation.org_code})`, inline: false },
+            ],
+            footer: { text: 'ROLEPLAY / SIMULATION ONLY · Automated RecordsWeb patient notification · Do not reply to this bot' },
+            timestamp: new Date().toISOString(),
+          }],
+          attachments: [queuedAttachment(attachment)],
+          allowed_mentions: { parse: [] },
+          kind: 'patient_fit_note',
+          redact_after_delivery: true,
+        },
+        createdBy: context.profile.id,
+        priority: 40,
+      })
 
-      await writeAudit(admin, context.profile, resend ? 'patient.discord.fit_note.resent' : 'patient.discord.fit_note.sent', 'documents', document.id, resend ? 'Fit note Discord DM with attached PDF re-sent to patient.' : 'Fit note Discord DM with attached PDF sent to patient.', {
+      await writeAudit(admin, context.profile, resend ? 'patient.discord.fit_note.resent.queued' : 'patient.discord.fit_note.sent.queued', 'documents', document.id, resend ? 'Fit note Discord DM with attached PDF queued for re-send to patient.' : 'Fit note Discord DM with attached PDF queued for patient.', {
         patient_id: patientId,
         discord_user_id: (target as any).discordUserId,
         attachment_source: attachment.source,
+        job_id: job.id,
       })
-      return json({ ok: true, sent: true, resent: resend, recipient_id: (target as any).discordUserId, attachment: attachment.filename, attachment_source: attachment.source })
+      return json({ ok: true, queued: true, sent: false, job_id: job.id, resent: resend, recipient_id: (target as any).discordUserId, attachment: attachment.filename, attachment_source: attachment.source })
     }
 
     if (action === 'send-login-dm') {
@@ -1876,18 +1952,30 @@ Deno.serve(async (req) => {
         await writeAudit(admin, context.profile, 'account.password.reset_by_management', 'profile', target.id, `Reset password for ${target.username}; password change required at next sign-in.`, { delivery: 'discord' })
       }
       const deliveryFormat = 'image-only'
-      await sendRecordsWebLoginImageDm({
-        discordUserId,
+      const loginImage = await renderRecordsWebLoginCard({
         username: target.username,
         temporaryPassword,
         organisationName: context.organisation.name,
         organisationCode: context.organisation.org_code,
         publicUrl,
-        version: String(Deno.env.get('RECORDSWEB_VERSION') || '4.0.0'),
+        version: String(Deno.env.get('RECORDSWEB_VERSION') || '4.1.0'),
+      })
+      const job = await enqueueDiscordJob(admin, {
+        organisationId: context.profile.organisation_id,
+        jobType: 'dm_message',
+        targetUserId: discordUserId,
+        payload: {
+          attachments: [queuedAttachment({ bytes: loginImage, filename: 'recordsweb-login-details.png', contentType: 'image/png', description: 'RecordsWeb temporary login details' })],
+          allowed_mentions: { parse: [] },
+          kind: 'staff_login_details',
+          redact_after_delivery: true,
+        },
+        createdBy: context.profile.id,
+        priority: 20,
       })
 
-      await writeAudit(admin, context.profile, 'account.discord_login_dm.sent', 'profile', target.id, `Sent RecordsWeb login details by Discord DM to ${target.display_name}.`, { discord_user_id: discordUserId, delivery_format: deliveryFormat, password_reset: resetPassword })
-      return json({ ok: true, recipient_id: discordUserId, delivery_format: deliveryFormat, password_reset: resetPassword })
+      await writeAudit(admin, context.profile, 'account.discord_login_dm.queued', 'profile', target.id, `Queued RecordsWeb login details Discord DM for ${target.display_name}.`, { discord_user_id: discordUserId, delivery_format: deliveryFormat, password_reset: resetPassword, job_id: job.id })
+      return json({ ok: true, queued: true, job_id: job.id, recipient_id: discordUserId, delivery_format: deliveryFormat, password_reset: resetPassword })
     }
 
     return json({ error: 'Unknown action.' }, 400)

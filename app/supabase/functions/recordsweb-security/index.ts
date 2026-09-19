@@ -138,19 +138,27 @@ async function assertSessionAllowed(admin: any, context: any, req: Request, body
   return { sessionId, row }
 }
 
-async function discordDm(discordUserId: string, content: string) {
-  const token = Deno.env.get('RECORDSWEB_DISCORD_BOT_TOKEN')
-  if (!token) throw new Error('RecordsWeb Bot is not configured.')
-  const headers = { Authorization: `Bot ${token}`, 'Content-Type': 'application/json' }
-  const channelRes = await fetch('https://discord.com/api/v10/users/@me/channels', {
-    method: 'POST', headers, body: JSON.stringify({ recipient_id: discordUserId }),
+async function discordDm(admin: any, discordUserId: string, content: string, organisationId: string | null, createdBy: string | null) {
+  const { error } = await admin.from('recordsweb_discord_jobs').insert({
+    organisation_id: organisationId || null,
+    job_type: 'dm_message',
+    target_user_id: discordUserId,
+    payload: {
+      content,
+      allowed_mentions: { parse: [] },
+      kind: 'discord_verification',
+      redact_after_delivery: true,
+    },
+    priority: 15,
+    max_attempts: 3,
+    status: 'pending',
+    available_at: new Date().toISOString(),
+    created_by: createdBy || null,
   })
-  if (!channelRes.ok) throw new Error(`Discord DM channel failed (${channelRes.status}).`)
-  const channel = await channelRes.json()
-  const sendRes = await fetch(`https://discord.com/api/v10/channels/${channel.id}/messages`, {
-    method: 'POST', headers, body: JSON.stringify({ content }),
-  })
-  if (!sendRes.ok) throw new Error(`Discord DM failed (${sendRes.status}).`)
+  if (error) {
+    if (/does not exist|schema cache|recordsweb_discord_jobs/i.test(error.message || '')) throw new Error('RecordsWeb 4.1 Discord worker is not installed.')
+    throw error
+  }
 }
 
 Deno.serve(async (req) => {
@@ -334,7 +342,7 @@ Deno.serve(async (req) => {
       const codeHash = await sha256(code)
       const { data: challenge, error } = await admin.from('recordsweb_discord_link_challenges').insert({ organisation_id: patient.organisation_id, patient_id: patient.id, discord_user_id: discordUserId, code_hash: codeHash, requested_by: context.user.id }).select('id,expires_at').single()
       if (error) throw error
-      await discordDm(discordUserId, `**RecordsWeb verification**\nA RecordsWeb patient record is attempting to link to this Discord account.\n\nVerification code: **${code}**\n\nThis code expires in 10 minutes. If you did not request this link, ignore this message.`)
+      await discordDm(admin, discordUserId, `**RecordsWeb verification**\nA RecordsWeb patient record is attempting to link to this Discord account.\n\nVerification code: **${code}**\n\nThis code expires in 10 minutes. If you did not request this link, ignore this message.`, patient.organisation_id, context.user.id)
       return json({ ok: true, challenge })
     }
 

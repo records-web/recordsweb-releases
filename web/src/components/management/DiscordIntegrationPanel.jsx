@@ -84,7 +84,7 @@ export default function DiscordIntegrationPanel() {
     setBusy(true); setError(''); setNotice('')
     try {
       await sendDiscordTest()
-      setNotice(`Test message sent to #${integration?.channel_name || selectedChannel?.name || 'configured-channel'}.`)
+      setNotice(`Test message queued for #${integration?.channel_name || selectedChannel?.name || 'configured-channel'}.`)
     } catch (err) { setError(err.message || 'Unable to send the Discord test message.') }
     finally { setBusy(false) }
   }
@@ -123,11 +123,11 @@ export default function DiscordIntegrationPanel() {
         </div>
 
         {!status?.configured && (
-          <div className="discord-service-warning"><AlertTriangle size={16}/><div><strong>RecordsWeb Bot is not configured on the platform.</strong><span>The platform operator must deploy the <code>recordsweb-discord</code> Edge Function and set <code>RECORDSWEB_DISCORD_BOT_TOKEN</code>.</span></div></div>
+          <div className="discord-service-warning"><AlertTriangle size={16}/><div><strong>RecordsWeb Bot is not configured on the platform.</strong><span>The platform operator must deploy the RecordsWeb 4.1 Discord worker migration and Edge Functions, then start the 24/7 RecordsWeb Bot.</span></div></div>
         )}
 
         {status?.configured && status?.error && (
-          <div className="discord-service-warning"><AlertTriangle size={16}/><div><strong>RecordsWeb Bot could not authenticate with Discord.</strong><span>{status.error}</span></div></div>
+          <div className="discord-service-warning"><AlertTriangle size={16}/><div><strong>RecordsWeb Bot is currently unavailable.</strong><span>{status.error}</span></div></div>
         )}
 
         {status?.live_error && (
@@ -156,7 +156,7 @@ export default function DiscordIntegrationPanel() {
                 <input value={channelId} onChange={(e) => setChannelId(cleanSnowflake(e.target.value))} placeholder="Channel ID" inputMode="numeric"/>
               )}
             </label>
-            <small className="discord-help">Text and announcement channels are supported. RecordsWeb verifies that the bot can see the selected channel.</small>
+            <small className="discord-help">Text and announcement channels are supported. RecordsWeb verifies the selected channel against the channel inventory reported by the 24/7 bot.</small>
           </div>
         </div>
 
@@ -184,7 +184,7 @@ export default function DiscordIntegrationPanel() {
           {connected && <button className="secondary-button discord-disconnect" type="button" onClick={disconnect} disabled={busy}><Unplug size={13}/> Disconnect</button>}
         </div>
 
-        <div className="discord-security-note"><strong>Credential safety</strong><span>RecordsWeb never stores a staff password in the Discord integration. Login DMs are rendered as a branded RecordsWeb Canvas image after Management creates or resets a temporary password, and the user is required to change it at next sign-in.</span></div>
+        <div className="discord-security-note"><strong>Credential safety</strong><span>The Discord bot token exists only on the 24/7 bot host. Login credentials are rendered server-side into the branded image, placed into the protected delivery queue only long enough to send, then the queued payload is redacted after delivery or final failure.</span></div>
       </div>
     </section>
   )

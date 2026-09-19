@@ -22,6 +22,7 @@ import {
   sendPlatformDiscordTest,
   retryPlatformDiscordBroadcast,
 } from '../../lib/discordIntegrationService'
+import PlatformDiscordCommandsPanel from './PlatformDiscordCommandsPanel'
 
 const TABS = [
   ['overview', 'Overview'],
@@ -30,6 +31,7 @@ const TABS = [
   ['servers', 'Connected Servers'],
   ['logs', 'Delivery Logs'],
   ['health', 'Bot Health'],
+  ['commands', 'Commands'],
   ['config', 'Configuration'],
 ]
 
@@ -124,8 +126,8 @@ function BroadcastComposer({ mode, integrations, onSent }) {
         startsAt: startsAt ? new Date(startsAt).toISOString() : null,
         endsAt: endsAt ? new Date(endsAt).toISOString() : null,
       })
-      setNotice(`Broadcast sent to ${Number(result.sent || 0)} status channel${Number(result.sent || 0) === 1 ? '' : 's'}${result.failed ? `; ${result.failed} failed` : ''}.`)
-      if (result.failed) setError(`${result.failed} delivery attempt${result.failed === 1 ? '' : 's'} failed. Open Delivery Logs for details.`)
+      setNotice(`Broadcast queued for ${Number(result.queued || 0)} status channel${Number(result.queued || 0) === 1 ? '' : 's'}${result.failed ? `; ${result.failed} could not be queued` : ''}.`)
+      if (result.failed) setError(`${result.failed} delivery job${result.failed === 1 ? '' : 's'} could not be queued. Open Delivery Logs for details.`)
       onSent?.()
     } catch (err) {
       setError(err?.message || 'Unable to send the Discord broadcast.')
@@ -222,7 +224,8 @@ export default function PlatformDiscordPanel() {
   const deliverySummary = useMemo(() => {
     const sent = logs.filter((row) => row.status === 'sent').length
     const failed = logs.filter((row) => row.status === 'failed').length
-    return { sent, failed }
+    const pending = logs.filter((row) => row.status === 'pending').length
+    return { sent, failed, pending }
   }, [logs])
 
   async function healthCheck() {
@@ -239,7 +242,7 @@ export default function PlatformDiscordPanel() {
     setBusy(true); setError(''); setNotice('')
     try {
       await sendPlatformDiscordTest(row.organisation_id)
-      setNotice(`Test message sent to ${row.organisation_name} #${row.channel_name}.`)
+      setNotice(`Test message queued for ${row.organisation_name} #${row.channel_name}.`)
       await load()
     } catch (err) { setError(err?.message || 'Unable to send the test message.') }
     finally { setBusy(false) }
@@ -249,7 +252,7 @@ export default function PlatformDiscordPanel() {
     setBusy(true); setError(''); setNotice('')
     try {
       const result = await retryPlatformDiscordBroadcast(broadcastId)
-      setNotice(`Retry completed: ${Number(result.sent || 0)} sent, ${Number(result.failed || 0)} failed.`)
+      setNotice(`Retry queued: ${Number(result.queued || 0)} delivery job${Number(result.queued || 0) === 1 ? '' : 's'}, ${Number(result.failed || 0)} failed to queue.`)
       await load()
     } catch (err) { setError(err?.message || 'Unable to retry failed Discord deliveries.') }
     finally { setBusy(false) }
@@ -264,7 +267,7 @@ export default function PlatformDiscordPanel() {
     {notice && <div className="review-request-message success"><CheckCircle2 size={14}/>{notice}</div>}
 
     {tab === 'overview' && <div className="platform-discord-overview">
-      <div className={`platform-discord-bot-card ${bot ? 'online' : 'offline'}`}><Bot size={28}/><div><strong>{bot?.username || 'RecordsWeb Bot'}</strong><span>{bot ? 'Connected to Discord' : overview?.error || 'Bot unavailable'}</span></div><b>{bot ? 'ONLINE' : 'OFFLINE'}</b></div>
+      <div className={`platform-discord-bot-card ${bot ? 'online' : 'offline'}`}><Bot size={28}/><div><strong>{bot?.username || 'RecordsWeb Bot'}</strong><span>{bot ? `${bot.host_name || '24/7 worker'} · v${bot.version || 'unknown'} · heartbeat ${formatDate(bot.last_heartbeat_at)}` : overview?.error || 'Bot unavailable'}</span></div><b>{bot ? 'ONLINE' : 'OFFLINE'}</b></div>
       <div className="platform-discord-metrics">
         <div><Server size={18}/><strong>{counts.connected || 0}</strong><span>Connected communities</span></div>
         <div><Hash size={18}/><strong>{counts.status_channels || 0}</strong><span>Status channels</span></div>
@@ -290,7 +293,7 @@ export default function PlatformDiscordPanel() {
     </div>}
 
     {tab === 'logs' && <div className="platform-discord-log-list">
-      <div className="platform-discord-log-summary"><span>{deliverySummary.sent} sent</span><span>{deliverySummary.failed} failed</span></div>
+      <div className="platform-discord-log-summary"><span>{deliverySummary.pending} queued</span><span>{deliverySummary.sent} sent</span><span>{deliverySummary.failed} failed</span></div>
       <div className="platform-discord-log-row head"><strong>Broadcast</strong><strong>Community</strong><strong>Status</strong><strong>Attempt</strong><span /></div>
       {logs.length === 0 && <div className="platform-empty">No Discord delivery records yet.</div>}
       {logs.map((row) => <div className="platform-discord-log-row" key={row.id}>
@@ -303,21 +306,24 @@ export default function PlatformDiscordPanel() {
     </div>}
 
     {tab === 'health' && <div className="platform-discord-health">
-      <div className="platform-discord-health-head"><div><Bot size={20}/><strong>RecordsWeb Bot health</strong><span>Validate every configured guild and status channel against Discord.</span></div><button className="primary" onClick={healthCheck} disabled={busy}><RefreshCw size={14}/>{busy ? 'Checking…' : 'Run health check'}</button></div>
+      <div className="platform-discord-health-head"><div><Bot size={20}/><strong>RecordsWeb Bot health</strong><span>Validate configured guild/channel data reported by the always-on Discord worker.</span></div><button className="primary" onClick={healthCheck} disabled={busy}><RefreshCw size={14}/>{busy ? 'Checking…' : 'Run health check'}</button></div>
       <div className="platform-discord-health-grid">
         <div><span>Bot</span><strong>{bot ? 'Online' : 'Unavailable'}</strong></div>
         <div><span>Configured servers</span><strong>{counts.connected || 0}</strong></div>
+        <div><span>Gateway ping</span><strong>{bot ? `${bot.websocket_ping_ms || 0} ms` : '—'}</strong></div>
         <div><span>Needs attention</span><strong>{integrations.filter((row) => row.last_error).length}</strong></div>
         <div><span>Last delivery</span><strong>{logs[0] ? formatDate(logs[0].attempted_at) : 'No deliveries'}</strong></div>
       </div>
       <div className="platform-discord-health-list">{integrations.map((row) => <div key={row.organisation_id} className={row.last_error ? 'bad' : 'good'}><span>{row.last_error ? <AlertTriangle size={14}/> : <CheckCircle2 size={14}/>}</span><div><strong>{row.organisation_name}</strong><small>{row.last_error || `#${row.channel_name} verified ${formatDate(row.verified_at)}`}</small></div></div>)}</div>
     </div>}
 
+    {tab === 'commands' && <PlatformDiscordCommandsPanel />}
+
     {tab === 'config' && <div className="platform-discord-config">
-      <div><Bot size={22}/><strong>Official RecordsWeb Bot</strong><span>One platform-owned bot is used across all connected community Discord servers. The bot token remains in Supabase Edge Function secrets and is never exposed to the browser.</span></div>
+      <div><Bot size={22}/><strong>Official RecordsWeb Bot</strong><span>One platform-owned bot is used across all connected community Discord servers. The bot runs continuously on the external Discord host. Its Discord token stays only on that bot host; RecordsWeb communicates through the secured Supabase job queue.</span></div>
       <div><Server size={22}/><strong>Status-channel model</strong><span>Each community chooses its own RecordsWeb status channel in Community Management. Platform Management can broadcast only to those configured channels.</span></div>
-      <div><ShieldCheck size={22}/><strong>Delivery safety</strong><span>Messages disable Discord mentions, every attempt is logged, failed sends can be retried, and communities can control general announcement/maintenance preferences.</span></div>
-      <div><Clock3 size={22}/><strong>Maintenance lifecycle</strong><span>Use Planned, Started, Update and Complete messages from the Maintenance tab. Start and expected-end times are included when supplied.</span></div>
+      <div><ShieldCheck size={22}/><strong>Delivery safety</strong><span>Website/Electron requests create secured Supabase jobs. The 24/7 bot claims them, sends through Discord, reports success/failure and retries transient errors automatically.</span></div>
+      <div><Clock3 size={22}/><strong>Maintenance lifecycle</strong><span>Use Planned, Started, Update and Complete messages from the Maintenance tab. Custom slash commands can be managed in the Commands tab or supplied as JavaScript modules in the bot package.</span></div>
     </div>}
   </section>
 }

@@ -1,3 +1,5 @@
+> **Historical document:** This describes the 4.0.0 deployment. For RecordsWeb 4.1.0, use `RECORDSWEB-4.1.0-DEPLOYMENT.md`; the Discord bot token now belongs only on the external 24/7 bot host.
+
 # RecordsWeb 4.0.0 — Deployment
 
 RecordsWeb 4.0.0 is the major Security & Trust release based on the 3.9.14 website and Electron source bases.

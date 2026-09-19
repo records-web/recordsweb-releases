@@ -6,3 +6,9 @@ verify_jwt = false
 
 [functions.recordsweb-discord]
 verify_jwt = true
+
+[functions.recordsweb-bot-api]
+verify_jwt = false
+
+[functions.recordsweb-security]
+verify_jwt = false

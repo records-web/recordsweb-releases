@@ -124,3 +124,26 @@ export async function sendPlatformDiscordBroadcast({ type = 'announcement', seve
 export async function retryPlatformDiscordBroadcast(broadcastId) {
   return invokeDiscord({ action: 'platform-retry-broadcast', broadcast_id: String(broadcastId || '').trim() })
 }
+
+export async function listPlatformDiscordCommands() {
+  return invokeDiscord({ action: 'platform-commands' })
+}
+
+export async function savePlatformDiscordCommand(command) {
+  return invokeDiscord({
+    action: 'platform-save-command',
+    id: command?.id || null,
+    name: String(command?.name || '').trim(),
+    description: String(command?.description || '').trim(),
+    response: String(command?.response || '').trim(),
+    response_mode: command?.responseMode === 'embed' ? 'embed' : 'text',
+    ephemeral: Boolean(command?.ephemeral),
+    enabled: command?.enabled !== false,
+    show_in_help: command?.showInHelp !== false,
+    accent_color: Number(command?.accentColor || 0x0F6FBD),
+  })
+}
+
+export async function deletePlatformDiscordCommand(id) {
+  return invokeDiscord({ action: 'platform-delete-command', id: String(id || '').trim() })
+}

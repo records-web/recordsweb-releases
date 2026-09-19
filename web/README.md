@@ -1,5 +1,11 @@
 # RecordsWeb
 
+## RecordsWeb 4.1.0 — 24/7 Discord Bot
+
+Moves all live Discord delivery to a dedicated always-on bot worker designed for X Systems Hosting. Website and Electron now queue Discord work through Supabase rather than holding a Discord bot token. Platform Management gains bot heartbeat/host visibility and a custom slash-command manager; source-code commands remain supported in the separate bot package.
+
+Run `supabase/recordsweb-4.1.0-discord-worker.sql`, deploy `recordsweb-discord`, `recordsweb-security` and `recordsweb-bot-api`, then deploy the separate RecordsWeb 4.1.0 Discord Bot package. See `RECORDSWEB-4.1.0-DEPLOYMENT.md`.
+
 ## RecordsWeb 4.0.0 — Security & Trust
 
 Major security release adding session controls, platform moderation, account/IP/device restrictions, restricted-record break-glass access, security PIN step-up, patient-access auditing, Discord-link verification and platform support sessions.
