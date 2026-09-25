@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react'
 import { X } from 'lucide-react'
 import { normaliseLoginName } from '../../lib/supabase'
-import { STAFF_TITLES, getDefaultStaffRole, normaliseRoles } from '../../lib/staffOptions'
+import { STAFF_TITLES, getDefaultStaffRole, getStaffRoles, normaliseRoles } from '../../lib/staffOptions'
 import RoleSelector from './RoleSelector'
 import ModalPortal from '../ModalPortal'
 import { validateRecordsWebPassword } from '../../lib/passwordPolicy'
@@ -30,12 +30,15 @@ function suggestedUsername(firstName, lastName, organisationSuffix) {
   return local ? `${local}${organisationSuffix}` : ''
 }
 
-export default function StaffAccountModal({ account = null, currentUserId, organisationCode = '', organisationMode = 'general_practice', onClose, onSave }) {
+export default function StaffAccountModal({ account = null, currentUserId, organisationCode = '', organisationMode = 'general_practice', product = 'clinical', onClose, onSave }) {
   const editing = Boolean(account)
   const activeOrganisationCode = normaliseOrganisationCode(organisationCode) || getInstalledOrganisationCode()
   const organisationSuffix = activeOrganisationCode ? `@${activeOrganisationCode}` : '@XX.XX'
-  const defaultRole = getDefaultStaffRole(organisationMode)
-  const initialRoles = normaliseRoles(account?.roles, account?.role || defaultRole, organisationMode)
+  const defaultRole = getDefaultStaffRole(organisationMode, product)
+  const productRoleOptions = getStaffRoles(organisationMode, product)
+  const existingRoles = Array.isArray(account?.roles) ? account.roles : (account?.role ? [account.role] : [])
+  const preservedRoles = existingRoles.filter((role) => !productRoleOptions.includes(role))
+  const initialRoles = normaliseRoles(existingRoles, account?.role || defaultRole, organisationMode, product)
   const [form, setForm] = useState({
     title: account?.title || '',
     first_name: account?.first_name || '',
@@ -96,7 +99,7 @@ export default function StaffAccountModal({ account = null, currentUserId, organ
       await onSave({
         ...form,
         username: editing ? account.username : normaliseStaffUsername(form.username, activeOrganisationCode),
-        roles: normaliseRoles(form.roles, form.role, organisationMode),
+        roles: [...new Set([...preservedRoles, ...normaliseRoles(form.roles, form.role, organisationMode, product)])],
       })
     } catch (err) {
       setError(err.message || `Could not ${editing ? 'update' : 'create'} account.`)
@@ -138,6 +141,7 @@ export default function StaffAccountModal({ account = null, currentUserId, organ
             roles={form.roles}
             primaryRole={form.role}
             systemMode={organisationMode}
+            product={product}
             onChange={(roles, role) => setForm((current) => ({ ...current, roles, role }))}
           />
 

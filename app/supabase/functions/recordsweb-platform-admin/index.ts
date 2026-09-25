@@ -54,6 +54,13 @@ function normaliseEnabledProducts(value: unknown, productPackage = 'clinical', t
   return valid.length ? valid : ['clinical']
 }
 
+function defaultReservedOperatorRole(organisation: any) {
+  const packageName = normaliseProductPackage(organisation?.product_package, 'clinical')
+  const products = normaliseEnabledProducts(organisation?.enabled_products, packageName, Boolean(organisation?.tester_program))
+  if (products.includes('policing') && !products.includes('clinical')) return 'Chief Constable'
+  return organisation?.system_mode === 'hospital' ? 'Practice Manager' : organisation?.system_mode === 'ambulance' ? 'Operations Manager' : 'GP Partner'
+}
+
 function stripeEnvironment(secretKey: string) {
   return secretKey.startsWith('sk_test_') ? 'sandbox' : 'live'
 }
@@ -160,7 +167,7 @@ async function ensureReservedOperator(admin: any, organisation: any, password: s
   if (passwordError) throw new Error(passwordError)
 
   const existingProfile = await findReservedOperatorProfile(admin, organisation)
-  const role = organisation.system_mode === 'hospital' ? 'Practice Manager' : organisation.system_mode === 'ambulance' ? 'Operations Manager' : 'GP Partner'
+  const role = defaultReservedOperatorRole(organisation)
   const now = new Date().toISOString()
 
   if (existingProfile) {
@@ -379,7 +386,7 @@ Deno.serve(async (req) => {
         return json({ error: `Community creation was rolled back because the organisation state could not be initialised: ${maintenanceError.message}` }, 500)
       }
 
-      const role = systemMode === 'hospital' ? 'Practice Manager' : systemMode === 'ambulance' ? 'Operations Manager' : 'GP Partner'
+      const role = defaultReservedOperatorRole(organisation)
       const now = new Date().toISOString()
       const operatorUsername = `gus.farnsworth@${organisationCode}`
       const { data: profile, error: profileInsertError } = await admin
@@ -450,7 +457,7 @@ Deno.serve(async (req) => {
 
       const reserved = await findReservedOperatorProfile(admin, updated)
       if (reserved) {
-        const role = systemMode === 'hospital' ? 'Practice Manager' : systemMode === 'ambulance' ? 'Operations Manager' : 'GP Partner'
+        const role = defaultReservedOperatorRole({ ...organisation, system_mode: systemMode })
         await admin.from('profiles').update({ role, roles: [role], is_management: true }).eq('id', reserved.id)
       }
 

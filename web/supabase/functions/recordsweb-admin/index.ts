@@ -18,12 +18,43 @@ const AMBULANCE_ROLES = [
   'PHEM Consultant','PHEM Doctor','Critical Care Paramedic','Advanced Paramedic','Paramedic',
   'Emergency Medical Technician','Emergency Care Assistant','Dispatcher','Clinical Team Leader','Operations Manager',
 ] as const
+const POLICING_ROLES = [
+  'Chief Constable','Deputy Chief Constable','Assistant Chief Constable','Chief Superintendent','Superintendent',
+  'Chief Inspector','Inspector','Sergeant','Police Constable','Detective Chief Superintendent','Detective Superintendent',
+  'Detective Chief Inspector','Detective Inspector','Detective Sergeant','Detective Constable','Special Constable',
+  'Police Community Support Officer','Custody Sergeant','Detention Officer','Control Room Operator','Police Staff',
+] as const
 const ALLOWED_TITLES = ['', 'Mr', 'Mrs', 'Miss', 'Ms', 'Mx', 'Dr', 'Prof'] as const
 const COMMON_PASSWORDS = new Set(['password123','password1','qwerty123','letmein123','welcome123','recordsweb1','groveway123','changeme123','admin12345','1234567890'])
 
-function cleanRoles(value: unknown, fallback = 'Patient Coordinator', systemMode = 'general_practice') {
-  const allowed: readonly string[] = systemMode === 'hospital' ? SECONDARY_CARE_ROLES : systemMode === 'ambulance' ? AMBULANCE_ROLES : PRIMARY_CARE_ROLES
-  const defaultRole = systemMode === 'hospital' ? 'Consultant' : systemMode === 'ambulance' ? 'Paramedic' : 'Patient Coordinator'
+function clinicalRoles(systemMode = 'general_practice'): readonly string[] {
+  return systemMode === 'hospital' ? SECONDARY_CARE_ROLES : systemMode === 'ambulance' ? AMBULANCE_ROLES : PRIMARY_CARE_ROLES
+}
+function enabledProducts(organisation: any) {
+  if (organisation?.tester_program === true) return ['clinical','policing']
+  const raw = Array.isArray(organisation?.enabled_products) ? organisation.enabled_products : []
+  const products = [...new Set(raw.map((item: unknown) => String(item || '').trim().toLowerCase()).filter((item: string) => ['clinical','policing'].includes(item)))]
+  if (products.length) return products
+  const packageName = String(organisation?.product_package || 'clinical').toLowerCase()
+  if (packageName === 'complete') return ['clinical','policing']
+  if (packageName === 'policing') return ['policing']
+  return ['clinical']
+}
+function cleanRoles(value: unknown, fallback = 'Patient Coordinator', organisation: any = {}) {
+  const products = enabledProducts(organisation)
+  const clinical = clinicalRoles(String(organisation?.system_mode || 'general_practice'))
+  const allowed: readonly string[] = products.includes('clinical') && products.includes('policing')
+    ? [...clinical, ...POLICING_ROLES]
+    : products.includes('policing')
+      ? POLICING_ROLES
+      : clinical
+  const defaultRole = products.includes('policing') && !products.includes('clinical')
+    ? 'Police Constable'
+    : String(organisation?.system_mode || 'general_practice') === 'hospital'
+      ? 'Consultant'
+      : String(organisation?.system_mode || 'general_practice') === 'ambulance'
+        ? 'Paramedic'
+        : 'Patient Coordinator'
   const source = Array.isArray(value) ? value : []
   const clean = [...new Set(source.map((item) => String(item || '').trim()).filter((role) => allowed.includes(role)))]
   const safeFallback = allowed.includes(fallback) ? fallback : defaultRole
@@ -94,7 +125,7 @@ Deno.serve(async (req) => {
     if(!token||token===authHeader) return json({error:'Unauthorised: missing bearer token.'},401)
     const {data:callerData,error:callerError}=await admin.auth.getUser(token)
     if(callerError||!callerData.user) return json({error:'Unauthorised session.'},401)
-    const {data:callerProfile,error:profileError}=await admin.from('profiles').select('id,organisation_id,is_management,active,display_name,role,username,organisations!inner(org_code,active,system_mode)').eq('id',callerData.user.id).single()
+    const {data:callerProfile,error:profileError}=await admin.from('profiles').select('id,organisation_id,is_management,active,display_name,role,username,organisations!inner(org_code,active,system_mode,product_package,enabled_products,tester_program)').eq('id',callerData.user.id).single()
     if(profileError) return json({error:`Unable to verify RecordsWeb profile: ${profileError.message}`},500)
     if(!callerProfile?.active) return json({error:'This RecordsWeb account is disabled.'},403)
     const callerOrganisation=(callerProfile as any).organisations
@@ -127,7 +158,7 @@ Deno.serve(async (req) => {
 
     if(body.action==='create'){
       const organisationCode=normaliseOrganisationCode(callerOrganisation?.org_code), requestedOrganisationCode=normaliseOrganisationCode(body.organisation_code), username=normaliseUsername(body.username,organisationCode), authUsername=username.toLowerCase(), password=String(body.password||''), title=cleanTitle(body.title), firstName=String(body.first_name||'').trim(), lastName=String(body.last_name||'').trim()
-      const roles=cleanRoles(body.roles,String(body.role||'Patient Coordinator'),String(callerOrganisation?.system_mode||'general_practice')), requestedPrimary=String(body.role||'').trim(), role=roles.includes(requestedPrimary)?requestedPrimary:roles[0], displayName=buildDisplayName(title,firstName,lastName), discordUserId=cleanDiscordUserId(body.discord_user_id)
+      const roles=cleanRoles(body.roles,String(body.role||'Patient Coordinator'),callerOrganisation), requestedPrimary=String(body.role||'').trim(), role=roles.includes(requestedPrimary)?requestedPrimary:roles[0], displayName=buildDisplayName(title,firstName,lastName), discordUserId=cleanDiscordUserId(body.discord_user_id)
       if(requestedOrganisationCode && requestedOrganisationCode!==organisationCode) return json({error:`Your signed-in Management account belongs to @${organisationCode||'XX.XX'}. Refresh RecordsWeb or change organisation before creating this account.`},400)
       if(!organisationCode || !authUsername.endsWith(`@${organisationCode.toLowerCase()}`)) return json({error:`Username must end in @${organisationCode||'XX.XX'}.`},400)
       if(!firstName||!lastName) return json({error:'First and last name are required.'},400)
@@ -147,7 +178,7 @@ Deno.serve(async (req) => {
     if(targetError||!target||target.organisation_id!==callerProfile.organisation_id) return json({error:'Account not found.'},404)
 
     if(body.action==='update-profile'){
-      const title=cleanTitle(body.title),firstName=String(body.first_name||'').trim(),lastName=String(body.last_name||'').trim(),roles=cleanRoles(body.roles,String(body.role||'Patient Coordinator'),String(callerOrganisation?.system_mode||'general_practice')),requestedPrimary=String(body.role||'').trim(),role=roles.includes(requestedPrimary)?requestedPrimary:roles[0],isManagement=Boolean(body.is_management),discordUserId=cleanDiscordUserId(body.discord_user_id)
+      const title=cleanTitle(body.title),firstName=String(body.first_name||'').trim(),lastName=String(body.last_name||'').trim(),roles=cleanRoles(body.roles,String(body.role||'Patient Coordinator'),callerOrganisation),requestedPrimary=String(body.role||'').trim(),role=roles.includes(requestedPrimary)?requestedPrimary:roles[0],isManagement=Boolean(body.is_management),discordUserId=cleanDiscordUserId(body.discord_user_id)
       if(!firstName||!lastName) return json({error:'First and last name are required.'},400)
       if(targetId===callerData.user.id&&target.is_management&&!isManagement) return json({error:'You cannot remove your own Management access while signed in.'},400)
       const displayName=buildDisplayName(title,firstName,lastName)

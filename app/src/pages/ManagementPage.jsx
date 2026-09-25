@@ -20,11 +20,15 @@ import { useAuth } from '../contexts/AuthContext'
 import { listStaffSessions, subscribeToStaffSessionChanges, summariseStaffSessions } from '../lib/staffSessions'
 import { getInstalledOrganisationCode, normaliseOrganisationCode } from '../lib/installation'
 import { sendDiscordLoginDetails } from '../lib/discordIntegrationService'
+import { getOrganisationProductState } from '../lib/productAccess'
 
 export default function ManagementPage() {
   const { session, updateProfile } = useAuth()
   const organisationCode = normaliseOrganisationCode(session?.profile?.organisation_code) || getInstalledOrganisationCode()
   const organisationSuffix = organisationCode ? `@${organisationCode}` : '@XX.XX'
+  const productState = getOrganisationProductState(session?.profile || {})
+  const rememberedProduct = (() => { try { return sessionStorage.getItem('recordsweb-active-product') || '' } catch { return '' } })()
+  const managementProduct = (!productState.enabledProducts.includes('clinical') && productState.enabledProducts.includes('policing')) || (rememberedProduct === 'policing' && productState.enabledProducts.includes('policing')) ? 'policing' : 'clinical'
   const [rows, setRows] = useState([])
   const [section, setSection] = useState('staff')
   const [createOpen, setCreateOpen] = useState(false)
@@ -164,6 +168,7 @@ export default function ManagementPage() {
           currentUserId={session?.user?.id}
           organisationCode={organisationCode}
           organisationMode={session?.profile?.organisation_mode || 'general_practice'}
+          product={managementProduct}
           onClose={() => setCreateOpen(false)}
           onSave={async (payload) => {
             const { send_discord_login: sendDiscordLogin, ...accountPayload } = payload
@@ -186,6 +191,7 @@ export default function ManagementPage() {
           currentUserId={session?.user?.id}
           organisationCode={organisationCode}
           organisationMode={session?.profile?.organisation_mode || 'general_practice'}
+          product={managementProduct}
           onClose={() => setEditUser(null)}
           onSave={saveEdit}
         />
