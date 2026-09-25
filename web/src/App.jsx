@@ -40,6 +40,14 @@ import AccountAccessGuard from './components/security/AccountAccessGuard'
 import PatientSecurityGate from './components/security/PatientSecurityGate'
 import WebUpdateManager from './components/WebUpdateManager'
 import InstallationGate from './components/installation/InstallationGate'
+import ProductAccessGuard from './components/ProductAccessGuard'
+import PolicingHomePage from './pages/PolicingHomePage'
+import PolicingPeoplePage from './pages/PolicingPeoplePage'
+import PolicingVehiclesPage from './pages/PolicingVehiclesPage'
+import PolicingIncidentsPage from './pages/PolicingIncidentsPage'
+import PolicingFpnPage from './pages/PolicingFpnPage'
+import PolicingRegisterPage from './pages/PolicingRegisterPage'
+import { getOrganisationProductState } from './lib/productAccess'
 
 function Protected({ children }) {
   const { session } = useAuth()
@@ -68,9 +76,11 @@ function StaffEnvironment({ children }) {
 function RootRoute() {
   const { session } = useAuth()
   if (!session) return <PublicHomePage />
+  const { enabledProducts } = getOrganisationProductState(session.profile)
+  const home = enabledProducts.includes('clinical') ? <HomePage /> : <PolicingHomePage />
   return (
     <StaffEnvironment>
-      <AppShell><HomePage /></AppShell>
+      <AppShell>{home}</AppShell>
     </StaffEnvironment>
   )
 }
@@ -81,27 +91,37 @@ function StaffRoutes() {
       <Protected>
         <AppShell>
           <Routes>
-            <Route path="patients" element={<PatientSearchPage />} />
-            <Route path="patients/:patientId" element={<PatientSecurityGate section="summary"><PatientSummaryPage /></PatientSecurityGate>} />
-            <Route path="patients/:patientId/consultations" element={<PatientSecurityGate section="consultations"><ConsultationsPage /></PatientSecurityGate>} />
-            <Route path="patients/:patientId/consultations/new" element={<PatientSecurityGate section="consultations.new"><NewConsultationPage /></PatientSecurityGate>} />
-            <Route path="patients/:patientId/medication" element={<PatientSecurityGate section="medication"><MedicationPage /></PatientSecurityGate>} />
-            <Route path="patients/:patientId/problems" element={<PatientSecurityGate section="problems"><ProblemsPage /></PatientSecurityGate>} />
-            <Route path="patients/:patientId/investigations" element={<PatientSecurityGate section="investigations"><InvestigationsPage /></PatientSecurityGate>} />
-            <Route path="patients/:patientId/care-history" element={<PatientSecurityGate section="care-history"><CareHistoryPage /></PatientSecurityGate>} />
-            <Route path="patients/:patientId/diary" element={<PatientSecurityGate section="diary"><DiaryPage /></PatientSecurityGate>} />
-            <Route path="patients/:patientId/documents" element={<PatientSecurityGate section="documents"><DocumentsPage /></PatientSecurityGate>} />
-            <Route path="patients/:patientId/referrals" element={<PatientSecurityGate section="referrals"><ReferralsPage /></PatientSecurityGate>} />
-            <Route path="patients/:patientId/shared-care" element={<PatientSecurityGate section="shared-care"><SharedCarePatientPage /></PatientSecurityGate>} />
-            <Route path="shared-care" element={<SharedCareWorkspacePage />} />
-            <Route path="hospital/ward-board" element={<HospitalWorkspacePage view="ward" />} />
-            <Route path="hospital/admissions" element={<HospitalWorkspacePage view="admissions" />} />
-            <Route path="hospital/discharge" element={<HospitalWorkspacePage view="discharge" />} />
-            <Route path="ambulance/incidents" element={<AmbulanceWorkspacePage view="incidents" />} />
-            <Route path="ambulance/handover" element={<AmbulanceWorkspacePage view="handover" />} />
-            <Route path="work-queue" element={<CareWorkQueuePage />} />
-            <Route path="appointments" element={<AppointmentBookPage />} />
-            <Route path="registration" element={<RegistrationPage />} />
+            <Route element={<ProductAccessGuard product="clinical" />}>
+              <Route path="patients" element={<PatientSearchPage />} />
+              <Route path="patients/:patientId" element={<PatientSecurityGate section="summary"><PatientSummaryPage /></PatientSecurityGate>} />
+              <Route path="patients/:patientId/consultations" element={<PatientSecurityGate section="consultations"><ConsultationsPage /></PatientSecurityGate>} />
+              <Route path="patients/:patientId/consultations/new" element={<PatientSecurityGate section="consultations.new"><NewConsultationPage /></PatientSecurityGate>} />
+              <Route path="patients/:patientId/medication" element={<PatientSecurityGate section="medication"><MedicationPage /></PatientSecurityGate>} />
+              <Route path="patients/:patientId/problems" element={<PatientSecurityGate section="problems"><ProblemsPage /></PatientSecurityGate>} />
+              <Route path="patients/:patientId/investigations" element={<PatientSecurityGate section="investigations"><InvestigationsPage /></PatientSecurityGate>} />
+              <Route path="patients/:patientId/care-history" element={<PatientSecurityGate section="care-history"><CareHistoryPage /></PatientSecurityGate>} />
+              <Route path="patients/:patientId/diary" element={<PatientSecurityGate section="diary"><DiaryPage /></PatientSecurityGate>} />
+              <Route path="patients/:patientId/documents" element={<PatientSecurityGate section="documents"><DocumentsPage /></PatientSecurityGate>} />
+              <Route path="patients/:patientId/referrals" element={<PatientSecurityGate section="referrals"><ReferralsPage /></PatientSecurityGate>} />
+              <Route path="patients/:patientId/shared-care" element={<PatientSecurityGate section="shared-care"><SharedCarePatientPage /></PatientSecurityGate>} />
+              <Route path="shared-care" element={<SharedCareWorkspacePage />} />
+              <Route path="hospital/ward-board" element={<HospitalWorkspacePage view="ward" />} />
+              <Route path="hospital/admissions" element={<HospitalWorkspacePage view="admissions" />} />
+              <Route path="hospital/discharge" element={<HospitalWorkspacePage view="discharge" />} />
+              <Route path="ambulance/incidents" element={<AmbulanceWorkspacePage view="incidents" />} />
+              <Route path="ambulance/handover" element={<AmbulanceWorkspacePage view="handover" />} />
+              <Route path="work-queue" element={<CareWorkQueuePage />} />
+              <Route path="appointments" element={<AppointmentBookPage />} />
+              <Route path="registration" element={<RegistrationPage />} />
+            </Route>
+            <Route element={<ProductAccessGuard product="policing" />}>
+              <Route path="policing" element={<PolicingHomePage />} />
+              <Route path="policing/people" element={<PolicingPeoplePage />} />
+              <Route path="policing/vehicles" element={<PolicingVehiclesPage />} />
+              <Route path="policing/incidents" element={<PolicingIncidentsPage />} />
+              <Route path="policing/fpns" element={<PolicingFpnPage />} />
+              <Route path="policing/records/:recordType" element={<PolicingRegisterPage />} />
+            </Route>
             <Route path="staff-area" element={<StaffAreaPage />} />
             <Route path="management" element={<ManagementOnly><ManagementPage /></ManagementOnly>} />
             <Route path="security" element={<SecurityPage />} />

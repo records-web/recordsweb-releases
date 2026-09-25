@@ -52,6 +52,7 @@ function logoExtension(file) {
 export async function submitRecordsWebAccessRequest(values, logoFile) {
   const request = {
     communityName: clean(values.communityName, 120),
+    requestedProduct: ['clinical','policing','complete'].includes(values.requestedProduct) ? values.requestedProduct : 'clinical',
     requestedMode: ['general_practice', 'hospital', 'ambulance'].includes(values.requestedMode) ? values.requestedMode : 'general_practice',
     discordUrl: requireHttpsUrl(values.discordUrl, 'Discord URL'),
     robloxGroupUrl: requireHttpsUrl(values.robloxGroupUrl, 'Roblox group link'),
@@ -104,7 +105,7 @@ export async function submitRecordsWebAccessRequest(values, logoFile) {
     p_contact_email: request.contactEmail,
     p_discord_username: request.discordUsername || null,
     p_logo_path: logoPath,
-    p_additional_details: request.additionalDetails || null,
+    p_additional_details: `[Requested RecordsWeb product: ${request.requestedProduct}]${request.additionalDetails ? `\n${request.additionalDetails}` : ''}`,
     p_authorised_contact: request.authorisedContact,
   })
 

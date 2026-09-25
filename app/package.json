@@ -2,8 +2,8 @@
   "name": "recordsweb",
   "productName": "RecordsWeb",
   "private": true,
-  "version": "4.1.0",
-  "description": "RecordsWeb desktop clinical records platform",
+  "version": "5.0.0",
+  "description": "RecordsWeb multi-product operations platform for Clinical and Policing communities",
   "main": "electron/main.cjs",
   "type": "module",
   "scripts": {
@@ -90,7 +90,7 @@
       ],
       "artifactName": "RecordsWeb-${version}-macOS-${arch}.${ext}",
       "icon": "build/icon.icns",
-      "category": "public.app-category.medical",
+      "category": "public.app-category.business",
       "hardenedRuntime": true,
       "gatekeeperAssess": false
     },

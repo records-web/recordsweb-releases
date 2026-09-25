@@ -39,6 +39,21 @@ function normaliseSystemMode(value: unknown, fallback = 'general_practice') {
   return raw
 }
 
+
+function normaliseProductPackage(value: unknown, fallback = 'clinical') {
+  const raw = String(value ?? fallback).trim().toLowerCase()
+  return ['clinical', 'policing', 'complete', 'custom'].includes(raw) ? raw : fallback
+}
+
+function normaliseEnabledProducts(value: unknown, productPackage = 'clinical', testerProgram = false) {
+  if (testerProgram || productPackage === 'complete') return ['clinical', 'policing']
+  if (productPackage === 'clinical') return ['clinical']
+  if (productPackage === 'policing') return ['policing']
+  const fromValue = Array.isArray(value) ? value : []
+  const valid = [...new Set(fromValue.map((item) => String(item || '').trim().toLowerCase()).filter((item) => ['clinical','policing'].includes(item)))]
+  return valid.length ? valid : ['clinical']
+}
+
 function stripeEnvironment(secretKey: string) {
   return secretKey.startsWith('sk_test_') ? 'sandbox' : 'live'
 }
@@ -97,7 +112,7 @@ async function getOrganisation(admin: any, organisationId: string) {
   if (!organisationId) return { organisation: null, error: 'Organisation id is required.' }
   const { data, error } = await admin
     .from('organisations')
-    .select('id,org_code,name,system_mode,default_location,active,created_at,billing_payment_exempt,billing_exemption_reason,stripe_customer_id,stripe_subscription_id,stripe_subscription_status,stripe_checkout_session_id,stripe_environment,billing_status,billing_grace_started_at,billing_grace_ends_at,billing_read_only_since')
+    .select('id,org_code,name,system_mode,default_location,active,created_at,product_package,enabled_products,tester_program,tester_since,tester_notes,billing_payment_exempt,billing_exemption_reason,stripe_customer_id,stripe_subscription_id,stripe_subscription_status,stripe_checkout_session_id,stripe_environment,billing_status,billing_grace_started_at,billing_grace_ends_at,billing_read_only_since')
     .eq('id', organisationId)
     .maybeSingle()
   if (error) return { organisation: null, error: error.message }
@@ -275,6 +290,8 @@ Deno.serve(async (req) => {
       const communityName = cleanText(body.community_name)
       const systemMode = normaliseSystemMode(body.system_mode, 'general_practice')
       const defaultLocation = cleanText(body.default_location, 'Main Site')
+      const productPackage = normaliseProductPackage(body.product_package, 'clinical')
+      const enabledProducts = normaliseEnabledProducts([], productPackage, false)
       const password = String(body.password || '')
 
       if (!organisationCode) return json({ error: 'Organisation extension must use four letters in the format @XX.XX.' }, 400)
@@ -316,6 +333,10 @@ Deno.serve(async (req) => {
           system_mode: systemMode,
           default_location: defaultLocation,
           active: true,
+          product_package: productPackage,
+          enabled_products: enabledProducts,
+          tester_program: false,
+          tester_notes: null,
           primary_color: '#0f6fbd',
           navigation_color: '#cfe7f8',
           patient_banner_color: '#753b0d',
@@ -395,12 +416,14 @@ Deno.serve(async (req) => {
         organisation_code: organisationCode,
         community_name: communityName,
         system_mode: systemMode,
+        product_package: productPackage,
+        enabled_products: enabledProducts,
         operator_username: operatorUsername,
       })
 
       return json({
         ok: true,
-        community: { id: organisation.id, org_code: organisation.org_code, name: organisation.name, system_mode: organisation.system_mode, default_location: organisation.default_location, active: organisation.active },
+        community: { id: organisation.id, org_code: organisation.org_code, name: organisation.name, system_mode: organisation.system_mode, default_location: organisation.default_location, active: organisation.active, product_package: organisation.product_package, enabled_products: organisation.enabled_products, tester_program: organisation.tester_program },
         operator_email: operatorUsername,
         operator_profile: profile,
       })
@@ -441,6 +464,41 @@ Deno.serve(async (req) => {
         default_location: defaultLocation,
       })
 
+      return json({ ok: true, community: updated })
+    }
+
+
+    if (action === 'update-community-products') {
+      const organisationId = cleanText(body.organisation_id)
+      const productPackage = normaliseProductPackage(body.product_package, 'clinical')
+      const testerProgram = Boolean(body.tester_program)
+      const enabledProducts = normaliseEnabledProducts(body.enabled_products, productPackage, testerProgram)
+      const testerNotes = cleanText(body.tester_notes)
+      if (testerNotes.length > 1000) return json({ error: 'Tester notes must be 1000 characters or fewer.' }, 400)
+      if (!enabledProducts.length) return json({ error: 'At least one RecordsWeb product must be enabled.' }, 400)
+
+      const { organisation, error } = await getOrganisation(admin, organisationId)
+      if (error || !organisation) return json({ error }, 404)
+
+      const { data: updated, error: updateError } = await admin
+        .from('organisations')
+        .update({
+          product_package: testerProgram ? 'custom' : productPackage,
+          enabled_products: testerProgram ? ['clinical','policing'] : enabledProducts,
+          tester_program: testerProgram,
+          tester_since: testerProgram ? ((organisation as any).tester_program ? ((organisation as any).tester_since || new Date().toISOString()) : new Date().toISOString()) : null,
+          tester_notes: testerNotes || null,
+        })
+        .eq('id', organisation.id)
+        .select('id,org_code,name,product_package,enabled_products,tester_program,tester_since,tester_notes')
+        .single()
+      if (updateError || !updated) return json({ error: updateError?.message || 'Unable to update RecordsWeb product access.' }, 400)
+
+      await writeAudit(admin, callerProfile, 'platform.community.products.updated', organisation.id, `Updated RecordsWeb product access for ${organisation.name} (@${organisation.org_code}).`, {
+        product_package: updated.product_package,
+        enabled_products: updated.enabled_products,
+        tester_program: updated.tester_program,
+      })
       return json({ ok: true, community: updated })
     }
 

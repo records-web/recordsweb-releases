@@ -2,8 +2,8 @@
   "name": "recordsweb-web",
   "productName": "RecordsWeb Web",
   "private": true,
-  "version": "4.1.0",
-  "description": "RecordsWeb multi-organisation browser clinical records platform",
+  "version": "5.0.0",
+  "description": "RecordsWeb multi-product operations platform for Clinical and Policing communities",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",

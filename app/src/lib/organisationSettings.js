@@ -19,6 +19,10 @@ export const DEFAULT_ORGANISATION_SETTINGS = {
   systemMode: ORGANISATION.system_mode || 'general_practice',
   defaultLocation: ORGANISATION.default_location || 'Main Site',
   active: true,
+  productPackage: 'clinical',
+  enabledProducts: ['clinical'],
+  testerProgram: false,
+  testerNotes: '',
   defaultInterfaceStyle: 'classic',
   ...RECORDSWEB_BRAND,
   logoPath: '',
@@ -62,6 +66,10 @@ export function normaliseOrganisationSettings(settings = {}) {
     systemMode: ['general_practice', 'hospital', 'ambulance'].includes(settings.systemMode) ? settings.systemMode : 'general_practice',
     defaultLocation: String(settings.defaultLocation || DEFAULT_ORGANISATION_SETTINGS.defaultLocation || 'Main Site'),
     active: settings.active !== false,
+    productPackage: ['clinical','policing','complete','custom'].includes(settings.productPackage) ? settings.productPackage : 'clinical',
+    enabledProducts: Array.isArray(settings.enabledProducts) && settings.enabledProducts.length ? [...new Set(settings.enabledProducts.map((item) => String(item || '').trim().toLowerCase()).filter((item) => ['clinical','policing'].includes(item)))] : ['clinical'],
+    testerProgram: Boolean(settings.testerProgram),
+    testerNotes: String(settings.testerNotes || ''),
     defaultInterfaceStyle: settings.defaultInterfaceStyle === 'modern' ? 'modern' : 'classic',
     primaryColor: cleanHex(settings.primaryColor, RECORDSWEB_BRAND.primaryColor),
     navigationColor: cleanHex(settings.navigationColor, RECORDSWEB_BRAND.navigationColor),
@@ -153,6 +161,11 @@ export async function loadOrganisationSettings() {
   }
 
   const row = Array.isArray(data) ? data[0] : data
+  let productConfig = {}
+  try {
+    const { data: productData } = await supabase.rpc('recordsweb_public_product_entitlements', { p_organisation_code: organisationCode })
+    productConfig = (Array.isArray(productData) ? productData[0] : productData) || {}
+  } catch {}
   if (!row?.id || row?.active === false) {
     throw new Error(`The organisation extension @${organisationCode} is not registered or is not active in RecordsWeb.`)
   }
@@ -176,6 +189,10 @@ export async function loadOrganisationSettings() {
     systemMode: row.system_mode || 'general_practice',
     defaultLocation: row.default_location || 'Main Site',
     active: row.active !== false,
+    productPackage: productConfig.product_package || row.product_package || 'clinical',
+    enabledProducts: productConfig.tester_program ? ['clinical','policing'] : (Array.isArray(productConfig.enabled_products) && productConfig.enabled_products.length ? productConfig.enabled_products : (Array.isArray(row.enabled_products) && row.enabled_products.length ? row.enabled_products : ['clinical'])),
+    testerProgram: Boolean(productConfig.tester_program ?? row.tester_program),
+    testerNotes: productConfig.tester_notes || row.tester_notes || '',
     defaultInterfaceStyle: row.default_interface_style === 'modern' ? 'modern' : 'classic',
     primaryColor: row.primary_color || RECORDSWEB_BRAND.primaryColor,
     navigationColor: row.navigation_color || RECORDSWEB_BRAND.navigationColor,
@@ -299,6 +316,10 @@ export async function resetOrganisationSettings() {
     systemMode: current.systemMode,
     defaultLocation: current.defaultLocation,
     active: current.active,
+    productPackage: current.productPackage,
+    enabledProducts: current.enabledProducts,
+    testerProgram: current.testerProgram,
+    testerNotes: current.testerNotes,
   }, {
     removeLogo: Boolean(current.logoPath || current.logoUrl || current.logoDataUrl),
     previousLogoPath: current.logoPath || '',

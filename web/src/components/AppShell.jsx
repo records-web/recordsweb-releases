@@ -18,6 +18,7 @@ import SystemNotificationCenter from './SystemNotificationCenter'
 import PatientPresenceBanner from './PatientPresenceBanner'
 import { getOrganisationBilling } from '../lib/billingService'
 import { deriveBillingAccess, setBillingAccess } from '../lib/billingAccess'
+import { getOrganisationProductState } from '../lib/productAccess'
 
 function detectDesktopPlatform() {
   const ua = String(navigator.userAgent || '')
@@ -41,9 +42,9 @@ export default function AppShell({ children }) {
   const navigate = useNavigate()
   const location = useLocation()
   const profile = session?.profile || {}
-  const primaryRole = profile.role || (Array.isArray(profile.roles) && profile.roles[0]) || 'Patient Coordinator'
+  const primaryRole = profile.role || (Array.isArray(profile.roles) && profile.roles[0]) || 'Staff'
   const staffName = [String(profile.last_name || '').trim().toUpperCase(), String(profile.first_name || '').trim()].filter(Boolean).join(', ')
-  const staffIdentity = `${primaryRole} | ${staffName || profile.display_name || 'Clinical User'}${profile.title ? ` (${profile.title})` : ''}`
+  const staffIdentity = `${primaryRole} | ${staffName || profile.display_name || 'RecordsWeb User'}${profile.title ? ` (${profile.title})` : ''}`
   const [notice, setNotice] = useState('')
   const [appointmentCount, setAppointmentCount] = useState(0)
   const initialOrganisationSettings = getCachedOrganisationSettings()
@@ -53,6 +54,12 @@ export default function AppShell({ children }) {
   const organisationName = profile.organisation_name || organisationSettings.organisationName || ORGANISATION.name
   const organisationLocation = profile.organisation_location || organisationSettings.defaultLocation || ORGANISATION.default_location || 'Main Site'
   const organisationMode = profile.organisation_mode || organisationSettings.systemMode || ORGANISATION.system_mode || 'general_practice'
+  const productState = getOrganisationProductState(profile, organisationSettings)
+  const enabledProducts = productState.enabledProducts
+  const rememberedProduct = (() => { try { return sessionStorage.getItem('recordsweb-active-product') || '' } catch { return '' } })()
+  const sharedProductRoute = ['/staff-area','/management','/security','/settings'].some((path) => location.pathname.startsWith(path))
+  const policingActive = location.pathname.startsWith('/policing') || (!enabledProducts.includes('clinical') && enabledProducts.includes('policing')) || (sharedProductRoute && rememberedProduct === 'policing' && enabledProducts.includes('policing'))
+  const activeProduct = policingActive ? 'policing' : 'clinical'
   const [recordUpdate, setRecordUpdate] = useState(null)
   const [contentRevision, setContentRevision] = useState(0)
   const [patientPeers, setPatientPeers] = useState([])
@@ -64,6 +71,13 @@ export default function AppShell({ children }) {
   const lastActivityRef = useRef(Date.now())
   const lastPatientAuditRef = useRef('')
 
+
+  useEffect(() => {
+    try {
+      if (location.pathname.startsWith('/policing')) sessionStorage.setItem('recordsweb-active-product', 'policing')
+      else if (location.pathname === '/' || location.pathname.startsWith('/patients') || location.pathname.startsWith('/appointments') || location.pathname.startsWith('/hospital') || location.pathname.startsWith('/ambulance') || location.pathname.startsWith('/shared-care')) sessionStorage.setItem('recordsweb-active-product', 'clinical')
+    } catch {}
+  }, [location.pathname])
 
   useEffect(() => {
     const organisationId = session?.profile?.organisation_id || session?.profile?.organisations?.id || ''
@@ -247,7 +261,18 @@ export default function AppShell({ children }) {
   }
 
 
-  const ribbonLinks = organisationMode === 'hospital'
+  const policingRibbonLinks = [
+    ['Policing Home', '/policing'],
+    ['Persons', '/policing/people'],
+    ['Vehicles', '/policing/vehicles'],
+    ['Incidents', '/policing/incidents'],
+    ['FPNs', '/policing/fpns'],
+    ['Intelligence', '/policing/records/intelligence'],
+    ['Custody', '/policing/records/custody'],
+    ['Staff Area', '/staff-area'],
+  ]
+
+  const clinicalRibbonLinks = organisationMode === 'hospital'
     ? [
         ['Hospital Home', '/'],
         ['Ward Board', '/hospital/ward-board'],
@@ -279,16 +304,29 @@ export default function AppShell({ children }) {
           ['Staff Area', '/staff-area'],
         ]
 
-  const worklistLinks = organisationMode === 'hospital'
+  const ribbonLinks = policingActive ? policingRibbonLinks : clinicalRibbonLinks
+
+  const clinicalWorklistLinks = organisationMode === 'hospital'
     ? [['Ward Board', '/hospital/ward-board'], ['Admissions', '/hospital/admissions'], ['Patients', '/patients'], ['Shared Care', '/shared-care'], ['New Patient', '/registration?returnTo=%2Fhospital%2Fadmissions'], ['Clinical Work Queue', '/work-queue']]
     : organisationMode === 'ambulance'
       ? [['Active Incidents', '/ambulance/incidents'], ['Patients', '/patients'], ['Shared Care', '/shared-care'], ['New Patient', '/registration?returnTo=%2Fambulance%2Fincidents'], ['Handover', '/ambulance/handover'], ['Clinical Work Queue', '/work-queue']]
       : [['Appointments', '/appointments'], ['Patient Search', '/patients'], ['Shared Care', '/shared-care'], ['Registration', '/registration'], ['Staff Area', '/staff-area']]
 
+  const policingWorklistLinks = [
+    ['Person Search', '/policing/people'],
+    ['Vehicle Search', '/policing/vehicles'],
+    ['Incidents', '/policing/incidents'],
+    ['FPNs', '/policing/fpns'],
+    ['Warrants', '/policing/records/warrant'],
+    ['BOLO / Wanted', '/policing/records/bolo'],
+    ['Dispatch', '/policing/records/dispatch'],
+  ]
+  const worklistLinks = policingActive ? policingWorklistLinks : clinicalWorklistLinks
+
   return (
-    <div className={`app-frame care-mode-${organisationMode}`}>
+    <div className={`app-frame care-mode-${organisationMode} product-${activeProduct}`}>
       <header className="desktop-titlebar">
-        <strong>RecordsWeb Health Care System - {organisationName}</strong>
+        <strong>{policingActive ? 'RecordsWeb Policing' : 'RecordsWeb Clinical'} - {organisationName}</strong>
         <div className="titlebar-spacer" />
         <button onClick={() => temporaryNotice('RecordsWeb Help is managed by the local deployment administrator.')} title="Help"><CircleHelp size={15} /></button>
         <SystemNotificationCenter session={session} />
@@ -308,14 +346,15 @@ export default function AppShell({ children }) {
         </div>
         <div className="global-search">
           <Search size={16} />
-          <input aria-label="Search patients" placeholder="Search patient, NHS number or record number" onKeyDown={(e) => { if (e.key === 'Enter' && e.currentTarget.value.trim()) navigate(`/patients?q=${encodeURIComponent(e.currentTarget.value.trim())}`) }} />
+          <input aria-label={policingActive ? 'Search policing records' : 'Search patients'} placeholder={policingActive ? 'Search person, vehicle or operational reference' : 'Search patient, NHS number or record number'} onKeyDown={(e) => { if (e.key === 'Enter' && e.currentTarget.value.trim()) navigate(policingActive ? `/policing/people?q=${encodeURIComponent(e.currentTarget.value.trim())}` : `/patients?q=${encodeURIComponent(e.currentTarget.value.trim())}`) }} />
         </div>
         <div className="header-actions">
+          {enabledProducts.length > 1 && <div className="recordsweb-product-switcher" title={productState.testerProgram ? 'Tester Programme: all products enabled' : 'Switch RecordsWeb product'}><button className={!policingActive ? 'active' : ''} onClick={() => { try { sessionStorage.setItem('recordsweb-active-product', 'clinical') } catch {}; navigate('/') }}>Clinical</button><button className={policingActive ? 'active' : ''} onClick={() => { try { sessionStorage.setItem('recordsweb-active-product', 'policing') } catch {}; navigate('/policing') }}>Policing</button></div>}
           <ScreenMessageCenter session={session} />
           <button className={`icon-btn ${location.pathname === '/security' ? 'active' : ''}`} title="Account & Security" onClick={() => navigate('/security')}><ShieldCheck size={18} /></button>
           {profile.is_management && <button className={`icon-btn ${location.pathname === '/management' ? 'active' : ''}`} title="Management" onClick={() => navigate('/management')}><UserCog size={18} /></button>}
           <button className={`icon-btn ${location.pathname === '/settings' ? 'active' : ''}`} title="Settings" onClick={() => navigate('/settings')}><Settings size={18} /></button>
-          {settings.showProfileChip && <div className="profile-chip"><UserRound size={17} /><div><strong>{profile.display_name || 'Clinical User'}</strong><span>{profile.role || 'User'}</span></div></div>}
+          {settings.showProfileChip && <div className="profile-chip"><UserRound size={17} /><div><strong>{profile.display_name || 'RecordsWeb User'}</strong><span>{profile.role || 'User'}</span></div></div>}
           <button className="icon-btn" title="Sign out" onClick={doLogout}><LogOut size={18} /></button>
         </div>
       </header>
@@ -325,7 +364,7 @@ export default function AppShell({ children }) {
           <Link key={path} to={path}>{label}{path === '/appointments' && settings.showWorklistCounts && <strong>{appointmentCount}</strong>}</Link>
         ))}
         <div className="worklist-spacer" />
-        <span>{organisationMode === 'hospital' ? 'Hospital workspace' : organisationMode === 'ambulance' ? 'Ambulance / PHEM workspace' : 'Primary Care workspace'} · {organisationName}</span>
+        <span>{policingActive ? 'Policing workspace' : (organisationMode === 'hospital' ? 'Hospital workspace' : organisationMode === 'ambulance' ? 'Ambulance / PHEM workspace' : 'Primary Care workspace')} · {organisationName}</span>
       </div>
 
       {billingAccess.mode === 'grace' && (
@@ -348,8 +387,9 @@ export default function AppShell({ children }) {
       <PatientRecordUpdateBanner event={recordUpdate} onRefresh={refreshPatientRecord} />
       <main className="app-content" key={`${location.pathname}:${contentRevision}`}>{children}</main>
       <footer className="status-bar recordsweb-status-bar">
-        <img draggable={false} className="status-nhs-logo" src={`${import.meta.env.BASE_URL}nhs-logo-footer.jpg`} alt="NHS" />
+        {!policingActive && <img draggable={false} className="status-nhs-logo" src={`${import.meta.env.BASE_URL}nhs-logo-footer.jpg`} alt="NHS" />}
         <span>{staffIdentity}</span>
+        <span>{policingActive ? 'RecordsWeb Policing' : 'RecordsWeb Clinical'}</span>
         <span>Organisation: {organisationName}</span>
         <span>Location: {organisationLocation}</span>
         <button

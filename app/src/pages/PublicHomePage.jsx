@@ -8,6 +8,7 @@ import { applyRecordsWebProductBrand } from '../lib/organisationSettings'
 
 const INITIAL_FORM = {
   communityName: '',
+  requestedProduct: 'clinical',
   requestedMode: 'general_practice',
   discordUrl: '',
   robloxGroupUrl: '',
@@ -90,7 +91,7 @@ export default function PublicHomePage() {
       <header className="public-home-header">
         <div className="public-home-brand">
           <img className="public-home-wordmark" src={recordsWebWordmark} alt="RecordsWeb" />
-          <span>Clinical records platform</span>
+          <span>Your daily operations</span>
         </div>
         <nav>
           <button type="button" onClick={() => navigate('/pricing')}>Pricing</button>
@@ -105,8 +106,8 @@ export default function PublicHomePage() {
         <section className="public-hero">
           <div className="public-hero-copy">
             <span className="public-eyebrow">RECORDSWEB {APP_VERSION}</span>
-            <h1>One records platform for multiple medical communities.</h1>
-            <p>RecordsWeb provides approved communities with their own organisation extension, staff namespace and isolated clinical-record environment while keeping a consistent RecordsWeb workflow.</p>
+            <h1>Your daily operations. One RecordsWeb platform.</h1>
+            <p>RecordsWeb gives approved communities one secure operations platform with separate Clinical and Policing products, shared accounts, platform security and organisation-scoped data.</p>
             <div className="public-hero-actions">
               <button type="button" className="public-primary" onClick={() => navigate('/login')}>Open staff area <ArrowRight size={16}/></button>
               <button type="button" className="public-secondary" onClick={() => navigate('/pricing')}>View pricing</button>
@@ -123,7 +124,7 @@ export default function PublicHomePage() {
         </section>
 
         <section className="public-section">
-          <div className="public-section-heading"><span>WHAT IT DOES</span><h2>Core RecordsWeb workflow</h2><p>The system combines the day-to-day records functions staff need into one consistent interface.</p></div>
+          <div className="public-section-heading"><span>WHAT IT DOES</span><h2>One platform, multiple operational products</h2><p>RecordsWeb keeps authentication, security, staff management and integrations consistent while each product keeps its own records and workflows.</p></div>
           <div className="public-feature-grid">
             {FEATURES.map(([Icon, title, description]) => (
               <article key={title}><Icon size={21}/><div><strong>{title}</strong><p>{description}</p></div></article>
@@ -131,8 +132,17 @@ export default function PublicHomePage() {
           </div>
         </section>
 
+        <section className="public-section recordsweb-products-section">
+          <div className="public-section-heading"><span>PRODUCTS</span><h2>Choose the RecordsWeb products your community needs</h2></div>
+          <div className="recordsweb-public-product-grid">
+            <article><div className="public-mode-icon"><Stethoscope size={23}/></div><div><strong>RecordsWeb Clinical</strong><p>Primary Care, Hospital and Ambulance/PHEM records, appointments, prescribing, consultations, documents and Shared Care.</p></div></article>
+            <article><div className="public-mode-icon"><ClipboardList size={23}/></div><div><strong>RecordsWeb Policing</strong><p>Operational person and vehicle records, incidents, Fixed Penalty Notices, intelligence, custody, warrants, BOLOs and dispatch records.</p></div></article>
+            <article><div className="public-mode-icon"><Building2 size={23}/></div><div><strong>RecordsWeb Complete</strong><p>Clinical and Policing together under one organisation, with a built-in product switcher and shared platform security.</p></div></article>
+          </div>
+        </section>
+
         <section className="public-section public-modes-section">
-          <div className="public-section-heading"><span>DEPLOYMENT MODES</span><h2>Configured around the organisation</h2></div>
+          <div className="public-section-heading"><span>CLINICAL MODES</span><h2>RecordsWeb Clinical adapts to the care setting</h2></div>
           <div className="public-mode-grid">
             <article><div className="public-mode-icon"><Stethoscope size={23}/></div><div><strong>Primary Care (GP)</strong><p>For general practice and primary care organisations using RecordsWeb for consultations, medication, documents, appointments, registration, investigations, referrals and staff administration.</p></div></article>
             <article><div className="public-mode-icon"><Hospital size={23}/></div><div><strong>Secondary Care (Hospital)</strong><p>Episode-first hospital workspace with Ward Board, admissions, clinical work queues, discharge and Shared Care transfer-of-care workflows.</p></div></article>
@@ -160,7 +170,8 @@ export default function PublicHomePage() {
           <form ref={formRef} className="public-request-form" onSubmit={submit}>
             <div className="public-form-grid">
               <label><span>Community name *</span><input value={form.communityName} onChange={(e) => update('communityName', e.target.value)} maxLength={120} required /></label>
-              <label><span>Organisation type *</span><select value={form.requestedMode} onChange={(e) => update('requestedMode', e.target.value)}><option value="general_practice">Primary Care (GP)</option><option value="hospital">Secondary Care (Hospital)</option><option value="ambulance">Ambulance / PHEM</option></select><small>Select the care setting that best reflects how this RecordsWeb environment will be used.</small></label>
+              <label><span>RecordsWeb product *</span><select value={form.requestedProduct} onChange={(e) => update('requestedProduct', e.target.value)}><option value="clinical">RecordsWeb Clinical</option><option value="policing">RecordsWeb Policing</option><option value="complete">RecordsWeb Complete</option></select><small>Complete combines Clinical and Policing under the same community.</small></label>
+              <label><span>Organisation type *</span><select value={form.requestedMode} onChange={(e) => update('requestedMode', e.target.value)}><option value="general_practice">Primary Care (GP)</option><option value="hospital">Secondary Care (Hospital)</option><option value="ambulance">Ambulance / PHEM</option></select><small>Used for the Clinical product. Policing-only requests can leave this at the closest organisation type.</small></label>
               <label><span>Discord URL *</span><input type="url" placeholder="https://discord.gg/..." value={form.discordUrl} onChange={(e) => update('discordUrl', e.target.value)} required /></label>
               <label><span>Roblox group link *</span><input type="url" placeholder="https://www.roblox.com/communities/..." value={form.robloxGroupUrl} onChange={(e) => update('robloxGroupUrl', e.target.value)} required /></label>
               <label><span>Community members *</span><select value={form.memberRange} onChange={(e) => update('memberRange', e.target.value)} required><option value="">Select size</option><option value="10-99">10+</option><option value="100-999">100+</option><option value="1000-9999">1,000+</option><option value="10000+">10,000+</option></select></label>

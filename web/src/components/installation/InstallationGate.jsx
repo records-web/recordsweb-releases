@@ -124,7 +124,7 @@ export default function InstallationGate({ children }) {
         </section>
 
         <div className="legacy-login-footer"><span>RecordsWeb web organisation setup</span><span>Format: @XX.XX</span></div>
-        <div className="legacy-copyright">RecordsWeb · Organisation-controlled clinical records platform.</div>
+        <div className="legacy-copyright">RecordsWeb · Organisation-controlled operations platform.</div>
       </div>
     </div>
   )

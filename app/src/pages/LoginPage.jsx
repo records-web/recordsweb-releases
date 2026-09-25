@@ -125,7 +125,7 @@ export default function LoginPage() {
           <div className={`recordsweb-logo recordsweb-logo-text ${organisationSettings.logoUrl ? 'custom-community-logo-lockup' : ''}`}><img draggable={false} className="login-organisation-logo" src={organisationSettings.logoUrl || recordsWebIcon} alt={organisationSettings.logoUrl ? `${organisationName} logo` : 'RecordsWeb'} />{!organisationSettings.logoUrl && <strong>RecordsWeb</strong>}</div>
           <div className="centre-lockup">
             <strong>{organisationName}</strong>
-            <span>Health care records</span>
+            <span>Daily operations platform</span>
           </div>
         </div>
 
@@ -194,7 +194,7 @@ export default function LoginPage() {
         </div>
 
         <div className="legacy-copyright">
-          RecordsWeb · {organisationName}. Prototype clinical software. Do not use with live patient data until security, information-governance and clinical-safety requirements have been completed.
+          RecordsWeb · {organisationName}. Roleplay and simulation operations software. Clinical modules must not be used with real patient data.
         </div>
         <div className="legacy-login-legal"><button type="button" onClick={() => navigate('/privacy')}>Privacy Policy</button><span>·</span><button type="button" onClick={() => navigate('/terms')}>Terms of Service</button></div>
         {recoveryMode && <AccountRecoveryModal mode={recoveryMode} onClose={() => setRecoveryMode('')} />}

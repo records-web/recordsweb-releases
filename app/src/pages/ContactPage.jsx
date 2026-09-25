@@ -55,7 +55,7 @@ export default function ContactPage() {
       <header className="public-home-header">
         <div className="public-home-brand" role="button" tabIndex={0} onClick={() => navigate('/')} onKeyDown={(e) => e.key === 'Enter' && navigate('/')}>
           <img className="public-home-wordmark" src={recordsWebWordmark} alt="RecordsWeb" />
-          <span>Clinical records platform</span>
+          <span>Your daily operations</span>
         </div>
         <nav>
           <button type="button" onClick={() => navigate('/pricing')}>Pricing</button>

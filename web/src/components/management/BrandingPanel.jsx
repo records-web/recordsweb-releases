@@ -149,7 +149,7 @@ export default function BrandingPanel() {
           </div>
           <div className="community-brand-preview-right">
             <strong>{form.organisationName || 'Community name'}</strong>
-            <span>Health care records</span>
+            <span>RecordsWeb operations</span>
           </div>
         </div>
 

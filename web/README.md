@@ -1,5 +1,11 @@
 # RecordsWeb
 
+## RecordsWeb 5.0.0 — Clinical + Policing Platform
+
+RecordsWeb 5.0.0 expands RecordsWeb from a clinical-only system into a multi-product operations platform. **RecordsWeb Clinical** keeps the existing Primary Care, Hospital and Ambulance/PHEM workflows, while **RecordsWeb Policing** adds separate persons, vehicles, incidents, FPNs and operational registers. **RecordsWeb Complete** enables both products under one organisation and the **Tester Programme** unlocks all current products for QA.
+
+Run `supabase/recordsweb-5.0.0-products-policing.sql`, deploy the updated `recordsweb-platform-admin` Edge Function, then deploy the 5.0.0 Website/Electron source. See `RECORDSWEB-5.0.0-DEPLOYMENT.md`.
+
 ## RecordsWeb 4.1.0 — 24/7 Discord Bot
 
 Moves all live Discord delivery to a dedicated always-on bot worker designed for X Systems Hosting. Website and Electron now queue Discord work through Supabase rather than holding a Discord bot token. Platform Management gains bot heartbeat/host visibility and a custom slash-command manager; source-code commands remain supported in the separate bot package.

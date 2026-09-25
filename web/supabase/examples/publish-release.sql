@@ -1,12 +1,7 @@
--- Desktop release example. For a shared desktop + web release, run only AFTER
--- the matching GitHub Release AND website deployment are ready.
--- The matching GitHub Release contains:
+-- Run this only AFTER the matching GitHub Release has been published and contains:
 --   latest.yml
---   RecordsWeb-Setup-3.2.0.exe
---   RecordsWeb-Setup-3.2.0.exe.blockmap
---   latest-mac.yml
---   RecordsWeb-3.2.0-macOS-universal.dmg
---   RecordsWeb-3.2.0-macOS-universal.zip
+--   RecordsWeb-Setup-2.5.0.exe
+--   RecordsWeb-Setup-2.5.0.exe.blockmap
 --
 -- GitHub owner/repository are configured in the RecordsWeb .env before building.
 -- Supabase remains the mandatory-version gate; GitHub hosts the binary files.
@@ -19,9 +14,9 @@ insert into public.app_releases (
   published_at
 )
 values (
-  '3.2.0',
+  '2.5.0',
   'stable',
-  'RecordsWeb 3.2.0',
+  'RecordsWeb 2.5.0',
   true,
   now()
 )

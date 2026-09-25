@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react'
-import { ArrowLeft, ArrowRight, Building2, CheckCircle2, Mail, Megaphone, ShieldCheck } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Building2, CheckCircle2, Mail, Megaphone, ShieldCheck, Stethoscope, ClipboardList, Layers } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import recordsWebWordmark from '../assets/RW-Logo.png'
 import { APP_VERSION } from '../lib/webRuntime'
@@ -31,7 +31,7 @@ export default function PricingPage() {
       <header className="public-home-header">
         <div className="public-home-brand" role="button" tabIndex={0} onClick={() => navigate('/')} onKeyDown={(event) => event.key === 'Enter' && navigate('/')}>
           <img className="public-home-wordmark" src={recordsWebWordmark} alt="RecordsWeb" />
-          <span>Clinical records platform</span>
+          <span>Your daily operations</span>
         </div>
         <nav>
           <button type="button" onClick={() => navigate('/')}><ArrowLeft size={15}/> Back to RecordsWeb</button>
@@ -44,19 +44,19 @@ export default function PricingPage() {
       <main className="pricing-main">
         <section className="pricing-hero">
           <span className="public-eyebrow">RECORDSWEB PRICING</span>
-          <h1>Simple pricing for a complete RecordsWeb organisation.</h1>
-          <p>One standard plan with the core RecordsWeb clinical workflow included. No feature tiers or complicated plan structure.</p>
+          <h1>Choose the RecordsWeb product package that fits your community.</h1>
+          <p>RecordsWeb 5 separates Clinical and Policing into product entitlements. Complete communities can use both from the same staff account.</p>
         </section>
 
         <section className="pricing-layout">
           <article className="pricing-card pricing-card-primary">
             <div className="pricing-card-heading">
-              <div><span>STANDARD</span><h2>RecordsWeb Standard</h2></div>
-              <Building2 size={24}/>
+              <div><span>CLINICAL</span><h2>RecordsWeb Clinical</h2></div>
+              <Stethoscope size={24}/>
             </div>
 
             <div className="pricing-amount"><strong>£9.50</strong><span>/ month</span></div>
-            <p className="pricing-card-lead">Full access to the RecordsWeb clinical records platform for one approved organisation.</p>
+            <p className="pricing-card-lead">Full access to RecordsWeb Clinical for one approved organisation. Existing RecordsWeb pricing remains the baseline for Clinical communities.</p>
 
             <div className="pricing-offer">
               <strong>New organisation offer</strong>
@@ -69,6 +69,11 @@ export default function PricingPage() {
 
             <button type="button" className="public-primary pricing-cta" onClick={requestAccess}>Request RecordsWeb access <ArrowRight size={15}/></button>
           </article>
+
+          <div className="pricing-side-column recordsweb-v5-package-column">
+            <article className="pricing-card"><div className="pricing-card-heading"><div><span>POLICING</span><h2>RecordsWeb Policing</h2></div><ClipboardList size={23}/></div><p>Operational policing records including persons, vehicles, incidents, FPNs, intelligence, custody, warrants, BOLO and dispatch registers.</p><strong className="recordsweb-price-configured">Pricing agreed per approved community</strong></article>
+            <article className="pricing-card"><div className="pricing-card-heading"><div><span>COMPLETE</span><h2>RecordsWeb Complete</h2></div><Layers size={23}/></div><p>Clinical + Policing under one RecordsWeb organisation. Complete is intended to cost less than purchasing the two products separately once package pricing is configured.</p><strong className="recordsweb-price-configured">Bundle pricing agreed during setup</strong></article>
+          </div>
 
           <div className="pricing-side-column">
             <article className="pricing-card">
@@ -89,11 +94,11 @@ export default function PricingPage() {
         <section className="pricing-notes">
           <h2>How billing works</h2>
           <div className="pricing-note-grid">
-            <div><strong>First month</strong><span>Eligible new organisations pay £5 for their first month. The normal £7 setup fee is included in that introductory price.</span></div>
-            <div><strong>After the first month</strong><span>The standard RecordsWeb subscription is £9.50 per month unless a different arrangement has been agreed.</span></div>
+            <div><strong>First month</strong><span>Eligible new Clinical organisations pay £5 for their first month. The normal £7 setup fee is included in that introductory price unless another package arrangement has been agreed.</span></div>
+            <div><strong>After the first month</strong><span>The standard RecordsWeb Clinical subscription is £9.50 per month. Policing and Complete pricing is agreed separately until dedicated package pricing is configured.</span></div>
             <div><strong>Additional work</strong><span>Optional integrations and bespoke services are quoted separately and are never added without agreement.</span></div>
           </div>
-          <p className="pricing-disclaimer">RecordsWeb is a fictional/demonstration clinical records system and is not an NHS service unless otherwise stated.</p>
+          <p className="pricing-disclaimer">RecordsWeb is a fictional roleplay/simulation operations platform. Clinical modules are not NHS services and Policing modules are not connected to real law-enforcement systems.</p>
         </section>
       </main>
 

@@ -1958,7 +1958,7 @@ Deno.serve(async (req) => {
         organisationName: context.organisation.name,
         organisationCode: context.organisation.org_code,
         publicUrl,
-        version: String(Deno.env.get('RECORDSWEB_VERSION') || '4.1.0'),
+        version: String(Deno.env.get('RECORDSWEB_VERSION') || '5.0.0'),
       })
       const job = await enqueueDiscordJob(admin, {
         organisationId: context.profile.organisation_id,

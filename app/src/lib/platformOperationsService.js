@@ -42,6 +42,7 @@ export async function signInPlatformOperator({ email, password }) {
   const { data, error } = await supabase.auth.signInWithPassword({
     email: requestedEmail,
     password: String(password || ''),
+    product_package: String(productPackage || 'clinical').trim(),
   })
   if (error) throw new Error('Unable to sign in with that platform operator account.')
 
@@ -155,7 +156,15 @@ export async function listPlatformCommunities() {
     }
     throw new Error(error.message || 'Unable to load RecordsWeb communities.')
   }
-  return Array.isArray(data) ? data : []
+  const communities = Array.isArray(data) ? data : []
+  try {
+    const { data: productRows, error: productError } = await supabase.rpc('recordsweb_operator_list_product_entitlements')
+    if (!productError && Array.isArray(productRows)) {
+      const productsById = new Map(productRows.map((row) => [row.id, row]))
+      return communities.map((row) => ({ ...row, ...(productsById.get(row.id) || {}) }))
+    }
+  } catch {}
+  return communities
 }
 
 async function invokePlatformAdmin(body) {
@@ -180,7 +189,7 @@ async function invokePlatformAdmin(body) {
   return data
 }
 
-export async function createPlatformCommunity({ organisationCode, communityName, systemMode, defaultLocation, password }) {
+export async function createPlatformCommunity({ organisationCode, communityName, systemMode, defaultLocation, password, productPackage = 'clinical' }) {
   return invokePlatformAdmin({
     action: 'create-community',
     organisation_code: String(organisationCode || '').trim(),
@@ -188,6 +197,7 @@ export async function createPlatformCommunity({ organisationCode, communityName,
     system_mode: String(systemMode || 'general_practice').trim(),
     default_location: String(defaultLocation || '').trim(),
     password: String(password || ''),
+    product_package: String(productPackage || 'clinical').trim(),
   })
 }
 
@@ -199,6 +209,18 @@ export async function updatePlatformCommunity({ organisationId, communityName, s
     community_name: String(communityName || '').trim(),
     system_mode: String(systemMode || 'general_practice').trim(),
     default_location: String(defaultLocation || '').trim(),
+  })
+}
+
+
+export async function updatePlatformCommunityProducts({ organisationId, productPackage, enabledProducts, testerProgram = false, testerNotes = '' }) {
+  return invokePlatformAdmin({
+    action: 'update-community-products',
+    organisation_id: organisationId,
+    product_package: String(productPackage || 'clinical').trim(),
+    enabled_products: Array.isArray(enabledProducts) ? enabledProducts : [],
+    tester_program: Boolean(testerProgram),
+    tester_notes: String(testerNotes || '').trim(),
   })
 }
 

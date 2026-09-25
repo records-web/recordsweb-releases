@@ -22,6 +22,7 @@ import {
   UserCheck,
   UserPlus,
   Wrench,
+  Layers,
   X,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -29,6 +30,7 @@ import recordsWebLogo from '../assets/recordsweb-update-logo.png'
 import PlatformDiscordPanel from '../components/platform/PlatformDiscordPanel'
 import PlatformSecurityPanel from '../components/platform/PlatformSecurityPanel'
 import PlatformSessionsPanel from '../components/platform/PlatformSessionsPanel'
+import PlatformProductsPanel from '../components/platform/PlatformProductsPanel'
 import { useAuth } from '../contexts/AuthContext'
 import { supabase, supabaseConfigured } from '../lib/supabase'
 import { APP_VERSION } from '../lib/webRuntime'
@@ -273,6 +275,7 @@ function CommunitiesPanel({ operatorAccountEmail = '' }) {
   const [communityName, setCommunityName] = useState('')
   const [organisationCode, setOrganisationCode] = useState('')
   const [systemMode, setSystemMode] = useState('general_practice')
+  const [productPackage, setProductPackage] = useState('clinical')
   const [defaultLocation, setDefaultLocation] = useState('Main Site')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
@@ -340,11 +343,13 @@ function CommunitiesPanel({ operatorAccountEmail = '' }) {
         systemMode,
         defaultLocation: defaultLocation.trim(),
         password,
+        productPackage,
       })
       setNotice(`${result?.community?.name || communityName.trim()} created. Operator account: ${result?.operator_email || accountEmail}`)
       setCommunityName('')
       setOrganisationCode('')
       setSystemMode('general_practice')
+      setProductPackage('clinical')
       setDefaultLocation('Main Site')
       setPassword('')
       setConfirmPassword('')
@@ -455,6 +460,7 @@ function CommunitiesPanel({ operatorAccountEmail = '' }) {
           <label><span>Community name</span><input value={communityName} onChange={(e) => setCommunityName(e.target.value)} placeholder="Community or organisation name" maxLength={120} required /></label>
           <label><span>Organisation extension</span><div className="platform-community-code"><b>@</b><input value={organisationCode} onChange={(e) => setOrganisationCode(e.target.value.replace(/^@+/, '').replace(/\s+/g, '').toUpperCase())} placeholder="XX.XX" maxLength={5} required /></div><small>Four letters in the format @XX.XX. The extension becomes the permanent login namespace.</small></label>
           <label><span>Organisation type</span><select value={systemMode} onChange={(e) => setSystemMode(e.target.value)}><option value="general_practice">Primary Care (GP)</option><option value="hospital">Secondary Care (Hospital)</option><option value="ambulance">Ambulance / PHEM</option></select></label>
+          <label><span>RecordsWeb package</span><select value={productPackage} onChange={(e) => setProductPackage(e.target.value)}><option value="clinical">Clinical</option><option value="policing">Policing</option><option value="complete">Complete</option></select><small>Product access can be changed later under Products &amp; Testers.</small></label>
           <label><span>Default location</span><input value={defaultLocation} onChange={(e) => setDefaultLocation(e.target.value)} placeholder="Main Site" maxLength={120} required /></label>
         </div>
 
@@ -479,7 +485,7 @@ function CommunitiesPanel({ operatorAccountEmail = '' }) {
         {rows.map((row) => (
           <div className={`platform-community-row ${row.active ? '' : 'disabled'}`} key={row.id}>
             <div><strong>{row.name}</strong><span>@{row.org_code}</span></div>
-            <div><span>{row.system_mode === 'hospital' ? 'Secondary Care (Hospital)' : row.system_mode === 'ambulance' ? 'Ambulance / PHEM' : 'Primary Care (GP)'}</span><small>{row.default_location || 'Main Site'}</small></div>
+            <div><span>{row.product_package === 'complete' ? 'Complete' : row.product_package === 'policing' ? 'Policing' : 'Clinical'} · {row.system_mode === 'hospital' ? 'Hospital' : row.system_mode === 'ambulance' ? 'Ambulance / PHEM' : 'Primary Care'}</span><small>{row.default_location || 'Main Site'}{row.tester_program ? ' · Tester Programme' : ''}</small></div>
             <div><span className={row.active ? 'community-active' : 'community-inactive'}>{row.active ? 'Active' : 'Disabled'}</span><small>{row.has_reserved_operator ? 'Operator ready' : 'Operator missing'}</small></div>
             <div className="platform-community-actions">
               <button onClick={() => openEdit(row)} disabled={busy} title="Edit community"><Pencil size={13}/> Edit</button>
@@ -646,7 +652,7 @@ export default function PlatformManagementPage() {
   const [section, setSection] = useState(() => {
     try {
       const stored = sessionStorage.getItem('recordsweb-platform-section') || ''
-      return ['overview','maintenance','releases','communities','billing','discord','sessions','security'].includes(stored) ? stored : 'overview'
+      return ['overview','maintenance','releases','communities','products','billing','discord','sessions','security'].includes(stored) ? stored : 'overview'
     } catch { return 'overview' }
   })
   const [authError, setAuthError] = useState('')
@@ -802,6 +808,7 @@ export default function PlatformManagementPage() {
           <button className={section === 'maintenance' ? 'active' : ''} onClick={() => setSection('maintenance')}><Wrench size={14}/> Maintenance</button>
           <button className={section === 'releases' ? 'active' : ''} onClick={() => setSection('releases')}><Rocket size={14}/> Releases</button>
           <button className={section === 'communities' ? 'active' : ''} onClick={() => setSection('communities')}><Building2 size={14}/> Communities</button>
+          <button className={section === 'products' ? 'active' : ''} onClick={() => setSection('products')}><Layers size={14}/> Products &amp; Testers</button>
           <button className={section === 'billing' ? 'active' : ''} onClick={() => setSection('billing')}><CreditCard size={14}/> Billing</button>
           <button className={section === 'discord' ? 'active' : ''} onClick={() => setSection('discord')}><Bot size={14}/> Discord</button>
           <button className={section === 'sessions' ? 'active' : ''} onClick={() => setSection('sessions')}><Laptop size={14}/> User sessions</button>
@@ -813,6 +820,7 @@ export default function PlatformManagementPage() {
           <button onClick={() => setSection('maintenance')}><Wrench size={22}/><div><strong>Platform maintenance</strong><span>Temporarily block all community staff access across RecordsWeb.</span></div></button>
           <button onClick={() => setSection('releases')}><Rocket size={22}/><div><strong>Release control</strong><span>Publish the active version used by desktop and website update checks.</span></div></button>
           <button onClick={() => setSection('communities')}><Building2 size={22}/><div><strong>Community management</strong><span>Create, edit, enable or disable RecordsWeb communities and manage reserved operators.</span></div></button>
+          <button onClick={() => setSection('products')}><Layers size={22}/><div><strong>Products &amp; testers</strong><span>Assign Clinical, Policing or Complete access and manage the RecordsWeb Tester Programme.</span></div></button>
           <button onClick={() => setSection('billing')}><CreditCard size={22}/><div><strong>Subscriptions & billing</strong><span>Set monthly pricing, billing status, dates and optional organisation services.</span></div></button>
           <button onClick={() => setSection('discord')}><Bot size={22}/><div><strong>Discord operations</strong><span>Broadcast maintenance and platform notices to every configured community status channel.</span></div></button>
           <button onClick={() => setSection('sessions')}><Laptop size={22}/><div><strong>User sessions</strong><span>Inspect website and Electron sessions, copy device hashes and revoke access across RecordsWeb.</span></div></button>
@@ -823,6 +831,7 @@ export default function PlatformManagementPage() {
         {section === 'maintenance' && <MaintenancePanel />}
         {section === 'releases' && <ReleasesPanel />}
         {section === 'communities' && <CommunitiesPanel operatorAccountEmail={operatorSession?.user?.email || ''} />}
+        {section === 'products' && <PlatformProductsPanel />}
         {section === 'billing' && <CommunityBillingPanel />}
         {section === 'discord' && <PlatformDiscordPanel />}
         {section === 'sessions' && <PlatformSessionsPanel onCreateRestriction={(prefill) => { setSecurityPrefill({ ...prefill, requestedAt: Date.now() }); setSection('security') }} />}

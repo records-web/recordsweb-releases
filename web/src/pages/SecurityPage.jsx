@@ -130,7 +130,7 @@ export default function SecurityPage() {
       <div className="security-columns security-columns-three">
         <Panel title="Signed-in account">
           <div className="account-detail-list">
-            <div><span>Display name</span><strong>{profile.display_name || 'Clinical User'}</strong></div>
+            <div><span>Display name</span><strong>{profile.display_name || 'RecordsWeb User'}</strong></div>
             <div><span>Title</span><strong>{profile.title || 'None'}</strong></div>
             <div><span>Username</span><strong className="mono-login">{username || 'Not available'}</strong></div>
             <div><span>Organisation</span><strong>{profile.organisation_name || ORGANISATION.name}</strong></div>

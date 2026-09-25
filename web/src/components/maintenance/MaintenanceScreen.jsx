@@ -42,7 +42,7 @@ export default function MaintenanceScreen({ state, onRetry }) {
             <img draggable={false} className="login-organisation-logo recordsweb-fixed-logo" src={recordsWebIcon} alt="RecordsWeb" />
             <strong>RecordsWeb</strong>
           </div>
-          <div className="centre-lockup"><strong>{organisationName}</strong><span>Health care records</span></div>
+          <div className="centre-lockup"><strong>{organisationName}</strong><span>RecordsWeb operations</span></div>
         </div>
 
         <div className="legacy-blue-rule" />

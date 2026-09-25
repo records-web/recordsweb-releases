@@ -59,6 +59,10 @@ export function AuthProvider({ children }) {
               organisation_code: value.profile.organisations?.org_code || value.profile.organisation_code || ORGANISATION.org_code,
               organisation_mode: value.profile.organisations?.system_mode || value.profile.organisation_mode || ORGANISATION.system_mode || 'general_practice',
               organisation_location: value.profile.organisations?.default_location || value.profile.organisation_location || ORGANISATION.default_location || 'Main Site',
+              product_package: value.profile.organisations?.product_package || value.profile.product_package || 'clinical',
+              enabled_products: value.profile.organisations?.tester_program ? ['clinical', 'policing'] : (value.profile.organisations?.enabled_products || value.profile.enabled_products || ['clinical']),
+              tester_program: Boolean(value.profile.organisations?.tester_program || value.profile.tester_program),
+              tester_notes: value.profile.organisations?.tester_notes || value.profile.tester_notes || '',
             },
           }
         : { user: { id: 'demo-user' }, profile: demoUser, signed_in_at: new Date().toISOString() }
