@@ -42,7 +42,6 @@ export async function signInPlatformOperator({ email, password }) {
   const { data, error } = await supabase.auth.signInWithPassword({
     email: requestedEmail,
     password: String(password || ''),
-    product_package: String(productPackage || 'clinical').trim(),
   })
   if (error) throw new Error('Unable to sign in with that platform operator account.')
 
