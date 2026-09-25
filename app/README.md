@@ -599,3 +599,7 @@ Community Management now includes a per-organisation Roblox integration for wait
 - Prescribers can switch to Custom dosage and Custom quantity at any time.
 - Pack/tablet strength is deliberately entered by the clinician because GP MEDS.pdf supplies reference doses, not medicine pack strengths.
 - No new database migration is required for 3.3.3; the final prescribed dosage and quantity continue to use the existing medication fields and PIN-authorised workflow.
+
+## RecordsWeb 5.1.0 — Live Bodycams
+
+RecordsWeb Policing includes LiveKit Cloud bodycam streaming at `/policing/bodycams`. Run `supabase/recordsweb-5.1.0-livekit-bodycams.sql`, configure the three `LIVEKIT_*` Edge Function secrets, and deploy `recordsweb-bodycam`. See `RECORDSWEB-5.1.0-BODYCAMS.md`.

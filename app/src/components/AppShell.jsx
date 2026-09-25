@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { CircleHelp, CreditCard, LogOut, Moon, Search, Settings, ShieldCheck, Sun, TriangleAlert, UserCog, UserRound } from 'lucide-react'
+import { CircleHelp, CreditCard, LogOut, Moon, Search, Settings, ShieldCheck, Sun, TriangleAlert, UserCog, UserRound, Video } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { ORGANISATION } from '../lib/demoData'
@@ -20,9 +20,11 @@ import PatientPresenceBanner from './PatientPresenceBanner'
 import { getOrganisationBilling } from '../lib/billingService'
 import { deriveBillingAccess, setBillingAccess } from '../lib/billingAccess'
 import { getOrganisationProductState } from '../lib/productAccess'
+import { useBodycam } from '../contexts/BodycamContext'
 
 export default function AppShell({ children }) {
   const { session, logout, updateProfile } = useAuth()
+  const { bodycam, isLive: bodycamLive } = useBodycam()
   const navigate = useNavigate()
   const location = useLocation()
   const profile = session?.profile || {}
@@ -201,6 +203,7 @@ export default function AppShell({ children }) {
     ['FPNs', '/policing/fpns'],
     ['Intelligence', '/policing/records/intelligence'],
     ['Custody', '/policing/records/custody'],
+    ['Bodycams', '/policing/bodycams'],
     ['Staff Area', '/staff-area'],
   ]
 
@@ -252,6 +255,7 @@ export default function AppShell({ children }) {
     ['Warrants', '/policing/records/warrant'],
     ['BOLO / Wanted', '/policing/records/bolo'],
     ['Dispatch', '/policing/records/dispatch'],
+    ['Bodycams', '/policing/bodycams'],
   ]
   const worklistLinks = policingActive ? policingWorklistLinks : clinicalWorklistLinks
 
@@ -281,6 +285,7 @@ export default function AppShell({ children }) {
           <input aria-label={policingActive ? 'Search policing records' : 'Search patients'} placeholder={policingActive ? 'Search person, vehicle or operational reference' : 'Search patient, NHS number or record number'} onKeyDown={(e) => { if (e.key === 'Enter' && e.currentTarget.value.trim()) navigate(policingActive ? `/policing/people?q=${encodeURIComponent(e.currentTarget.value.trim())}` : `/patients?q=${encodeURIComponent(e.currentTarget.value.trim())}`) }} />
         </div>
         <div className="header-actions">
+          {policingActive && bodycamLive && <button className="recordsweb-bodycam-live-chip" title="Your bodycam is live" onClick={() => navigate('/policing/bodycams')}><Video size={15}/><span>BODYCAM LIVE</span><b>{bodycam?.callsign || bodycam?.camera_label || ''}</b></button>}
           {enabledProducts.length > 1 && <div className="recordsweb-product-switcher" title={productState.testerProgram ? 'Tester Programme: all products enabled' : 'Switch RecordsWeb product'}><button className={!policingActive ? 'active' : ''} onClick={() => { try { sessionStorage.setItem('recordsweb-active-product', 'clinical') } catch {}; navigate('/') }}>Clinical</button><button className={policingActive ? 'active' : ''} onClick={() => { try { sessionStorage.setItem('recordsweb-active-product', 'policing') } catch {}; navigate('/policing') }}>Policing</button></div>}
           <ScreenMessageCenter session={session} />
           <button className={`icon-btn ${location.pathname === '/security' ? 'active' : ''}`} title="Account & Security" onClick={() => navigate('/security')}><ShieldCheck size={18} /></button>

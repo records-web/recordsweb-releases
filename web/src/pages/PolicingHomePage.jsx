@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { AlertTriangle, Car, FileWarning, Gavel, Radio, Search, Shield, UserRoundSearch } from 'lucide-react'
+import { AlertTriangle, Car, FileWarning, Gavel, Radio, Search, Shield, UserRoundSearch, Video } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import { getPolicingDashboardCounts } from '../lib/policingService'
 
@@ -24,6 +24,7 @@ export default function PolicingHomePage() {
       <button onClick={() => navigate('/policing/incidents')}><Radio size={18}/><div><strong>Incident desk</strong><span>Create and manage current incidents.</span></div></button>
       <button onClick={() => navigate('/policing/fpns')}><Gavel size={18}/><div><strong>Fixed Penalty Notices</strong><span>Issue and review FPNs.</span></div></button>
       <button onClick={() => navigate('/policing/records/intelligence')}><AlertTriangle size={18}/><div><strong>Intelligence</strong><span>Record operational intelligence and observations.</span></div></button>
+      <button onClick={() => navigate('/policing/bodycams')}><Video size={18}/><div><strong>Bodycams</strong><span>Start or view live body-worn video through LiveKit Cloud.</span></div></button>
     </section>
   </div>
 }

@@ -47,6 +47,8 @@ import PolicingVehiclesPage from './pages/PolicingVehiclesPage'
 import PolicingIncidentsPage from './pages/PolicingIncidentsPage'
 import PolicingFpnPage from './pages/PolicingFpnPage'
 import PolicingRegisterPage from './pages/PolicingRegisterPage'
+import PolicingBodycamsPage from './pages/PolicingBodycamsPage'
+import { BodycamProvider } from './contexts/BodycamContext'
 import { getOrganisationProductState } from './lib/productAccess'
 
 function Protected({ children }) {
@@ -120,6 +122,7 @@ function StaffRoutes() {
               <Route path="policing/vehicles" element={<PolicingVehiclesPage />} />
               <Route path="policing/incidents" element={<PolicingIncidentsPage />} />
               <Route path="policing/fpns" element={<PolicingFpnPage />} />
+              <Route path="policing/bodycams" element={<PolicingBodycamsPage />} />
               <Route path="policing/records/:recordType" element={<PolicingRegisterPage />} />
             </Route>
             <Route path="staff-area" element={<StaffAreaPage />} />
@@ -137,6 +140,7 @@ function StaffRoutes() {
 export default function App() {
   return (
     <AuthProvider>
+      <BodycamProvider>
       {/* Public routes and Platform Management deliberately remain outside StaffEnvironment/MaintenanceGate. */}
       <Routes>
         <Route path="/" element={<RootRoute />} />
@@ -153,6 +157,7 @@ export default function App() {
         <Route path="/platform-management" element={<PlatformManagementPage />} />
         <Route path="/*" element={<StaffRoutes />} />
       </Routes>
+      </BodycamProvider>
     </AuthProvider>
   )
 }

@@ -38,6 +38,8 @@ import PolicingVehiclesPage from './pages/PolicingVehiclesPage'
 import PolicingIncidentsPage from './pages/PolicingIncidentsPage'
 import PolicingFpnPage from './pages/PolicingFpnPage'
 import PolicingRegisterPage from './pages/PolicingRegisterPage'
+import PolicingBodycamsPage from './pages/PolicingBodycamsPage'
+import { BodycamProvider } from './contexts/BodycamContext'
 import { getOrganisationProductState } from './lib/productAccess'
 
 function Protected({ children }) {
@@ -58,6 +60,7 @@ export default function App() {
     <InstallationGate>
     <UpdateGate>
       <AuthProvider>
+        <BodycamProvider>
         <MaintenanceGate>
         <AccountAccessGuard>
         <Routes>
@@ -95,6 +98,7 @@ export default function App() {
               <Route path="policing/vehicles" element={<PolicingVehiclesPage />} />
               <Route path="policing/incidents" element={<PolicingIncidentsPage />} />
               <Route path="policing/fpns" element={<PolicingFpnPage />} />
+              <Route path="policing/bodycams" element={<PolicingBodycamsPage />} />
               <Route path="policing/records/:recordType" element={<PolicingRegisterPage />} />
             </Route>
             <Route path="staff-area" element={<StaffAreaPage />} />
@@ -109,6 +113,7 @@ export default function App() {
         </Routes>
         </AccountAccessGuard>
         </MaintenanceGate>
+        </BodycamProvider>
       </AuthProvider>
     </UpdateGate>
     </InstallationGate>

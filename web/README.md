@@ -299,3 +299,7 @@ Community Management now includes a per-organisation Roblox integration for wait
 ## 3.3.9 Provider Comments & Decision Email Fix
 
 See `docs/RECORDSWEB-3.3.9-PROVIDER-COMMENTS-DECISION-EMAIL-FIX.md`. Run `supabase/recordsweb-3.3.9-provider-comments-decision-email-fix.sql` before deploying this website build.
+
+## RecordsWeb 5.1.0 — Live Bodycams
+
+RecordsWeb Policing includes LiveKit Cloud bodycam streaming at `/policing/bodycams`. Run `supabase/recordsweb-5.1.0-livekit-bodycams.sql`, configure the three `LIVEKIT_*` Edge Function secrets, and deploy `recordsweb-bodycam`. See `RECORDSWEB-5.1.0-BODYCAMS.md`.

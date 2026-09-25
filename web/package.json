@@ -2,8 +2,8 @@
   "name": "recordsweb-web",
   "productName": "RecordsWeb Web",
   "private": true,
-  "version": "5.0.3",
-  "description": "RecordsWeb multi-product operations platform for Clinical and Policing communities",
+  "version": "5.1.0",
+  "description": "RecordsWeb multi-product operations platform for Clinical and Policing communities with LiveKit bodycam operations",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",

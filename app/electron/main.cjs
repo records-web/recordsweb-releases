@@ -1,4 +1,4 @@
-const { app, BrowserWindow, Menu, shell, ipcMain, nativeTheme, dialog } = require('electron')
+const { app, BrowserWindow, Menu, shell, ipcMain, nativeTheme, dialog, session: electronSession, desktopCapturer } = require('electron')
 const { autoUpdater } = require('electron-updater')
 const path = require('node:path')
 const fs = require('node:fs')
@@ -526,6 +526,65 @@ ipcMain.handle('recordsweb:get-app-info', () => ({
   })
 }
 
+
+function configureBodycamMediaCapture() {
+  const ses = electronSession.defaultSession
+
+  ses.setDisplayMediaRequestHandler(async (request, callback) => {
+    try {
+      if (!request.userGesture) {
+        callback({})
+        return
+      }
+
+      const sources = await desktopCapturer.getSources({
+        types: ['screen', 'window'],
+        thumbnailSize: { width: 0, height: 0 },
+        fetchWindowIcons: false,
+      })
+
+      const available = sources.slice(0, 20)
+      if (!available.length) {
+        callback({})
+        return
+      }
+
+      const buttons = [...available.map((source) => source.name || 'Screen / window'), 'Cancel']
+      const result = await dialog.showMessageBox(mainWindow || undefined, {
+        type: 'question',
+        title: 'RecordsWeb Bodycam',
+        message: 'Choose what to share as your live bodycam',
+        detail: 'Only the selected screen or window will be published to authorised RecordsWeb Policing viewers.',
+        buttons,
+        cancelId: buttons.length - 1,
+        defaultId: 0,
+        noLink: true,
+      })
+
+      if (result.response < 0 || result.response >= available.length) {
+        callback({})
+        return
+      }
+
+      const streams = { video: available[result.response] }
+      if (request.audioRequested && process.platform === 'win32') streams.audio = 'loopback'
+      callback(streams)
+    } catch (error) {
+      console.error('[RecordsWeb Bodycam] Display capture request failed:', error)
+      callback({})
+    }
+  }, { useSystemPicker: true })
+
+  ses.setPermissionRequestHandler((webContents, permission, callback, details = {}) => {
+    if (permission !== 'media' || !mainWindow || webContents !== mainWindow.webContents) {
+      callback(false)
+      return
+    }
+    const mediaTypes = Array.isArray(details.mediaTypes) ? details.mediaTypes : []
+    callback(mediaTypes.length === 0 || mediaTypes.every((type) => type === 'audio'))
+  })
+}
+
 function createWindow() {
   const win = new BrowserWindow({
     width: 920,
@@ -608,6 +667,7 @@ registerDesktopIpc()
 app.whenReady().then(() => {
   Menu.setApplicationMenu(null)
   createWindow()
+  configureBodycamMediaCapture()
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow()
