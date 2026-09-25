@@ -5817,3 +5817,89 @@ html.rw-dark-mode .legacy-login-legal button { color:#79bde7; }
 .xion-bodycam-overlay{pointer-events:none;position:absolute;inset:0;z-index:6;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;font-style:italic;color:#d5d5d5;text-shadow:0 1px 2px rgba(0,0,0,.9)}.xion-bodycam-panel{position:absolute;top:12px;right:12px;min-width:235px;padding:8px 10px;border-radius:10px;background:rgba(0,0,0,.5);text-align:right;font-size:12px;line-height:1.25}.xion-bodycam-rec{display:flex;align-items:center;justify-content:flex-end;gap:7px;margin-bottom:3px;color:#eee}.xion-bodycam-rec strong{font-size:14px;letter-spacing:.08em}.xion-bodycam-rec>span:last-child{color:#c7c7c7;font-size:10px;letter-spacing:.07em}.xion-bodycam-dot{color:#d93333;font-size:14px;font-style:normal;animation:xion-bodycam-blink 1.5s cubic-bezier(.5,0,1,1) infinite alternate}.xion-bodycam-officer{font-size:12px}.xion-bodycam-agency{font-size:10px;color:#b7b7b7}.xion-bodycam-time{margin-top:3px;font-size:10px;color:#e0e0e0}@keyframes xion-bodycam-blink{from{opacity:1}to{opacity:.12}}
 @media(max-width:1000px){.bodycam-start-form{grid-template-columns:repeat(2,minmax(0,1fr))}.bodycam-start-form .bodycam-checkbox{grid-column:1}.bodycam-start-button{grid-column:2}.bodycam-live-actions{grid-template-columns:1fr 1fr}.bodycam-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:700px){.bodycam-start-form,.bodycam-live-actions,.bodycam-grid{grid-template-columns:1fr}.bodycam-start-form .bodycam-checkbox,.bodycam-start-button{grid-column:1}.bodycam-viewer-modal{width:100vw;height:100vh}.bodycam-viewer-modal>footer{flex-direction:column}.xion-bodycam-panel{top:8px;right:8px;min-width:190px;font-size:10px}}
+
+
+/* RecordsWeb 5.1.1 — public multi-service homepage + dark-theme contrast fixes */
+.public-home.public-theme-dark .recordsweb-public-product-grid article {
+  background:#121e25;
+  border-color:#39596b;
+  box-shadow:none;
+}
+.public-home.public-theme-dark .recordsweb-public-product-grid strong {
+  color:#c7dce7;
+}
+.public-home.public-theme-dark .recordsweb-public-product-grid p {
+  color:#93aab7;
+}
+.public-home.public-theme-dark .public-file-input {
+  background:#0f1a21;
+  border-color:#3a596a;
+  color:#dcebf3;
+}
+.public-home.public-theme-dark .public-file-input:hover {
+  background:#14242d;
+  border-color:#52778d;
+}
+.public-home.public-theme-dark .public-file-input:focus-within {
+  border-color:#4d9fd0;
+  box-shadow:inset 0 0 0 1px #2e6688;
+}
+.public-home.public-theme-dark .public-file-button {
+  background:linear-gradient(#20313c,#172832);
+  border-color:#4a6c7f;
+  color:#d7e7ef;
+}
+.public-home.public-theme-dark .public-file-name {
+  color:#b7cad5;
+}
+.public-home.public-theme-dark .public-file-input small {
+  color:#8da7b4;
+}
+.recordsweb-service-grid article > div:last-child {
+  min-width:0;
+}
+.recordsweb-service-tag {
+  display:inline-flex;
+  align-items:center;
+  min-height:20px;
+  margin-top:10px;
+  padding:0 7px;
+  border:1px solid #b7d7e9;
+  background:#eff8fd;
+  color:#0f6fbd;
+  font-size:8.5px;
+  font-weight:800;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+}
+.recordsweb-service-tag.policing {
+  border-color:#bfd2df;
+  background:#f1f6f9;
+  color:#345f79;
+}
+.public-home.public-theme-dark .recordsweb-service-tag {
+  background:#142d3a;
+  border-color:#35647e;
+  color:#83c9ee;
+}
+.public-home.public-theme-dark .recordsweb-service-tag.policing {
+  background:#182b35;
+  border-color:#466678;
+  color:#b8d0dc;
+}
+
+
+/* RecordsWeb 5.2.0 — Policing record detail pages and CAD-style dispatch log */
+.police-page-subtitle{margin:4px 0 0;color:#687787;font-size:12px}.rw-dark-mode .police-page-subtitle{color:#9caebb}
+.police-list-title-row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.police-list-title-row>a:first-child{color:inherit;text-decoration:none;min-width:0}.police-list-title-row>a:first-child:hover strong{text-decoration:underline;text-underline-offset:2px}.police-open-link{display:inline-flex!important;align-items:center;gap:4px;flex:0 0 auto;margin:0!important;font-size:10px!important;font-weight:700;color:#176daf!important;text-decoration:none}.rw-dark-mode .police-open-link{color:#79bde9!important}.police-open-link:hover{text-decoration:underline}
+.police-dispatch-row-meta{display:flex;flex-wrap:wrap;gap:12px;margin-top:7px;padding:7px 9px;border-left:3px solid #2479b8;background:#eef6fb;font-size:11px}.police-dispatch-row-meta b{font-weight:700}.police-dispatch-row-meta span{margin:0!important;color:#526576!important}.rw-dark-mode .police-dispatch-row-meta{background:#14232d;border-left-color:#36a0e5}.rw-dark-mode .police-dispatch-row-meta span{color:#9db2c0!important}
+.police-record-detail{padding-bottom:30px}.police-record-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:11px}.police-record-toolbar button,.police-record-toolbar-actions{display:flex;align-items:center;gap:7px}.police-record-toolbar-actions{justify-content:flex-end}.police-record-toolbar button{padding:7px 10px}.police-danger-button{background:#fff1f1!important;border-color:#d38b8b!important;color:#a12127!important}.police-danger-button:hover:not(:disabled){background:#f7dede!important;border-color:#c55b62!important;color:#7f161c!important}.rw-dark-mode .product-policing .police-danger-button{background:#3a1d20!important;border-color:#734148!important;color:#ffbfc3!important}.rw-dark-mode .product-policing .police-danger-button:hover:not(:disabled){background:#512429!important;border-color:#a65059!important;color:#fff!important}
+.police-record-banner{display:flex;align-items:center;gap:13px;margin-bottom:12px;padding:15px 17px;border:1px solid #bfcddd;background:linear-gradient(90deg,#eaf2f9,#f9fbfc)}.rw-dark-mode .police-record-banner{background:linear-gradient(90deg,#172633,#162029);border-color:#405566}.police-record-banner-icon{display:grid;place-items:center;width:46px;height:46px;border:1px solid #7ca8c6;background:#dceefa;color:#176fae}.rw-dark-mode .police-record-banner-icon{background:#102435;border-color:#396c8e;color:#61b6ee}.police-record-banner-main{min-width:0;flex:1}.police-record-banner-main>span{font-size:9px;font-weight:800;letter-spacing:.14em;color:#2576b3}.police-record-banner-main h1{margin:2px 0 3px;font-size:22px}.police-record-banner-main p{margin:0;color:#637484;font-size:10px}.rw-dark-mode .police-record-banner-main p{color:#9bb0bf}.police-status-badge{flex:0 0 auto;padding:5px 8px;border:1px solid #92a4b4;background:#edf2f5;color:#34495a;font-size:9px;font-weight:800;letter-spacing:.08em;text-transform:uppercase}.rw-dark-mode .police-status-badge{background:#192832;border-color:#4c6273;color:#d5e3ed}.police-status-badge.status-open,.police-status-badge.status-active,.police-status-badge.status-assigned,.police-status-badge.status-dispatched{border-color:#4284b4;background:#e3f2fc;color:#155d8d}.rw-dark-mode .police-status-badge.status-open,.rw-dark-mode .police-status-badge.status-active,.rw-dark-mode .police-status-badge.status-assigned,.rw-dark-mode .police-status-badge.status-dispatched{background:#12314a;color:#9fd7ff}.police-status-badge.status-on-scene,.police-status-badge.status-resolved,.police-status-badge.status-paid{border-color:#50a271;background:#e7f7ed;color:#246a3f}.rw-dark-mode .police-status-badge.status-on-scene,.rw-dark-mode .police-status-badge.status-resolved,.rw-dark-mode .police-status-badge.status-paid{background:#173526;color:#a8e5bc}.police-status-badge.status-closed,.police-status-badge.status-cancelled,.police-status-badge.status-withdrawn{border-color:#8c949b;background:#eceff1;color:#4e575e}.rw-dark-mode .police-status-badge.status-closed,.rw-dark-mode .police-status-badge.status-cancelled,.rw-dark-mode .police-status-badge.status-withdrawn{background:#252b30;color:#c0c8ce}
+.police-cad-strip{display:grid;grid-template-columns:1.2fr .7fr 1.7fr 1fr .8fr;margin-bottom:12px;border:1px solid #35566d;background:#0e2635;color:#e6f1f7}.police-cad-strip>div{min-width:0;padding:10px 12px;border-right:1px solid #294759}.police-cad-strip>div:last-child{border-right:0}.police-cad-strip span,.police-cad-strip strong{display:block}.police-cad-strip span{font-size:8px;letter-spacing:.11em;color:#72afd4}.police-cad-strip strong{margin-top:3px;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.police-detail-panel,.police-detail-edit{margin-bottom:12px;padding:14px 15px;border:1px solid #c7d2dd;background:#fff}.rw-dark-mode .police-detail-panel,.rw-dark-mode .police-detail-edit{background:#1a222a;border-color:#3c4b58}.police-panel-heading{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:11px}.police-panel-heading span{font-size:8px!important;font-weight:800;letter-spacing:.12em;color:#2d7eb8}.police-panel-heading h2{margin:2px 0 0;font-size:15px}.police-panel-heading>svg{color:#377ba9}
+.police-detail-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));border-top:1px solid #d6dfe6;border-left:1px solid #d6dfe6}.rw-dark-mode .police-detail-grid{border-color:#394956}.police-detail-field{min-width:0;min-height:58px;padding:9px 10px;border-right:1px solid #d6dfe6;border-bottom:1px solid #d6dfe6;background:#fbfcfd}.rw-dark-mode .police-detail-field{background:#151d24;border-color:#394956}.police-detail-field.wide{grid-column:span 2}.police-detail-field>span,.police-detail-field>strong{display:block}.police-detail-field>span{font-size:8px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#687b8b}.police-detail-field>strong{margin-top:4px;font-size:11px;font-weight:600;white-space:pre-wrap;overflow-wrap:anywhere}.rw-dark-mode .police-detail-field>span{color:#8fa5b4}.police-linked-record{display:inline-flex;align-items:center;gap:4px;color:#146eae;text-decoration:none}.rw-dark-mode .police-linked-record{color:#73bce9}.police-linked-record:hover{text-decoration:underline}
+.police-detail-columns{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(280px,.7fr);gap:12px;align-items:start}.police-update-panel,.police-add-update{margin-bottom:0}.police-timeline{position:relative;padding-left:9px}.police-timeline:before{content:"";position:absolute;left:13px;top:4px;bottom:8px;width:1px;background:#b8c8d4}.rw-dark-mode .police-timeline:before{background:#415462}.police-timeline-item{position:relative;display:grid;grid-template-columns:18px 1fr;gap:9px;padding:0 0 13px}.police-timeline-dot{position:relative;z-index:1;width:9px;height:9px;margin-top:5px;border:2px solid #fff;border-radius:50%;background:#2782bf;box-shadow:0 0 0 1px #2782bf}.rw-dark-mode .police-timeline-dot{border-color:#1a222a}.police-timeline-item.created .police-timeline-dot{background:#657786;box-shadow:0 0 0 1px #657786}.police-timeline-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.police-timeline-head strong{font-size:10px}.police-timeline-head time{font-size:8px;color:#778794;white-space:nowrap}.police-timeline-copy p{margin:4px 0;font-size:11px;white-space:pre-wrap}.police-timeline-copy small{color:#758795;font-size:9px}.rw-dark-mode .police-timeline-head time,.rw-dark-mode .police-timeline-copy small{color:#91a4b2}
+.police-update-form{display:flex;flex-direction:column;gap:9px}.police-update-form label{display:flex;flex-direction:column;gap:4px}.police-update-form label>span{font-size:9px;font-weight:700;color:#617381}.rw-dark-mode .police-update-form label>span{color:#9aafbd}.police-update-form input,.police-update-form select,.police-update-form textarea{box-sizing:border-box;width:100%;padding:7px 8px;border:1px solid #bccad4;background:#fff;color:#17212b}.rw-dark-mode .police-update-form input,.rw-dark-mode .police-update-form select,.rw-dark-mode .police-update-form textarea{background:#121920;border-color:#40505e;color:#eef4f8}.police-update-form select option{background:#fff;color:#17212b}.rw-dark-mode .police-update-form select option{background:#121920;color:#eef4f8}.police-update-form .primary-button{justify-content:center}
+.police-detail-edit .police-panel-heading{margin-bottom:12px}
+@media(max-width:1100px){.police-detail-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.police-cad-strip{grid-template-columns:repeat(2,minmax(0,1fr))}.police-cad-strip>div{border-bottom:1px solid #294759}.police-detail-columns{grid-template-columns:1fr}}
+@media(max-width:700px){.police-record-toolbar,.police-record-banner,.police-list-title-row{align-items:stretch;flex-direction:column}.police-record-toolbar-actions{justify-content:stretch}.police-record-toolbar-actions button{flex:1}.police-status-badge{align-self:flex-start}.police-detail-grid,.police-cad-strip{grid-template-columns:1fr}.police-detail-field.wide{grid-column:auto}.police-cad-strip>div{border-right:0}.police-timeline-head{flex-direction:column;gap:2px}}

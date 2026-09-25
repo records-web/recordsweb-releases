@@ -2,8 +2,8 @@
   "name": "recordsweb",
   "productName": "RecordsWeb",
   "private": true,
-  "version": "5.1.0",
-  "description": "RecordsWeb multi-product operations platform for Clinical and Policing communities with LiveKit bodycam operations",
+  "version": "5.2.0",
+  "description": "RecordsWeb multi-service operations platform for GP, Hospital, Ambulance/PHEM and Policing communities",
   "main": "electron/main.cjs",
   "type": "module",
   "scripts": {

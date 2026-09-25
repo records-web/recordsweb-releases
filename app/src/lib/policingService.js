@@ -3,14 +3,14 @@ import { assertBillingWriteAllowed } from './billingAccess'
 import { recordAudit } from './auditService'
 
 const DEMO_KEY = 'recordsweb-policing-demo-v1'
-const RECORD_TYPES = new Set(['crime_report','intelligence','statement','evidence','arrest','warrant','seizure','custody','bolo','briefing','dispatch'])
+export const POLICE_RECORD_TYPES = new Set(['crime_report','intelligence','statement','evidence','arrest','warrant','seizure','custody','bolo','briefing','dispatch'])
 
 function demoDb() {
   try {
     const value = JSON.parse(localStorage.getItem(DEMO_KEY) || 'null')
-    if (value && typeof value === 'object') return { persons: [], vehicles: [], incidents: [], fpns: [], records: [], ...value }
+    if (value && typeof value === 'object') return { persons: [], vehicles: [], incidents: [], fpns: [], records: [], updates: [], ...value }
   } catch {}
-  return { persons: [], vehicles: [], incidents: [], fpns: [], records: [] }
+  return { persons: [], vehicles: [], incidents: [], fpns: [], records: [], updates: [] }
 }
 
 function saveDemo(db) { localStorage.setItem(DEMO_KEY, JSON.stringify(db)) }
@@ -19,7 +19,17 @@ function demoInsert(bucket, payload, prefix) {
   const created = { id: crypto.randomUUID?.() || `${Date.now()}-${Math.random()}`, reference: `${prefix}-${String(Date.now()).slice(-7)}`, created_at: new Date().toISOString(), updated_at: new Date().toISOString(), ...payload }
   db[bucket].unshift(created); saveDemo(db); return created
 }
+function demoUpdate(bucket, id, patch) {
+  const db = demoDb(); const index = db[bucket].findIndex((r) => String(r.id) === String(id)); if (index < 0) throw new Error('Record not found.')
+  db[bucket][index] = { ...db[bucket][index], ...patch, updated_at: new Date().toISOString() }; saveDemo(db); return db[bucket][index]
+}
+function demoDelete(bucket, id) {
+  const db = demoDb(); const before = db[bucket].length; db[bucket] = db[bucket].filter((r) => String(r.id) !== String(id));
+  db.updates = db.updates.filter((r) => String(r.record_id) !== String(id)); saveDemo(db); return before !== db[bucket].length
+}
+function demoGet(bucket, id) { return demoDb()[bucket].find((r) => String(r.id) === String(id)) || null }
 function cleanSearch(value) { return String(value || '').trim().replace(/[%_,()]/g, '') }
+function requireRecordType(recordType) { if (!POLICE_RECORD_TYPES.has(recordType)) throw new Error('Unsupported policing register.') }
 
 export async function listPolicePersons(search = '') {
   if (!supabaseConfigured) {
@@ -32,6 +42,13 @@ export async function listPolicePersons(search = '') {
   const { data, error } = await query
   if (error) throw error
   return data || []
+}
+
+export async function getPolicePerson(id) {
+  if (!supabaseConfigured) return demoGet('persons', id)
+  const { data, error } = await supabase.from('police_persons').select('*').eq('id', id).maybeSingle()
+  if (error) throw error
+  return data
 }
 
 export async function createPolicePerson(payload) {
@@ -47,6 +64,25 @@ export async function createPolicePerson(payload) {
   return data
 }
 
+export async function updatePolicePerson(id, patch) {
+  assertBillingWriteAllowed('update a policing person record')
+  const data = !supabaseConfigured ? demoUpdate('persons', id, patch) : (await supabase.from('police_persons').update(patch).eq('id', id).select().single())
+  if (supabaseConfigured && data.error) throw data.error
+  const row = supabaseConfigured ? data.data : data
+  await recordAudit({ action: 'policing.person.updated', entityType: 'police_person', entityId: id, description: `Updated policing person ${row?.reference || ''}.` })
+  return row
+}
+
+export async function deletePolicePerson(id) {
+  assertBillingWriteAllowed('delete a policing person record')
+  if (!supabaseConfigured) demoDelete('persons', id)
+  else {
+    const { error } = await supabase.from('police_persons').delete().eq('id', id)
+    if (error) throw error
+  }
+  await recordAudit({ action: 'policing.person.deleted', entityType: 'police_person', entityId: id, description: 'Deleted policing person record.' })
+}
+
 export async function listPoliceVehicles(search = '') {
   if (!supabaseConfigured) {
     const q = String(search || '').trim().toLowerCase()
@@ -58,6 +94,17 @@ export async function listPoliceVehicles(search = '') {
   const { data, error } = await query
   if (error) throw error
   return data || []
+}
+
+export async function getPoliceVehicle(id) {
+  if (!supabaseConfigured) {
+    const row = demoGet('vehicles', id); if (!row) return null
+    const owner = row.owner_person_id ? demoGet('persons', row.owner_person_id) : null
+    return { ...row, owner }
+  }
+  const { data, error } = await supabase.from('police_vehicles').select('*, owner:police_persons!police_vehicles_owner_person_id_fkey(id,reference,first_name,last_name)').eq('id', id).maybeSingle()
+  if (error) throw error
+  return data
 }
 
 export async function createPoliceVehicle(payload) {
@@ -73,6 +120,22 @@ export async function createPoliceVehicle(payload) {
   return data
 }
 
+export async function updatePoliceVehicle(id, patch) {
+  assertBillingWriteAllowed('update a policing vehicle record')
+  const result = !supabaseConfigured ? demoUpdate('vehicles', id, patch) : await supabase.from('police_vehicles').update(patch).eq('id', id).select().single()
+  if (supabaseConfigured && result.error) throw result.error
+  const row = supabaseConfigured ? result.data : result
+  await recordAudit({ action: 'policing.vehicle.updated', entityType: 'police_vehicle', entityId: id, description: `Updated vehicle ${row?.registration || row?.reference || ''}.` })
+  return row
+}
+
+export async function deletePoliceVehicle(id) {
+  assertBillingWriteAllowed('delete a policing vehicle record')
+  if (!supabaseConfigured) demoDelete('vehicles', id)
+  else { const { error } = await supabase.from('police_vehicles').delete().eq('id', id); if (error) throw error }
+  await recordAudit({ action: 'policing.vehicle.deleted', entityType: 'police_vehicle', entityId: id, description: 'Deleted policing vehicle record.' })
+}
+
 export async function listPoliceIncidents(search = '') {
   if (!supabaseConfigured) {
     const q = String(search || '').trim().toLowerCase()
@@ -84,6 +147,16 @@ export async function listPoliceIncidents(search = '') {
   const { data, error } = await query
   if (error) throw error
   return data || []
+}
+
+export async function getPoliceIncident(id) {
+  if (!supabaseConfigured) {
+    const row = demoGet('incidents', id); if (!row) return null
+    return { ...row, person: row.person_id ? demoGet('persons', row.person_id) : null, vehicle: row.vehicle_id ? demoGet('vehicles', row.vehicle_id) : null }
+  }
+  const { data, error } = await supabase.from('police_incidents').select('*, person:police_persons(id,reference,first_name,last_name), vehicle:police_vehicles(id,reference,registration)').eq('id', id).maybeSingle()
+  if (error) throw error
+  return data
 }
 
 export async function createPoliceIncident(payload) {
@@ -101,14 +174,18 @@ export async function createPoliceIncident(payload) {
 
 export async function updatePoliceIncident(id, patch) {
   assertBillingWriteAllowed('update a policing incident')
-  if (!supabaseConfigured) {
-    const db = demoDb(); const index = db.incidents.findIndex((r) => r.id === id); if (index < 0) throw new Error('Incident not found.')
-    db.incidents[index] = { ...db.incidents[index], ...patch, updated_at: new Date().toISOString() }; saveDemo(db); return db.incidents[index]
-  }
-  const { data, error } = await supabase.from('police_incidents').update(patch).eq('id', id).select().single()
-  if (error) throw error
-  await recordAudit({ action: 'policing.incident.updated', entityType: 'police_incident', entityId: id, description: `Updated incident ${data.reference || ''}.` })
-  return data
+  const result = !supabaseConfigured ? demoUpdate('incidents', id, patch) : await supabase.from('police_incidents').update(patch).eq('id', id).select().single()
+  if (supabaseConfigured && result.error) throw result.error
+  const row = supabaseConfigured ? result.data : result
+  await recordAudit({ action: 'policing.incident.updated', entityType: 'police_incident', entityId: id, description: `Updated incident ${row?.reference || ''}.` })
+  return row
+}
+
+export async function deletePoliceIncident(id) {
+  assertBillingWriteAllowed('delete a policing incident')
+  if (!supabaseConfigured) demoDelete('incidents', id)
+  else { const { error } = await supabase.from('police_incidents').delete().eq('id', id); if (error) throw error }
+  await recordAudit({ action: 'policing.incident.deleted', entityType: 'police_incident', entityId: id, description: 'Deleted policing incident.' })
 }
 
 export async function listPoliceFpns(search = '') {
@@ -124,6 +201,16 @@ export async function listPoliceFpns(search = '') {
   return data || []
 }
 
+export async function getPoliceFpn(id) {
+  if (!supabaseConfigured) {
+    const row = demoGet('fpns', id); if (!row) return null
+    return { ...row, person: row.person_id ? demoGet('persons', row.person_id) : null, vehicle: row.vehicle_id ? demoGet('vehicles', row.vehicle_id) : null }
+  }
+  const { data, error } = await supabase.from('police_fpns').select('*, person:police_persons(id,reference,first_name,last_name), vehicle:police_vehicles(id,reference,registration)').eq('id', id).maybeSingle()
+  if (error) throw error
+  return data
+}
+
 export async function createPoliceFpn(payload) {
   assertBillingWriteAllowed('issue a fixed penalty notice')
   let data
@@ -137,8 +224,24 @@ export async function createPoliceFpn(payload) {
   return data
 }
 
+export async function updatePoliceFpn(id, patch) {
+  assertBillingWriteAllowed('update a fixed penalty notice')
+  const result = !supabaseConfigured ? demoUpdate('fpns', id, patch) : await supabase.from('police_fpns').update(patch).eq('id', id).select().single()
+  if (supabaseConfigured && result.error) throw result.error
+  const row = supabaseConfigured ? result.data : result
+  await recordAudit({ action: 'policing.fpn.updated', entityType: 'police_fpn', entityId: id, description: `Updated FPN ${row?.reference || ''}.` })
+  return row
+}
+
+export async function deletePoliceFpn(id) {
+  assertBillingWriteAllowed('delete a fixed penalty notice')
+  if (!supabaseConfigured) demoDelete('fpns', id)
+  else { const { error } = await supabase.from('police_fpns').delete().eq('id', id); if (error) throw error }
+  await recordAudit({ action: 'policing.fpn.deleted', entityType: 'police_fpn', entityId: id, description: 'Deleted Fixed Penalty Notice.' })
+}
+
 export async function listPoliceRecords(recordType, search = '') {
-  if (!RECORD_TYPES.has(recordType)) throw new Error('Unsupported policing register.')
+  requireRecordType(recordType)
   if (!supabaseConfigured) {
     const q = String(search || '').trim().toLowerCase()
     return demoDb().records.filter((r) => r.record_type === recordType && (!q || `${r.reference} ${r.title} ${r.details || ''}`.toLowerCase().includes(q)))
@@ -151,8 +254,21 @@ export async function listPoliceRecords(recordType, search = '') {
   return data || []
 }
 
+export async function getPoliceRecord(id, recordType = '') {
+  if (recordType) requireRecordType(recordType)
+  if (!supabaseConfigured) {
+    const row = demoGet('records', id); if (!row || (recordType && row.record_type !== recordType)) return null
+    return { ...row, person: row.person_id ? demoGet('persons', row.person_id) : null, vehicle: row.vehicle_id ? demoGet('vehicles', row.vehicle_id) : null, incident: row.incident_id ? demoGet('incidents', row.incident_id) : null }
+  }
+  let query = supabase.from('police_records').select('*, person:police_persons(id,reference,first_name,last_name), vehicle:police_vehicles(id,reference,registration), incident:police_incidents(id,reference,title)').eq('id', id)
+  if (recordType) query = query.eq('record_type', recordType)
+  const { data, error } = await query.maybeSingle()
+  if (error) throw error
+  return data
+}
+
 export async function createPoliceRecord(recordType, payload) {
-  if (!RECORD_TYPES.has(recordType)) throw new Error('Unsupported policing register.')
+  requireRecordType(recordType)
   assertBillingWriteAllowed('create a policing record')
   let data
   if (!supabaseConfigured) data = demoInsert('records', { record_type: recordType, ...payload }, recordType.slice(0, 3).toUpperCase())
@@ -162,6 +278,44 @@ export async function createPoliceRecord(recordType, payload) {
     data = result.data
   }
   await recordAudit({ action: `policing.${recordType}.created`, entityType: 'police_record', entityId: data.id, description: `Created ${recordType.replaceAll('_', ' ')} ${data.reference || ''}.` })
+  return data
+}
+
+export async function updatePoliceRecord(id, patch) {
+  assertBillingWriteAllowed('update a policing record')
+  const result = !supabaseConfigured ? demoUpdate('records', id, patch) : await supabase.from('police_records').update(patch).eq('id', id).select().single()
+  if (supabaseConfigured && result.error) throw result.error
+  const row = supabaseConfigured ? result.data : result
+  await recordAudit({ action: `policing.${row?.record_type || 'record'}.updated`, entityType: 'police_record', entityId: id, description: `Updated policing record ${row?.reference || ''}.` })
+  return row
+}
+
+export async function deletePoliceRecord(id) {
+  assertBillingWriteAllowed('delete a policing record')
+  if (!supabaseConfigured) demoDelete('records', id)
+  else { const { error } = await supabase.from('police_records').delete().eq('id', id); if (error) throw error }
+  await recordAudit({ action: 'policing.record.deleted', entityType: 'police_record', entityId: id, description: 'Deleted policing record.' })
+}
+
+export async function listPoliceRecordUpdates(recordKind, recordId) {
+  if (!supabaseConfigured) return demoDb().updates.filter((r) => r.record_kind === recordKind && String(r.record_id) === String(recordId)).sort((a,b) => new Date(b.created_at) - new Date(a.created_at))
+  const { data, error } = await supabase.from('police_record_updates').select('*').eq('record_kind', recordKind).eq('record_id', recordId).order('created_at', { ascending: false }).limit(500)
+  if (error) throw error
+  return data || []
+}
+
+export async function addPoliceRecordUpdate({ recordKind, recordId, recordType = null, updateType = 'note', status = null, unitCallsign = '', message, createdByName = '', metadata = {} }) {
+  assertBillingWriteAllowed('add a policing record update')
+  const payload = { record_kind: recordKind, record_id: recordId, record_type: recordType || null, update_type: updateType || 'note', status: status || null, unit_callsign: unitCallsign || null, message: String(message || '').trim(), created_by_name: createdByName || null, metadata: metadata || {} }
+  if (!payload.message) throw new Error('Enter an update before saving.')
+  let data
+  if (!supabaseConfigured) data = demoInsert('updates', payload, 'UPD')
+  else {
+    const result = await supabase.from('police_record_updates').insert(payload).select().single()
+    if (result.error) throw result.error
+    data = result.data
+  }
+  await recordAudit({ action: 'policing.record.update_added', entityType: recordKind, entityId: recordId, description: `Added policing update: ${payload.message.slice(0, 160)}` })
   return data
 }
 

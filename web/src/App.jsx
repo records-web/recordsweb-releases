@@ -48,6 +48,7 @@ import PolicingIncidentsPage from './pages/PolicingIncidentsPage'
 import PolicingFpnPage from './pages/PolicingFpnPage'
 import PolicingRegisterPage from './pages/PolicingRegisterPage'
 import PolicingBodycamsPage from './pages/PolicingBodycamsPage'
+import PolicingRecordDetailPage from './pages/PolicingRecordDetailPage'
 import { BodycamProvider } from './contexts/BodycamContext'
 import { getOrganisationProductState } from './lib/productAccess'
 
@@ -119,11 +120,16 @@ function StaffRoutes() {
             <Route element={<ProductAccessGuard product="policing" />}>
               <Route path="policing" element={<PolicingHomePage />} />
               <Route path="policing/people" element={<PolicingPeoplePage />} />
+              <Route path="policing/people/:recordId" element={<PolicingRecordDetailPage entityType="person" />} />
               <Route path="policing/vehicles" element={<PolicingVehiclesPage />} />
+              <Route path="policing/vehicles/:recordId" element={<PolicingRecordDetailPage entityType="vehicle" />} />
               <Route path="policing/incidents" element={<PolicingIncidentsPage />} />
+              <Route path="policing/incidents/:recordId" element={<PolicingRecordDetailPage entityType="incident" />} />
               <Route path="policing/fpns" element={<PolicingFpnPage />} />
+              <Route path="policing/fpns/:recordId" element={<PolicingRecordDetailPage entityType="fpn" />} />
               <Route path="policing/bodycams" element={<PolicingBodycamsPage />} />
               <Route path="policing/records/:recordType" element={<PolicingRegisterPage />} />
+              <Route path="policing/records/:recordType/:recordId" element={<PolicingRecordDetailPage entityType="record" />} />
             </Route>
             <Route path="staff-area" element={<StaffAreaPage />} />
             <Route path="management" element={<ManagementOnly><ManagementPage /></ManagementOnly>} />

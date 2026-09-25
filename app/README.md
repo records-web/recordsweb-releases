@@ -1,5 +1,11 @@
 # RecordsWeb
 
+## RecordsWeb 5.2.0 — Multi-service public homepage
+
+Updates the public RecordsWeb homepage for the Version 5 multi-service platform. Product cards and the community-logo upload now render correctly in dark mode, and the homepage presents Primary Care (GP), Hospital, Ambulance/PHEM and Policing as supported service types.
+
+No database migration or Edge Function redeployment is required.
+
 ## RecordsWeb 5.0.0 — Clinical + Policing Platform
 
 RecordsWeb 5.0.0 expands RecordsWeb from a clinical-only system into a multi-product operations platform. **RecordsWeb Clinical** keeps the existing Primary Care, Hospital and Ambulance/PHEM workflows, while **RecordsWeb Policing** adds separate persons, vehicles, incidents, FPNs and operational registers. **RecordsWeb Complete** enables both products under one organisation and the **Tester Programme** unlocks all current products for QA.

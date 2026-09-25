@@ -585,10 +585,10 @@ function configureBodycamMediaCapture() {
   })
 }
 
-function createWindow() {
-  const win = new BrowserWindow({
-    width: 920,
-    height: 760,
+function recordsWebWindowOptions({ width = 920, height = 760 } = {}) {
+  return {
+    width,
+    height,
     minWidth: 560,
     minHeight: 438,
     show: false,
@@ -605,10 +605,24 @@ function createWindow() {
       allowRunningInsecureContent: false,
       backgroundThrottling: false,
     },
-  })
+  }
+}
 
-  mainWindow = win
+function isInternalRecordsWebUrl(url, currentUrl) {
+  try {
+    const target = new URL(url)
+    const current = new URL(currentUrl)
+    if (target.protocol === 'file:' && current.protocol === 'file:') {
+      return target.pathname === current.pathname
+    }
+    if ((target.protocol === 'http:' || target.protocol === 'https:') && target.origin === current.origin) {
+      return /^(127\.0\.0\.1|localhost)$/i.test(target.hostname)
+    }
+  } catch {}
+  return false
+}
 
+function configureRecordsWebWindow(win, { isMain = false } = {}) {
   win.once('ready-to-show', () => {
     win.show()
     win.focus()
@@ -620,7 +634,7 @@ function createWindow() {
   })
   win.on('restore', () => focusRenderer(win))
   win.on('closed', () => {
-    if (mainWindow === win) mainWindow = null
+    if (isMain && mainWindow === win) mainWindow = null
   })
 
   // Keep RecordsWeb feeling like a desktop application rather than a browser.
@@ -635,27 +649,44 @@ function createWindow() {
     if (devToolsShortcut || refreshShortcut) event.preventDefault()
   })
 
-  // RecordsWeb does not use embedded <webview> content.
   win.webContents.on('will-attach-webview', (event) => event.preventDefault())
 
+  // RecordsWeb 5.2.0: internal target=_blank links open as a separate RecordsWeb
+  // window. External websites continue to open in the user's normal browser.
   win.webContents.setWindowOpenHandler(({ url }) => {
+    const current = win.webContents.getURL()
+    if (isInternalRecordsWebUrl(url, current)) {
+      createWindow({ initialUrl: url, isMain: false, width: 1120, height: 780 })
+      return { action: 'deny' }
+    }
     if (/^https?:\/\//i.test(url)) shell.openExternal(url)
     return { action: 'deny' }
   })
 
   win.webContents.on('will-navigate', (event, url) => {
     const current = win.webContents.getURL()
-    if (url !== current && /^https?:\/\//i.test(url) && !url.startsWith('http://127.0.0.1:5173')) {
+    if (url === current || isInternalRecordsWebUrl(url, current)) return
+    if (/^https?:\/\//i.test(url)) {
       event.preventDefault()
       shell.openExternal(url)
     }
   })
+}
 
-  if (!app.isPackaged && process.env.VITE_DEV_SERVER_URL) {
+function createWindow({ initialUrl = '', isMain = true, width = 920, height = 760 } = {}) {
+  const win = new BrowserWindow(recordsWebWindowOptions({ width, height }))
+  if (isMain) mainWindow = win
+  configureRecordsWebWindow(win, { isMain })
+
+  if (initialUrl) {
+    win.loadURL(initialUrl)
+  } else if (!app.isPackaged && process.env.VITE_DEV_SERVER_URL) {
     win.loadURL(process.env.VITE_DEV_SERVER_URL)
   } else {
     win.loadFile(path.join(__dirname, '..', 'dist', 'index.html'))
   }
+
+  return win
 }
 
 app.setName(APP_NAME)

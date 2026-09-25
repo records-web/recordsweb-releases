@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Ambulance, ArrowRight, Building2, CalendarDays, CheckCircle2, ClipboardList, FileText, Gamepad2, Handshake, Hospital, ImagePlus, LockKeyhole, Mail, Moon, Pill, Search, Send, Stethoscope, Sun, Users } from 'lucide-react'
+import { Ambulance, ArrowRight, Building2, CheckCircle2, ClipboardList, Gamepad2, Handshake, Hospital, ImagePlus, LockKeyhole, Mail, Moon, Send, Stethoscope, Sun, Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import recordsWebWordmark from '../assets/RW-Logo.png'
 import { submitRecordsWebAccessRequest } from '../lib/accessRequestService'
@@ -21,14 +21,12 @@ const INITIAL_FORM = {
 }
 
 const FEATURES = [
-  [Search, 'Patient records', 'Search, register and maintain organisation-scoped patient records.'],
-  [ClipboardList, 'Consultations', 'Record structured consultations, problems, follow-up and clinical notes.'],
-  [Pill, 'Medication', 'Manage acute, repeat and long-term medication records.'],
-  [FileText, 'Documents', 'Keep fit notes and other documents as clearly separated individual records.'],
-  [CalendarDays, 'Appointments', 'Manage appointment books, arrival states and live waiting-time information.'],
-  [LockKeyhole, 'Organisation isolation', 'Each approved community receives its own @XX.XX namespace and protected data boundary.'],
-  [Gamepad2, 'Roblox bridge', 'Optionally connect the community to its Roblox experience for live waiting-room patient calls.'],
-  [Handshake, 'Shared Care', 'Connect GP, hospital and ambulance communities with source provenance, linked patient records and structured transfer-of-care workflows.'],
+  [Building2, 'Service-specific workspaces', 'RecordsWeb adapts its navigation, records and workflows for GP, hospital, ambulance/PHEM and policing communities.'],
+  [Users, 'Staff & role management', 'Assign service-appropriate roles and keep staff access scoped to the community and product they are meant to use.'],
+  [LockKeyhole, 'Security & organisation isolation', 'Each approved community receives its own @XX.XX namespace, protected data boundary, sessions and audit controls.'],
+  [ClipboardList, 'Operational records', 'Keep clinical and policing records in purpose-built modules without mixing the underlying datasets or workflows.'],
+  [Gamepad2, 'Connected integrations', 'Connect supported Roblox and Discord workflows while RecordsWeb remains the secure source of staff and organisation permissions.'],
+  [Handshake, 'Cross-service workflows', 'Clinical services can use Shared Care and operational teams can use their own dedicated coordination tools without losing platform consistency.'],
 ]
 
 export default function PublicHomePage() {
@@ -142,11 +140,12 @@ export default function PublicHomePage() {
         </section>
 
         <section className="public-section public-modes-section">
-          <div className="public-section-heading"><span>CLINICAL MODES</span><h2>RecordsWeb Clinical adapts to the care setting</h2></div>
-          <div className="public-mode-grid">
-            <article><div className="public-mode-icon"><Stethoscope size={23}/></div><div><strong>Primary Care (GP)</strong><p>For general practice and primary care organisations using RecordsWeb for consultations, medication, documents, appointments, registration, investigations, referrals and staff administration.</p></div></article>
-            <article><div className="public-mode-icon"><Hospital size={23}/></div><div><strong>Secondary Care (Hospital)</strong><p>Episode-first hospital workspace with Ward Board, admissions, clinical work queues, discharge and Shared Care transfer-of-care workflows.</p></div></article>
-            <article><div className="public-mode-icon"><Ambulance size={23}/></div><div><strong>Ambulance / PHEM</strong><p>Incident-first ambulance / PHEM workspace with active incidents, ePCR observations and treatment, conveyance, handover and Shared Care pre-alert workflows.</p></div></article>
+          <div className="public-section-heading"><span>SERVICE TYPES</span><h2>Built around the service your community operates</h2><p>RecordsWeb keeps the same secure platform underneath, while the workspace, roles and records change to match the service using it.</p></div>
+          <div className="public-mode-grid recordsweb-service-grid">
+            <article><div className="public-mode-icon"><Stethoscope size={23}/></div><div><strong>Primary Care (GP)</strong><p>Patient search, consultations, medication, fit notes, appointments, registration, investigations, referrals and general-practice staff workflows.</p><span className="recordsweb-service-tag">RecordsWeb Clinical</span></div></article>
+            <article><div className="public-mode-icon"><Hospital size={23}/></div><div><strong>Secondary Care (Hospital)</strong><p>Ward and episode-based working with admissions, clinical queues, discharge, hospital records and structured Shared Care transfers.</p><span className="recordsweb-service-tag">RecordsWeb Clinical</span></div></article>
+            <article><div className="public-mode-icon"><Ambulance size={23}/></div><div><strong>Ambulance / PHEM</strong><p>Incident-led operations with ePCR observations and treatment, conveyance, handover, pre-alerts and ambulance-specific staff workflows.</p><span className="recordsweb-service-tag">RecordsWeb Clinical</span></div></article>
+            <article><div className="public-mode-icon"><ClipboardList size={23}/></div><div><strong>Policing</strong><p>Persons, vehicles, incidents, FPNs, intelligence, custody, warrants, BOLOs, dispatch and live body-worn video operations.</p><span className="recordsweb-service-tag policing">RecordsWeb Policing</span></div></article>
           </div>
         </section>
 
