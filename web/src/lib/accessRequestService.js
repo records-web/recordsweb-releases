@@ -53,7 +53,7 @@ export async function submitRecordsWebAccessRequest(values, logoFile) {
   const request = {
     communityName: clean(values.communityName, 120),
     requestedProduct: ['clinical','policing','complete'].includes(values.requestedProduct) ? values.requestedProduct : 'clinical',
-    requestedMode: ['general_practice', 'hospital', 'ambulance'].includes(values.requestedMode) ? values.requestedMode : 'general_practice',
+    requestedMode: ['general_practice', 'hospital', 'ambulance', 'policing'].includes(values.requestedMode) ? values.requestedMode : 'general_practice',
     discordUrl: requireHttpsUrl(values.discordUrl, 'Discord URL'),
     robloxGroupUrl: requireHttpsUrl(values.robloxGroupUrl, 'Roblox group link'),
     memberRange: clean(values.memberRange, 20),

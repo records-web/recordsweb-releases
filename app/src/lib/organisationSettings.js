@@ -63,7 +63,7 @@ export function normaliseOrganisationSettings(settings = {}) {
     organisationId: String(settings.organisationId || DEFAULT_ORGANISATION_SETTINGS.organisationId || ''),
     organisationName: String(settings.organisationName || DEFAULT_ORGANISATION_SETTINGS.organisationName || ''),
     organisationCode: String(settings.organisationCode || DEFAULT_ORGANISATION_SETTINGS.organisationCode || ''),
-    systemMode: ['general_practice', 'hospital', 'ambulance'].includes(settings.systemMode) ? settings.systemMode : 'general_practice',
+    systemMode: ['general_practice', 'hospital', 'ambulance', 'policing'].includes(settings.systemMode) ? settings.systemMode : 'general_practice',
     defaultLocation: String(settings.defaultLocation || DEFAULT_ORGANISATION_SETTINGS.defaultLocation || 'Main Site'),
     active: settings.active !== false,
     productPackage: ['clinical','policing','complete','custom'].includes(settings.productPackage) ? settings.productPackage : 'clinical',

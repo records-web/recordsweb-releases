@@ -2,7 +2,7 @@
   "name": "recordsweb",
   "productName": "RecordsWeb",
   "private": true,
-  "version": "5.0.2",
+  "version": "5.0.3",
   "description": "RecordsWeb multi-product operations platform for Clinical and Policing communities",
   "main": "electron/main.cjs",
   "type": "module",

@@ -36,6 +36,7 @@ function normaliseSystemMode(value: unknown, fallback = 'general_practice') {
   if (['general_practice', 'general practice', 'gp', 'primary care', 'primary_care'].includes(raw)) return 'general_practice'
   if (['hospital', 'secondary care', 'secondary_care'].includes(raw)) return 'hospital'
   if (['ambulance', 'ambulance / phem', 'ambulance/phem', 'phem', 'ambulance_phem'].includes(raw)) return 'ambulance'
+  if (['policing', 'police', 'police service', 'policing service'].includes(raw)) return 'policing'
   return raw
 }
 
@@ -82,7 +83,7 @@ function validatePassword(password: string, username = '') {
 function validateCommunityDetails(communityName: string, systemMode: string, defaultLocation: string) {
   if (!communityName) return 'Community name is required.'
   if (communityName.length > 120) return 'Community name must be 120 characters or fewer.'
-  if (!['general_practice', 'hospital', 'ambulance'].includes(systemMode)) return 'RecordsWeb mode must be Primary Care (GP), Secondary Care (Hospital) or Ambulance / PHEM.'
+  if (!['general_practice', 'hospital', 'ambulance', 'policing'].includes(systemMode)) return 'RecordsWeb mode must be Primary Care (GP), Secondary Care (Hospital), Ambulance / PHEM or Policing.'
   if (!defaultLocation) return 'Default location is required.'
   if (defaultLocation.length > 120) return 'Default location must be 120 characters or fewer.'
   return ''

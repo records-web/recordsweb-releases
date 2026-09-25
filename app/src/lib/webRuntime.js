@@ -1,7 +1,7 @@
 export const APP_VERSION =
   typeof __RECORDSWEB_APP_VERSION__ !== 'undefined'
     ? __RECORDSWEB_APP_VERSION__
-    : '5.0.2'
+    : '5.0.3'
 export const APP_RUNTIME_LABEL = 'Desktop Operations Platform'
 
 export function getWebDeviceContext() {

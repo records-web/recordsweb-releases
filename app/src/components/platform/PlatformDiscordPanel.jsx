@@ -39,6 +39,7 @@ const MODE_OPTIONS = [
   ['general_practice', 'Primary Care (GP)'],
   ['hospital', 'Secondary Care (Hospital)'],
   ['ambulance', 'Ambulance / PHEM'],
+  ['policing', 'Policing'],
 ]
 
 const SERVICE_OPTIONS = [
