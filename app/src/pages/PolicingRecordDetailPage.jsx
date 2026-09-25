@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { ArrowLeft, Clock3, ExternalLink, FileText, Pencil, Plus, Radio, Save, Trash2, UserRound, Car, Gavel, TriangleAlert } from 'lucide-react'
+import { ArrowLeft, ChevronRight, Clock3, FileText, Pencil, Plus, Radio, Save, Trash2, UserRound, Car, Gavel, TriangleAlert } from 'lucide-react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import {
@@ -64,7 +64,7 @@ function Detail({ label, children, wide = false }) {
 }
 function LinkedRecord({ to, children }) {
   if (!children) return 'Not linked'
-  return <Link className="police-linked-record" to={to} target="_blank" rel="noreferrer">{children}<ExternalLink size={12}/></Link>
+  return <Link className="police-linked-record" to={to}>{children}<ChevronRight size={12}/></Link>
 }
 
 export default function PolicingRecordDetailPage({ entityType = 'record' }) {

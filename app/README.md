@@ -1,4 +1,8 @@
 # RecordsWeb
+## RecordsWeb 5.2.1 — Policing navigation
+
+Policing records now open inside the current RecordsWeb session instead of spawning a new tab/window.
+
 
 ## RecordsWeb 5.2.0 — Multi-service public homepage
 
