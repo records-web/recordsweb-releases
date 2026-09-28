@@ -1,4 +1,10 @@
 # RecordsWeb
+## RecordsWeb 5.3.0 — Community identifiers & dedicated portals
+
+New communities now receive an automatically generated unique four-character organisation code in the established `XX.XX` format (letters or numbers), for example `GW.HS` or `UH.S1`. The dedicated portal uses the DNS-safe form, such as `gw-hs.recordsweb.org` or `uh-s1.recordsweb.org`.
+
+Run `supabase/recordsweb-5.3.0-community-identifiers.sql`, redeploy `recordsweb-platform-admin` and `recordsweb-admin`, then configure `*.recordsweb.org` once in Cloudflare and on the website host. No per-community Cloudflare API call is required.
+
 ## RecordsWeb 5.2.1 — Policing navigation
 
 Policing records now open inside the current RecordsWeb session instead of spawning a new tab/window.

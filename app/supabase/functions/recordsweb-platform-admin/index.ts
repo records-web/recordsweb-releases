@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const OPERATOR_EMAIL_PATTERN = /^(?:gus\.farnsworth|alfie\.james)@[a-z]{2}\.[a-z]{2}$/i
+const OPERATOR_EMAIL_PATTERN = /^(?:gus\.farnsworth|alfie\.james)@[a-z0-9]{2}\.[a-z0-9]{2}$/i
 const COMMON_PASSWORDS = new Set([
   'password123','password1','qwerty123','letmein123','welcome123',
   'recordsweb1','groveway123','changeme123','admin12345','1234567890',
@@ -24,7 +24,52 @@ function requiredEnv(name: string) {
 
 function normaliseOrganisationCode(value: unknown) {
   const clean = String(value || '').trim().replace(/^@+/, '').replace(/\s+/g, '').toUpperCase()
-  return /^[A-Z]{2}\.[A-Z]{2}$/.test(clean) ? clean : ''
+  return /^[A-Z0-9]{2}\.[A-Z0-9]{2}$/.test(clean) ? clean : ''
+}
+
+function authEmailForUsername(username: string, organisationCode: string) {
+  const code = normaliseOrganisationCode(organisationCode)
+  const raw = String(username || '').trim().toLowerCase()
+  const at = raw.lastIndexOf('@')
+  const local = at >= 0 ? raw.slice(0, at) : raw
+  if (!code || !local) return raw
+  return /[0-9]/.test(code) ? `${local}@${code.toLowerCase().replace('.', '-')}.recordsweb.org` : `${local}@${code.toLowerCase()}`
+}
+
+async function generateOrganisationIdentifier(admin: any) {
+  const { data, error } = await admin.from('organisations').select('org_code')
+  if (error) throw new Error(error.message || 'Unable to allocate an organisation identifier.')
+  const used = new Set((data || []).map((row: any) => String(row.org_code || '').trim().toUpperCase()))
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789'
+  const capacity = alphabet.length ** 4
+  if (used.size >= capacity) throw new Error('All RecordsWeb XX.XX organisation identifiers are currently allocated.')
+
+  const makeCode = (values: Uint8Array) => {
+    const chars = Array.from(values, (value) => alphabet[value % alphabet.length])
+    return `${chars[0]}${chars[1]}.${chars[2]}${chars[3]}`
+  }
+
+  for (let attempt = 0; attempt < 256; attempt += 1) {
+    const code = makeCode(crypto.getRandomValues(new Uint8Array(4)))
+    if (!used.has(code)) return code
+  }
+
+  for (let value = 0; value < capacity; value += 1) {
+    let remaining = value
+    const chars = Array(4).fill('A')
+    for (let index = 3; index >= 0; index -= 1) {
+      chars[index] = alphabet[remaining % alphabet.length]
+      remaining = Math.floor(remaining / alphabet.length)
+    }
+    const code = `${chars[0]}${chars[1]}.${chars[2]}${chars[3]}`
+    if (!used.has(code)) return code
+  }
+  throw new Error('Unable to allocate a unique RecordsWeb organisation identifier.')
+}
+
+function organisationPortalUrl(code: string) {
+  const safe = normaliseOrganisationCode(code)
+  return safe ? `https://${safe.toLowerCase().replace('.', '-')}.recordsweb.org` : ''
 }
 
 function cleanText(value: unknown, fallback = '') {
@@ -162,9 +207,9 @@ async function recordPasswordHistory(admin: any, userId: string, password: strin
 }
 
 async function ensureReservedOperator(admin: any, organisation: any, password: string) {
-  const operatorEmail = `gus.farnsworth@${String(organisation.org_code).toLowerCase()}`
   const operatorUsername = `gus.farnsworth@${organisation.org_code}`
-  const passwordError = validatePassword(password, operatorEmail)
+  const operatorAuthEmail = authEmailForUsername(operatorUsername, organisation.org_code)
+  const passwordError = validatePassword(password, operatorUsername)
   if (passwordError) throw new Error(passwordError)
 
   const existingProfile = await findReservedOperatorProfile(admin, organisation)
@@ -174,7 +219,7 @@ async function ensureReservedOperator(admin: any, organisation: any, password: s
   if (existingProfile) {
     const { error: authError } = await admin.auth.admin.updateUserById(existingProfile.id, {
       password,
-      user_metadata: { recordsweb: true, display_name: 'Mr Gus Farnsworth' },
+      user_metadata: { recordsweb: true, display_name: 'Mr Gus Farnsworth', recordsweb_username: operatorUsername, organisation_code: organisation.org_code },
     })
     if (authError) throw new Error(authError.message || 'Unable to reset the reserved operator password.')
 
@@ -202,14 +247,14 @@ async function ensureReservedOperator(admin: any, organisation: any, password: s
 
   if (!organisation.active) throw new Error('Enable the community before creating its missing reserved operator account.')
 
-  let authUser = await findAuthUserByEmail(admin, operatorEmail)
+  let authUser = await findAuthUserByEmail(admin, operatorAuthEmail)
   let createdAuthUser = false
   if (!authUser) {
     const { data, error } = await admin.auth.admin.createUser({
-      email: operatorEmail,
+      email: operatorAuthEmail,
       password,
       email_confirm: true,
-      user_metadata: { recordsweb: true, display_name: 'Mr Gus Farnsworth' },
+      user_metadata: { recordsweb: true, display_name: 'Mr Gus Farnsworth', recordsweb_username: operatorUsername, organisation_code: organisation.org_code },
     })
     if (error || !data.user) throw new Error(error?.message || 'Unable to create the reserved operator account.')
     authUser = data.user
@@ -217,7 +262,7 @@ async function ensureReservedOperator(admin: any, organisation: any, password: s
   } else {
     const { error } = await admin.auth.admin.updateUserById(authUser.id, {
       password,
-      user_metadata: { recordsweb: true, display_name: 'Mr Gus Farnsworth' },
+      user_metadata: { recordsweb: true, display_name: 'Mr Gus Farnsworth', recordsweb_username: operatorUsername, organisation_code: organisation.org_code },
     })
     if (error) throw new Error(error.message || 'Unable to prepare the reserved operator account.')
   }
@@ -230,7 +275,7 @@ async function ensureReservedOperator(admin: any, organisation: any, password: s
   if (profileByIdError) throw new Error(profileByIdError.message)
   if (profileById && profileById.organisation_id !== organisation.id) {
     if (createdAuthUser) { try { await admin.auth.admin.deleteUser(authUser.id) } catch {} }
-    throw new Error(`The reserved authentication account ${operatorEmail} is already linked to another RecordsWeb profile.`)
+    throw new Error(`The reserved authentication account ${operatorUsername} is already linked to another RecordsWeb profile.`)
   }
 
   if (!profileById) {
@@ -282,7 +327,7 @@ Deno.serve(async (req) => {
       .single()
     if (profileError || !callerProfile) return json({ error: 'Unable to verify the RecordsWeb platform operator profile.' }, 403)
 
-    const callerEmail = String(callerData.user.email || '').trim().toLowerCase()
+    const callerEmail = String(callerProfile.username || callerData.user.user_metadata?.recordsweb_username || callerData.user.email || '').trim().toLowerCase()
     const callerOrganisation = (callerProfile as any).organisations
     const callerCode = normaliseOrganisationCode(callerOrganisation?.org_code)
     const emailCode = callerEmail.split('@')[1]?.toUpperCase() || ''
@@ -294,7 +339,6 @@ Deno.serve(async (req) => {
     const action = cleanText(body.action)
 
     if (action === 'create-community') {
-      const organisationCode = normaliseOrganisationCode(body.organisation_code)
       const communityName = cleanText(body.community_name)
       const systemMode = normaliseSystemMode(body.system_mode, 'general_practice')
       const defaultLocation = cleanText(body.default_location, 'Main Site')
@@ -302,34 +346,30 @@ Deno.serve(async (req) => {
       const enabledProducts = normaliseEnabledProducts([], productPackage, false)
       const password = String(body.password || '')
 
-      if (!organisationCode) return json({ error: 'Organisation extension must use four letters in the format @XX.XX.' }, 400)
       const detailsError = validateCommunityDetails(communityName, systemMode, defaultLocation)
       if (detailsError) return json({ error: detailsError }, 400)
 
-      const operatorEmail = `gus.farnsworth@${organisationCode.toLowerCase()}`
-      const passwordError = validatePassword(password, operatorEmail)
-      if (passwordError) return json({ error: passwordError }, 400)
+      let organisationCode = ''
+      try { organisationCode = await generateOrganisationIdentifier(admin) }
+      catch (error) { return json({ error: error instanceof Error ? error.message : 'Unable to allocate an organisation identifier.' }, 500) }
 
-      const { data: existingOrganisation, error: existingOrganisationError } = await admin
-        .from('organisations')
-        .select('id,org_code,name')
-        .eq('org_code', organisationCode)
-        .maybeSingle()
-      if (existingOrganisationError) return json({ error: existingOrganisationError.message }, 500)
-      if (existingOrganisation) return json({ error: `The organisation extension @${organisationCode} is already registered to ${existingOrganisation.name}.` }, 409)
+      const operatorUsername = `gus.farnsworth@${organisationCode}`
+      const operatorAuthEmail = authEmailForUsername(operatorUsername, organisationCode)
+      const passwordError = validatePassword(password, operatorUsername)
+      if (passwordError) return json({ error: passwordError }, 400)
 
       let createdUserId: string | null = null
       let createdOrganisationId: string | null = null
 
       const { data: createdUser, error: createUserError } = await admin.auth.admin.createUser({
-        email: operatorEmail,
+        email: operatorAuthEmail,
         password,
         email_confirm: true,
-        user_metadata: { recordsweb: true, display_name: 'Mr Gus Farnsworth' },
+        user_metadata: { recordsweb: true, display_name: 'Mr Gus Farnsworth', recordsweb_username: operatorUsername, organisation_code: organisationCode },
       })
       if (createUserError || !createdUser.user) {
         const duplicate = /already|registered|exists/i.test(createUserError?.message || '')
-        return json({ error: duplicate ? `The reserved account ${operatorEmail} already exists in Supabase Authentication.` : (createUserError?.message || 'Unable to create the reserved operator account.') }, 400)
+        return json({ error: duplicate ? `The reserved account ${operatorUsername} already exists in Supabase Authentication.` : (createUserError?.message || 'Unable to create the reserved operator account.') }, 400)
       }
       createdUserId = createdUser.user.id
 
@@ -375,7 +415,8 @@ Deno.serve(async (req) => {
         .single()
       if (organisationError || !organisation) {
         await cleanupCreatedCommunity(admin, createdUserId, null)
-        return json({ error: organisationError?.message || 'Unable to create the RecordsWeb organisation.' }, 400)
+        const collision = /duplicate|unique|org_code/i.test(organisationError?.message || '')
+        return json({ error: collision ? 'The generated organisation identifier was claimed concurrently. Create the community again to allocate another identifier.' : (organisationError?.message || 'Unable to create the RecordsWeb organisation.') }, collision ? 409 : 400)
       }
       createdOrganisationId = organisation.id
 
@@ -389,7 +430,6 @@ Deno.serve(async (req) => {
 
       const role = defaultReservedOperatorRole(organisation)
       const now = new Date().toISOString()
-      const operatorUsername = `gus.farnsworth@${organisationCode}`
       const { data: profile, error: profileInsertError } = await admin
         .from('profiles')
         .insert({
@@ -420,6 +460,7 @@ Deno.serve(async (req) => {
         return json({ error: error instanceof Error ? error.message : 'Password history could not be initialised.' }, 500)
       }
 
+      const portalUrl = organisationPortalUrl(organisationCode)
       await writeAudit(admin, callerProfile, 'platform.community.created', organisation.id, `Created RecordsWeb community ${communityName} (@${organisationCode}) and reserved operator ${operatorUsername}.`, {
         organisation_code: organisationCode,
         community_name: communityName,
@@ -427,12 +468,14 @@ Deno.serve(async (req) => {
         product_package: productPackage,
         enabled_products: enabledProducts,
         operator_username: operatorUsername,
+        portal_url: portalUrl,
       })
 
       return json({
         ok: true,
         community: { id: organisation.id, org_code: organisation.org_code, name: organisation.name, system_mode: organisation.system_mode, default_location: organisation.default_location, active: organisation.active, product_package: organisation.product_package, enabled_products: organisation.enabled_products, tester_program: organisation.tester_program },
         operator_email: operatorUsername,
+        portal_url: portalUrl,
         operator_profile: profile,
       })
     }

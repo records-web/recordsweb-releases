@@ -61,7 +61,7 @@ export default function InstallationGate({ children }) {
     setError('')
     const code = normaliseOrganisationCode(extension)
     if (!code) {
-      setError('Enter the four-letter organisation extension in the format @XX.XX.')
+      setError('Enter the organisation code in the format @XX.XX, using letters or numbers (for example @GW.HS or @UH.S1).')
       return
     }
 
@@ -73,7 +73,7 @@ export default function InstallationGate({ children }) {
       // initialise. Reload once so the entire browser session uses this namespace.
       window.location.reload()
     } catch (err) {
-      setError(err?.message || 'Unable to save the organisation extension.')
+      setError(err?.message || 'Unable to save the organisation code.')
       setSaving(false)
     }
   }
@@ -94,8 +94,8 @@ export default function InstallationGate({ children }) {
           <div className="maintenance-heading">
             <Building2 size={19}/>
             <div>
-              <h2>{checking ? 'Checking this browser' : requiresCorrection ? 'Check organisation extension' : 'Connect to an organisation'}</h2>
-              <span>{checking ? 'RecordsWeb is verifying the selected organisation.' : 'Enter the organisation extension supplied for this deployment.'}</span>
+              <h2>{checking ? 'Checking this browser' : requiresCorrection ? 'Check organisation code' : 'Connect to an organisation'}</h2>
+              <span>{checking ? 'RecordsWeb is verifying the selected organisation.' : 'Enter the organisation code supplied for this deployment.'}</span>
             </div>
           </div>
 
@@ -108,13 +108,13 @@ export default function InstallationGate({ children }) {
                 <input
                   value={extension}
                   onChange={(event) => setExtension(event.target.value.toUpperCase())}
-                  placeholder="@GW.HC"
+                  placeholder="@GW.HS or @UH.S1"
                   maxLength={6}
                   autoFocus
                   required
                 />
               </label>
-              <p className="maintenance-help">The extension contains four letters separated by a full stop, for example <strong>@GW.HC</strong>. RecordsWeb uses it to select the correct organisation, branding, login namespace and data boundary.</p>
+              <p className="maintenance-help">Organisation codes use four letters/numbers split into two pairs, for example <strong>@GW.HS</strong> or <strong>@UH.S1</strong>. RecordsWeb uses the code to select the correct organisation, branding, login namespace and data boundary.</p>
               {error && <div className="form-error legacy-error">{error}</div>}
               <div className="legacy-login-actions">
                 <button className="legacy-signin" disabled={saving}>{saving ? 'Checking…' : 'Continue'}</button>
@@ -123,7 +123,7 @@ export default function InstallationGate({ children }) {
           )}
         </section>
 
-        <div className="legacy-login-footer"><span>RecordsWeb web organisation setup</span><span>Format: @XX.XX</span></div>
+        <div className="legacy-login-footer"><span>RecordsWeb web organisation setup</span><span>Format: @GW.HS or @UH.S1</span></div>
         <div className="legacy-copyright">RecordsWeb · Organisation-controlled operations platform.</div>
       </div>
     </div>

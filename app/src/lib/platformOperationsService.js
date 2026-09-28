@@ -2,7 +2,7 @@ import { supabase, supabaseConfigured } from './supabase'
 import { broadcastDiscordMaintenance } from './discordIntegrationService'
 
 export const PLATFORM_OPERATOR_EMAIL_FORMAT = 'gus.farnsworth@XX.XX or alfie.james@XX.XX'
-export const PLATFORM_OPERATOR_EMAIL_PATTERN = /^(?:gus\.farnsworth|alfie\.james)@[a-z]{2}\.[a-z]{2}$/i
+export const PLATFORM_OPERATOR_EMAIL_PATTERN = /^(?:gus\.farnsworth|alfie\.james)@[a-z0-9]{2}\.[a-z0-9]{2}$/i
 
 function normaliseEmail(value) {
   return String(value || '').trim().toLowerCase()
@@ -10,7 +10,30 @@ function normaliseEmail(value) {
 
 export function isPlatformOperator(userOrSession) {
   const user = userOrSession?.user || userOrSession
-  return PLATFORM_OPERATOR_EMAIL_PATTERN.test(normaliseEmail(user?.email))
+  const visibleIdentity = user?.user_metadata?.recordsweb_username || user?.email
+  return PLATFORM_OPERATOR_EMAIL_PATTERN.test(normaliseEmail(visibleIdentity))
+}
+
+function authEmailCandidates(recordsWebEmail) {
+  const visibleEmail = normaliseEmail(recordsWebEmail)
+  const at = visibleEmail.lastIndexOf('@')
+  if (at < 1) return [visibleEmail]
+  const local = visibleEmail.slice(0, at)
+  const code = visibleEmail.slice(at + 1)
+  const alias = /[0-9]/.test(code)
+    ? `${local}@${code.replace('.', '-')}.recordsweb.org`
+    : visibleEmail
+  return [...new Set([visibleEmail, alias].filter(Boolean))]
+}
+
+async function signInReservedIdentity(recordsWebEmail, password) {
+  let lastError = null
+  for (const authEmail of authEmailCandidates(recordsWebEmail)) {
+    const result = await supabase.auth.signInWithPassword({ email: authEmail, password: String(password || '') })
+    if (!result.error) return result
+    lastError = result.error
+  }
+  return { data: null, error: lastError }
 }
 
 export async function getPlatformOperatorSession() {
@@ -39,10 +62,7 @@ export async function signInPlatformOperator({ email, password }) {
     throw new Error(`Platform operator accounts must use the reserved ${PLATFORM_OPERATOR_EMAIL_FORMAT} format.`)
   }
 
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: requestedEmail,
-    password: String(password || ''),
-  })
+  const { data, error } = await signInReservedIdentity(requestedEmail, password)
   if (error) throw new Error('Unable to sign in with that platform operator account.')
 
   if (!isPlatformOperator(data?.user)) {
@@ -188,10 +208,9 @@ async function invokePlatformAdmin(body) {
   return data
 }
 
-export async function createPlatformCommunity({ organisationCode, communityName, systemMode, defaultLocation, password, productPackage = 'clinical' }) {
+export async function createPlatformCommunity({ communityName, systemMode, defaultLocation, password, productPackage = 'clinical' }) {
   return invokePlatformAdmin({
     action: 'create-community',
-    organisation_code: String(organisationCode || '').trim(),
     community_name: String(communityName || '').trim(),
     system_mode: String(systemMode || 'general_practice').trim(),
     default_location: String(defaultLocation || '').trim(),

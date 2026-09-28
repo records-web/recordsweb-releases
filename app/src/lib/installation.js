@@ -1,5 +1,5 @@
 const INSTALLATION_STORAGE_KEY = 'recordsweb-installation-v1'
-const ORGANISATION_CODE_PATTERN = /^[A-Z]{2}\.[A-Z]{2}$/
+const ORGANISATION_CODE_PATTERN = /^[A-Z0-9]{2}\.[A-Z0-9]{2}$/
 
 function safeLocalStorageRead() {
   try {
@@ -24,6 +24,14 @@ export function normaliseOrganisationCode(value) {
     .replace(/\s+/g, '')
     .toUpperCase()
   return ORGANISATION_CODE_PATTERN.test(clean) ? clean : ''
+}
+
+export function getOrganisationPortalUrl(value, path = '/') {
+  const code = normaliseOrganisationCode(value)
+  if (!code) return ''
+  const subdomain = code.toLowerCase().replace('.', '-')
+  const cleanPath = String(path || '/').startsWith('/') ? String(path || '/') : `/${path}`
+  return `https://${subdomain}.recordsweb.org${cleanPath}`
 }
 
 const desktopInstallation = typeof window !== 'undefined' ? readDesktopInstallation() : {}
@@ -65,14 +73,14 @@ export function isValidOrganisationCode(value) {
 export async function saveInstalledOrganisationCode(value) {
   const organisationCode = normaliseOrganisationCode(value)
   if (!organisationCode) {
-    throw new Error('Organisation extension must contain four letters in the format @XX.XX.')
+    throw new Error('Organisation code must use the RecordsWeb format @XX.XX, using letters or numbers (for example @GW.HS or @UH.S1).')
   }
 
   if (typeof window !== 'undefined') {
     const desktop = window.recordsWebDesktop
     if (desktop?.setInstallConfig) {
       const result = await desktop.setInstallConfig({ organisationCode })
-      if (result?.ok === false) throw new Error(result?.message || 'Unable to save the RecordsWeb organisation extension.')
+      if (result?.ok === false) throw new Error(result?.message || 'Unable to save the RecordsWeb organisation code.')
       currentSource = 'desktop'
     } else {
       currentSource = 'local'
@@ -97,4 +105,7 @@ export function getDemoOrganisationId(code = currentOrganisationCode) {
   return `recordsweb-demo-${safe.toLowerCase().replace('.', '-')}`
 }
 
-export { INSTALLATION_STORAGE_KEY, ORGANISATION_CODE_PATTERN }
+export {
+  INSTALLATION_STORAGE_KEY,
+  ORGANISATION_CODE_PATTERN,
+}

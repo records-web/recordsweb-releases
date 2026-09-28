@@ -23,7 +23,7 @@ const INITIAL_FORM = {
 const FEATURES = [
   [Building2, 'Service-specific workspaces', 'RecordsWeb adapts its navigation, records and workflows for GP, hospital, ambulance/PHEM and policing communities.'],
   [Users, 'Staff & role management', 'Assign service-appropriate roles and keep staff access scoped to the community and product they are meant to use.'],
-  [LockKeyhole, 'Security & organisation isolation', 'Each approved community receives its own @XX.XX namespace, protected data boundary, sessions and audit controls.'],
+  [LockKeyhole, 'Security & organisation isolation', 'Each approved community receives its own four-character RecordsWeb organisation code and dedicated subdomain, protected data boundary, sessions and audit controls.'],
   [ClipboardList, 'Operational records', 'Keep clinical and policing records in purpose-built modules without mixing the underlying datasets or workflows.'],
   [Gamepad2, 'Connected integrations', 'Connect supported Roblox and Discord workflows while RecordsWeb remains the secure source of staff and organisation permissions.'],
   [Handshake, 'Cross-service workflows', 'Clinical services can use Shared Care and operational teams can use their own dedicated coordination tools without losing platform consistency.'],
@@ -116,7 +116,7 @@ export default function PublicHomePage() {
           <div className="public-hero-panel">
             <div className="public-panel-title"><Building2 size={17}/><strong>Multi-organisation deployment</strong></div>
             <div className="public-org-example"><span>Example Medical Community</span><strong>@ZX.QV</strong></div>
-            <div className="public-org-example"><span>Your community</span><strong>@XX.XX</strong></div>
+            <div className="public-org-example"><span>Your community</span><strong>UH.S1</strong></div>
             <p>Approved deployments receive a unique four-letter RecordsWeb extension used for logins and data separation. RecordsWeb branding remains identical across every deployment.</p>
           </div>
         </section>
@@ -150,11 +150,11 @@ export default function PublicHomePage() {
         </section>
 
         <section className="public-section public-access-process">
-          <div className="public-section-heading"><span>ACCESS</span><h2>Access is provisioned manually</h2><p>RecordsWeb is not an open-registration service. Requests are reviewed before an organisation extension is created.</p></div>
+          <div className="public-section-heading"><span>ACCESS</span><h2>Access is provisioned manually</h2><p>RecordsWeb is not an open-registration service. Requests are reviewed before an organisation identifier is created.</p></div>
           <div className="public-process-row">
             <div><span>1</span><strong>Submit a request</strong><p>Tell us about your community and the deployment you need.</p></div>
             <div><span>2</span><strong>Eligibility review</strong><p>The request is checked before any RecordsWeb organisation is created.</p></div>
-            <div><span>3</span><strong>Organisation setup</strong><p>If accepted, your community receives its own @XX.XX extension and configuration.</p></div>
+            <div><span>3</span><strong>Organisation setup</strong><p>If accepted, your community receives a unique four-character organisation code, dedicated subdomain and configuration.</p></div>
           </div>
         </section>
 

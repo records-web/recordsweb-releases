@@ -22,7 +22,7 @@ const UPDATE_CONTENT_SIZE = { width: 760, height: 710 }
 const APP_DEFAULT_SIZE = { width: 1540, height: 960 }
 const APP_MIN_SIZE = { width: 1180, height: 720 }
 
-const ORG_CODE_PATTERN = /^[A-Z]{2}\.[A-Z]{2}$/
+const ORG_CODE_PATTERN = /^[A-Z0-9]{2}\.[A-Z0-9]{2}$/
 
 function normaliseOrganisationCode(value) {
   const clean = String(value || '').trim().replace(/^@+/, '').replace(/\s+/g, '').toUpperCase()
@@ -113,13 +113,13 @@ function readInstallationConfig() {
 function writeInstallationConfig(payload = {}) {
   const organisationCode = normaliseOrganisationCode(payload.organisationCode)
   if (!organisationCode) {
-    return { ok: false, message: 'Organisation extension must contain four letters in the format @XX.XX.' }
+    return { ok: false, message: 'Organisation code must use the RecordsWeb format @XX.XX, using letters or numbers (for example @GW.HS or @UH.S1).' }
   }
 
   try {
     persistInstallationConfigFile(organisationCode)
   } catch (error) {
-    return { ok: false, message: `Unable to save the RecordsWeb organisation extension: ${error?.message || error}` }
+    return { ok: false, message: `Unable to save the RecordsWeb organisation code: ${error?.message || error}` }
   }
 
   if (!writeWindowsRegistryOrganisationCode(organisationCode)) {

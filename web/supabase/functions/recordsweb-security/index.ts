@@ -59,14 +59,14 @@ async function getAuthContext(admin: any, req: Request) {
   return { user: userData.user, profile }
 }
 
-const PLATFORM_OPERATOR_EMAIL_PATTERN = /^(?:gus\.farnsworth|alfie\.james)@[a-z]{2}\.[a-z]{2}$/i
+const PLATFORM_OPERATOR_EMAIL_PATTERN = /^(?:gus\.farnsworth|alfie\.james)@[a-z0-9]{2}\.[a-z0-9]{2}$/i
 
 function normaliseOrganisationCode(value: unknown) {
   return clean(value, 32).toUpperCase()
 }
 
 function isPlatformOperator(context: any) {
-  const email = clean(context?.user?.email, 320).toLowerCase()
+  const email = clean(context?.profile?.username || context?.user?.user_metadata?.recordsweb_username || context?.user?.email, 320).toLowerCase()
   const relation = context?.profile?.organisations
   const organisation = Array.isArray(relation) ? relation[0] : relation
   const organisationCode = normaliseOrganisationCode(organisation?.org_code)

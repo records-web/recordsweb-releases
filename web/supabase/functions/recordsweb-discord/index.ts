@@ -9,7 +9,7 @@ const corsHeaders = {
 }
 
 const BOT_PERMISSIONS = '19456' // View Channel + Send Messages + Embed Links
-const OPERATOR_EMAIL_PATTERN = /^(?:gus\.farnsworth|alfie\.james)@[a-z]{2}\.[a-z]{2}$/i
+const OPERATOR_EMAIL_PATTERN = /^(?:gus\.farnsworth|alfie\.james)@[a-z0-9]{2}\.[a-z0-9]{2}$/i
 
 function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } })
@@ -1151,7 +1151,7 @@ async function getSessionContext(admin: any, token: string) {
 }
 
 function platformOperator(context: any) {
-  const email = String(context?.user?.email || '').trim().toLowerCase()
+  const email = String(context?.profile?.username || context?.user?.user_metadata?.recordsweb_username || context?.user?.email || '').trim().toLowerCase()
   const orgCode = String(context?.organisation?.org_code || '').trim().toLowerCase()
   const emailCode = email.split('@')[1] || ''
   return Boolean(OPERATOR_EMAIL_PATTERN.test(email) && orgCode && orgCode === emailCode)

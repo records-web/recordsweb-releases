@@ -1,5 +1,6 @@
 const INSTALLATION_STORAGE_KEY = 'recordsweb-web-organisation-v1'
-const ORGANISATION_CODE_PATTERN = /^[A-Z]{2}\.[A-Z]{2}$/
+const ORGANISATION_CODE_PATTERN = /^[A-Z0-9]{2}\.[A-Z0-9]{2}$/
+const ORGANISATION_SUBDOMAIN_PATTERN = /^[a-z0-9]{2}-[a-z0-9]{2}$/
 
 function safeLocalStorageRead() {
   try {
@@ -18,14 +19,32 @@ export function normaliseOrganisationCode(value) {
   return ORGANISATION_CODE_PATTERN.test(clean) ? clean : ''
 }
 
+export function getOrganisationCodeFromHostname(hostname = typeof window !== 'undefined' ? window.location.hostname : '') {
+  const host = String(hostname || '').trim().toLowerCase().replace(/\.$/, '')
+  const suffix = '.recordsweb.org'
+  if (!host.endsWith(suffix)) return ''
+  const label = host.slice(0, -suffix.length)
+  if (!ORGANISATION_SUBDOMAIN_PATTERN.test(label)) return ''
+  return normaliseOrganisationCode(label.replace('-', '.'))
+}
+
+export function getOrganisationPortalUrl(value, path = '/') {
+  const code = normaliseOrganisationCode(value)
+  if (!code) return ''
+  const subdomain = code.toLowerCase().replace('.', '-')
+  const cleanPath = String(path || '/').startsWith('/') ? String(path || '/') : `/${path}`
+  return `https://${subdomain}.recordsweb.org${cleanPath}`
+}
+
 const browserInstallation = typeof window !== 'undefined' ? safeLocalStorageRead() : {}
 const environmentCode = normaliseOrganisationCode(import.meta.env.VITE_RECORDSWEB_ORG_CODE || '')
+const hostnameCode = typeof window !== 'undefined' ? getOrganisationCodeFromHostname() : ''
 
 let currentOrganisationCode = normaliseOrganisationCode(
-  browserInstallation.organisationCode || environmentCode || '',
+  hostnameCode || browserInstallation.organisationCode || environmentCode || '',
 )
 let currentSource = currentOrganisationCode
-  ? (browserInstallation.organisationCode ? 'browser' : 'environment')
+  ? (hostnameCode ? 'subdomain' : browserInstallation.organisationCode ? 'browser' : 'environment')
   : 'unconfigured'
 
 export function getInstalledOrganisationCode() {
@@ -46,6 +65,7 @@ export function getInstallationState() {
     organisationCode: currentOrganisationCode,
     suffix: getInstalledOrganisationSuffix(),
     source: currentSource,
+    dedicatedPortal: currentSource === 'subdomain' && ORGANISATION_CODE_PATTERN.test(currentOrganisationCode),
   }
 }
 
@@ -56,7 +76,7 @@ export function isValidOrganisationCode(value) {
 export async function saveInstalledOrganisationCode(value) {
   const organisationCode = normaliseOrganisationCode(value)
   if (!organisationCode) {
-    throw new Error('Organisation extension must contain four letters in the format @XX.XX.')
+    throw new Error('Organisation code must use the RecordsWeb format @XX.XX, using letters or numbers (for example @GW.HS or @UH.S1).')
   }
 
   if (typeof window !== 'undefined') {
@@ -83,4 +103,8 @@ export function getDemoOrganisationId(code = currentOrganisationCode) {
   return `recordsweb-demo-${safe.toLowerCase().replace('.', '-')}`
 }
 
-export { INSTALLATION_STORAGE_KEY, ORGANISATION_CODE_PATTERN }
+export {
+  INSTALLATION_STORAGE_KEY,
+  ORGANISATION_CODE_PATTERN,
+  ORGANISATION_SUBDOMAIN_PATTERN,
+}

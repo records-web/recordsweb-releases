@@ -2,7 +2,7 @@
   "name": "recordsweb-web",
   "productName": "RecordsWeb Web",
   "private": true,
-  "version": "5.2.1",
+  "version": "5.3.0",
   "description": "RecordsWeb multi-service operations platform for GP, Hospital, Ambulance/PHEM and Policing communities",
   "type": "module",
   "scripts": {

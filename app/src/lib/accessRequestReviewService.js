@@ -1,7 +1,7 @@
 import { supabase, supabaseConfigured } from './supabase'
 
 export const ACCESS_REQUEST_REVIEWER_EMAIL_FORMAT = 'gus.farnsworth@XX.XX or alfie.james@XX.XX'
-export const ACCESS_REQUEST_REVIEWER_EMAIL_PATTERN = /^(?:gus\.farnsworth|alfie\.james)@[a-z]{2}\.[a-z]{2}$/i
+export const ACCESS_REQUEST_REVIEWER_EMAIL_PATTERN = /^(?:gus\.farnsworth|alfie\.james)@[a-z0-9]{2}\.[a-z0-9]{2}$/i
 
 const BUCKET = 'recordsweb-access-request-logos'
 const VALID_STATUSES = new Set(['pending', 'reviewing', 'approved', 'declined'])
@@ -12,7 +12,30 @@ function normaliseEmail(value) {
 
 export function isAccessRequestReviewer(userOrSession) {
   const user = userOrSession?.user || userOrSession
-  return ACCESS_REQUEST_REVIEWER_EMAIL_PATTERN.test(normaliseEmail(user?.email))
+  const visibleIdentity = user?.user_metadata?.recordsweb_username || user?.email
+  return ACCESS_REQUEST_REVIEWER_EMAIL_PATTERN.test(normaliseEmail(visibleIdentity))
+}
+
+function authEmailCandidates(recordsWebEmail) {
+  const visibleEmail = normaliseEmail(recordsWebEmail)
+  const at = visibleEmail.lastIndexOf('@')
+  if (at < 1) return [visibleEmail]
+  const local = visibleEmail.slice(0, at)
+  const code = visibleEmail.slice(at + 1)
+  const alias = /[0-9]/.test(code)
+    ? `${local}@${code.replace('.', '-')}.recordsweb.org`
+    : visibleEmail
+  return [...new Set([visibleEmail, alias].filter(Boolean))]
+}
+
+async function signInReservedIdentity(recordsWebEmail, password) {
+  let lastError = null
+  for (const authEmail of authEmailCandidates(recordsWebEmail)) {
+    const result = await supabase.auth.signInWithPassword({ email: authEmail, password: String(password || '') })
+    if (!result.error) return result
+    lastError = result.error
+  }
+  return { data: null, error: lastError }
 }
 
 export async function verifyAccessRequestReviewer() {
@@ -41,10 +64,7 @@ export async function signInAccessRequestReviewer({ email, password }) {
     throw new Error(`Reviewer accounts must use the reserved ${ACCESS_REQUEST_REVIEWER_EMAIL_FORMAT} format.`)
   }
 
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: requestedEmail,
-    password: String(password || ''),
-  })
+  const { data, error } = await signInReservedIdentity(requestedEmail, password)
   if (error) throw new Error('Unable to sign in with that reviewer account.')
 
   if (!isAccessRequestReviewer(data?.user)) {
@@ -91,7 +111,7 @@ export async function listRecordsWebAccessRequests(status = '') {
   return Array.isArray(data) ? data : []
 }
 
-export async function saveRecordsWebAccessRequestReview({ id, status, operatorNotes }) {
+export async function saveRecordsWebAccessRequestReview({ id, status, operatorNotes, providerComments }) {
   if (!supabaseConfigured || !supabase) throw new Error('Supabase is not configured for request review.')
   const normalisedStatus = String(status || '').trim().toLowerCase()
   if (!VALID_STATUSES.has(normalisedStatus)) throw new Error('Choose a valid request status.')
@@ -100,6 +120,7 @@ export async function saveRecordsWebAccessRequestReview({ id, status, operatorNo
     p_request_id: id,
     p_status: normalisedStatus,
     p_operator_notes: String(operatorNotes || '').trim() || null,
+    p_provider_comments: String(providerComments || '').trim() || null,
   })
   if (error) {
     if (/recordsweb_review_access_request|does not exist|schema cache/i.test(error.message || '')) {
@@ -111,6 +132,49 @@ export async function saveRecordsWebAccessRequestReview({ id, status, operatorNo
     throw new Error(error.message || 'Unable to save the request review.')
   }
   return data
+}
+
+
+export async function sendRecordsWebAccessRequestOutcomeEmail({ id, decision, force = false }) {
+  if (!supabaseConfigured || !supabase) throw new Error('Supabase is not configured for request review.')
+
+  const requestedDecision = String(decision || '').trim().toLowerCase()
+  const normalisedDecision = requestedDecision === 'denied' ? 'declined' : requestedDecision
+  if (!['approved', 'declined'].includes(normalisedDecision)) {
+    throw new Error('Decision email can only be sent for approved or declined requests.')
+  }
+
+  const { data: sessionData, error: sessionError } = await supabase.auth.getSession()
+  if (sessionError) throw new Error('Unable to verify the reviewer session before sending the decision email.')
+
+  const accessToken = sessionData?.session?.access_token
+  if (!accessToken) throw new Error('Reviewer authentication expired. Sign in again before sending the decision email.')
+
+  const response = await fetch('/api/request-outcome', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${accessToken}`,
+    },
+    body: JSON.stringify({
+      requestId: id,
+      decision: normalisedDecision,
+      force: Boolean(force),
+    }),
+  })
+
+  let result = {}
+  try {
+    result = await response.json()
+  } catch {
+    result = {}
+  }
+
+  if (!response.ok) {
+    throw new Error(result?.error || 'The request decision was saved, but the applicant email could not be sent.')
+  }
+
+  return result
 }
 
 export async function createAccessRequestLogoUrl(path, expiresIn = 600) {

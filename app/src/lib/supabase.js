@@ -90,6 +90,31 @@ export function normaliseLoginName(value) {
   return `${local}${suffix}`
 }
 
+function getSupabaseAuthEmail(recordsWebUsername, organisationCode = getInstalledOrganisationCode()) {
+  const code = normaliseOrganisationCode(organisationCode)
+  const username = String(recordsWebUsername || '').trim().toLowerCase()
+  if (!code || !username) return username
+  const atIndex = username.lastIndexOf('@')
+  const local = atIndex >= 0 ? username.slice(0, atIndex) : username
+  if (!local) return username
+  return /[0-9]/.test(code)
+    ? `${local}@${code.toLowerCase().replace('.', '-')}.recordsweb.org`
+    : `${local}@${code.toLowerCase()}`
+}
+
+async function signInWithRecordsWebAuthEmail(username, organisationCode, password) {
+  const visibleEmail = String(username || '').trim().toLowerCase()
+  const aliasEmail = getSupabaseAuthEmail(visibleEmail, organisationCode)
+  const candidates = [...new Set([visibleEmail, aliasEmail].filter(Boolean))]
+  let lastError = null
+  for (const email of candidates) {
+    const result = await supabase.auth.signInWithPassword({ email, password })
+    if (!result.error) return result
+    lastError = result.error
+  }
+  return { data: null, error: lastError }
+}
+
 function normaliseAccount(account) {
   const roles = normaliseRoles(account.roles, account.role || 'Patient Coordinator')
   const role = roles.includes(account.role) ? account.role : roles[0]
@@ -181,7 +206,7 @@ export async function signInRecordsWeb({ username, password }) {
     throw new Error(`The organisation extension ${organisationSuffix} is not registered or is not active in RecordsWeb.`)
   }
 
-  const { data, error } = await supabase.auth.signInWithPassword({ email: email.toLowerCase(), password })
+  const { data, error } = await signInWithRecordsWebAuthEmail(email, organisationCode, password)
   if (error) { noteLoginFailure(email); throw new Error('Incorrect username or password.') }
 
   const { data: profile, error: profileError } = await supabase
@@ -411,7 +436,8 @@ export async function verifyCurrentPassword(username, password) {
     if (!account || account.password !== password) throw new Error('Password is incorrect.')
     return true
   }
-  const { error } = await supabase.auth.signInWithPassword({ email: email.toLowerCase(), password })
+  const authEmail = getSupabaseAuthEmail(email, getInstalledOrganisationCode())
+  const { error } = await supabase.auth.signInWithPassword({ email: authEmail, password })
   if (error) throw new Error('Password is incorrect.')
   return true
 }

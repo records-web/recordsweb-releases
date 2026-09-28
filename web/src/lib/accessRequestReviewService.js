@@ -1,7 +1,7 @@
 import { supabase, supabaseConfigured } from './supabase'
 
 export const ACCESS_REQUEST_REVIEWER_EMAIL_FORMAT = 'gus.farnsworth@XX.XX or alfie.james@XX.XX'
-export const ACCESS_REQUEST_REVIEWER_EMAIL_PATTERN = /^(?:gus\.farnsworth|alfie\.james)@[a-z]{2}\.[a-z]{2}$/i
+export const ACCESS_REQUEST_REVIEWER_EMAIL_PATTERN = /^(?:gus\.farnsworth|alfie\.james)@[a-z0-9]{2}\.[a-z0-9]{2}$/i
 
 const BUCKET = 'recordsweb-access-request-logos'
 const VALID_STATUSES = new Set(['pending', 'reviewing', 'approved', 'declined'])
@@ -12,7 +12,30 @@ function normaliseEmail(value) {
 
 export function isAccessRequestReviewer(userOrSession) {
   const user = userOrSession?.user || userOrSession
-  return ACCESS_REQUEST_REVIEWER_EMAIL_PATTERN.test(normaliseEmail(user?.email))
+  const visibleIdentity = user?.user_metadata?.recordsweb_username || user?.email
+  return ACCESS_REQUEST_REVIEWER_EMAIL_PATTERN.test(normaliseEmail(visibleIdentity))
+}
+
+function authEmailCandidates(recordsWebEmail) {
+  const visibleEmail = normaliseEmail(recordsWebEmail)
+  const at = visibleEmail.lastIndexOf('@')
+  if (at < 1) return [visibleEmail]
+  const local = visibleEmail.slice(0, at)
+  const code = visibleEmail.slice(at + 1)
+  const alias = /[0-9]/.test(code)
+    ? `${local}@${code.replace('.', '-')}.recordsweb.org`
+    : visibleEmail
+  return [...new Set([visibleEmail, alias].filter(Boolean))]
+}
+
+async function signInReservedIdentity(recordsWebEmail, password) {
+  let lastError = null
+  for (const authEmail of authEmailCandidates(recordsWebEmail)) {
+    const result = await supabase.auth.signInWithPassword({ email: authEmail, password: String(password || '') })
+    if (!result.error) return result
+    lastError = result.error
+  }
+  return { data: null, error: lastError }
 }
 
 export async function verifyAccessRequestReviewer() {
@@ -41,10 +64,7 @@ export async function signInAccessRequestReviewer({ email, password }) {
     throw new Error(`Reviewer accounts must use the reserved ${ACCESS_REQUEST_REVIEWER_EMAIL_FORMAT} format.`)
   }
 
-  const { data, error } = await supabase.auth.signInWithPassword({
-    email: requestedEmail,
-    password: String(password || ''),
-  })
+  const { data, error } = await signInReservedIdentity(requestedEmail, password)
   if (error) throw new Error('Unable to sign in with that reviewer account.')
 
   if (!isAccessRequestReviewer(data?.user)) {

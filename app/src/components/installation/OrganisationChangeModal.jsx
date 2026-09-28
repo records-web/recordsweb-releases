@@ -21,7 +21,7 @@ export default function OrganisationChangeModal({ onClose }) {
     setError('')
     const requestedCode = normaliseOrganisationCode(extension)
     if (!requestedCode) {
-      setError('Enter the four-letter organisation extension in the format @XX.XX.')
+      setError('Enter the organisation code in the format @XX.XX, using letters or numbers (for example @GW.HS or @UH.S1).')
       return
     }
 
@@ -58,7 +58,7 @@ export default function OrganisationChangeModal({ onClose }) {
         <header>
           <div>
             <strong>Change organisation</strong>
-            <span>Switch this RecordsWeb installation to another approved organisation</span>
+            <span>Switch this browser to another approved RecordsWeb organisation</span>
           </div>
           <button type="button" onClick={onClose} disabled={busy} aria-label="Close">
             <X size={18}/>
@@ -73,7 +73,7 @@ export default function OrganisationChangeModal({ onClose }) {
           <div className="organisation-change-heading">
             <Building2 size={17}/>
             <div>
-              <strong>Organisation extension</strong>
+              <strong>Organisation code</strong>
               <span>Enter the extension supplied for the organisation you want to use.</span>
             </div>
           </div>
@@ -84,7 +84,7 @@ export default function OrganisationChangeModal({ onClose }) {
               autoFocus
               value={extension}
               onChange={(event) => setExtension(event.target.value.toUpperCase())}
-              placeholder="@GW.HC"
+              placeholder="@GW.HS or @UH.S1"
               maxLength={6}
               autoComplete="off"
               spellCheck={false}
@@ -93,11 +93,11 @@ export default function OrganisationChangeModal({ onClose }) {
           </label>
 
           <p className="organisation-change-help">
-            Extensions contain four letters separated by a full stop, for example <strong>@GW.HC</strong>. RecordsWeb will verify that the organisation exists and is active before switching.
+            Enter the organisation code in the usual RecordsWeb format, for example <strong>@GW.HS</strong> or <strong>@UH.S1</strong>. Letters and numbers are supported in all four positions. RecordsWeb verifies that the organisation exists and is active before switching.
           </p>
 
           <div className="organisation-change-warning">
-            Changing organisation changes the login namespace and the organisation data this installation connects to. You will remain on the sign-in screen and must use an account belonging to the selected organisation.
+            Changing organisation changes the login namespace and the organisation data this browser connects to. You will remain on the sign-in screen and must use an account belonging to the selected organisation.
           </div>
 
           {error && <div className="form-error modal-error organisation-change-error">{error}</div>}

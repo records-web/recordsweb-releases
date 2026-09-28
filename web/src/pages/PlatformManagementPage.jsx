@@ -273,7 +273,6 @@ function normaliseCommunityCode(value) {
 function CommunitiesPanel({ operatorAccountEmail = '' }) {
   const [rows, setRows] = useState([])
   const [communityName, setCommunityName] = useState('')
-  const [organisationCode, setOrganisationCode] = useState('')
   const [systemMode, setSystemMode] = useState('general_practice')
   const [productPackage, setProductPackage] = useState('clinical')
   const [defaultLocation, setDefaultLocation] = useState('Main Site')
@@ -290,8 +289,7 @@ function CommunitiesPanel({ operatorAccountEmail = '' }) {
   const [operatorPassword, setOperatorPassword] = useState('')
   const [operatorConfirmPassword, setOperatorConfirmPassword] = useState('')
 
-  const cleanCode = useMemo(() => normaliseCommunityCode(organisationCode), [organisationCode])
-  const operatorEmail = `gus.farnsworth@${/^[A-Z]{2}\.[A-Z]{2}$/.test(cleanCode) ? cleanCode : 'XX.XX'}`
+  const operatorEmail = 'gus.farnsworth@[XX.XX]'
   const currentOperatorCode = useMemo(() => {
     const suffix = String(operatorAccountEmail || '').split('@')[1] || ''
     return normaliseCommunityCode(suffix)
@@ -310,10 +308,6 @@ function CommunitiesPanel({ operatorAccountEmail = '' }) {
     setError('')
     setNotice('')
 
-    if (!/^[A-Z]{2}\.[A-Z]{2}$/.test(cleanCode)) {
-      setError('Enter the community extension using four letters in the format @XX.XX.')
-      return
-    }
     if (!communityName.trim()) {
       setError('Enter the community name.')
       return
@@ -332,22 +326,21 @@ function CommunitiesPanel({ operatorAccountEmail = '' }) {
       return
     }
 
-    const accountEmail = `gus.farnsworth@${cleanCode}`
-    if (!window.confirm(`Create ${communityName.trim()} as @${cleanCode} and create the reserved operator account ${accountEmail}?`)) return
+    if (!window.confirm(`Create ${communityName.trim()}? RecordsWeb will allocate a unique XX.XX organisation code, dedicated subdomain and reserved operator account.`)) return
 
     setBusy(true)
     try {
       const result = await createPlatformCommunity({
-        organisationCode: cleanCode,
         communityName: communityName.trim(),
         systemMode,
         defaultLocation: defaultLocation.trim(),
         password,
         productPackage,
       })
-      setNotice(`${result?.community?.name || communityName.trim()} created. Operator account: ${result?.operator_email || accountEmail}`)
+      const createdCode = result?.community?.org_code || ''
+      const portalUrl = result?.portal_url || (createdCode ? `https://${createdCode.toLowerCase().replace('.', '-')}.recordsweb.org` : '')
+      setNotice(`${result?.community?.name || communityName.trim()} created${createdCode ? ` with organisation code ${createdCode}` : ''}. Operator account: ${result?.operator_email || 'Created automatically'}${portalUrl ? ` · Portal: ${portalUrl}` : ''}`)
       setCommunityName('')
-      setOrganisationCode('')
       setSystemMode('general_practice')
       setProductPackage('clinical')
       setDefaultLocation('Main Site')
@@ -458,7 +451,7 @@ function CommunitiesPanel({ operatorAccountEmail = '' }) {
       <form className="platform-community-form" onSubmit={submit}>
         <div className="platform-community-grid">
           <label><span>Community name</span><input value={communityName} onChange={(e) => setCommunityName(e.target.value)} placeholder="Community or organisation name" maxLength={120} required /></label>
-          <label><span>Organisation extension</span><div className="platform-community-code"><b>@</b><input value={organisationCode} onChange={(e) => setOrganisationCode(e.target.value.replace(/^@+/, '').replace(/\s+/g, '').toUpperCase())} placeholder="XX.XX" maxLength={5} required /></div><small>Four letters in the format @XX.XX. The extension becomes the permanent login namespace.</small></label>
+          <label><span>Organisation code</span><input value="Generated automatically" readOnly /><small>RecordsWeb assigns a unique four-character code in the usual XX.XX format. The DNS-safe portal replaces the dot with a hyphen, for example UH.S1 → uh-s1.recordsweb.org.</small></label>
           <label><span>Organisation type</span><select value={systemMode} onChange={(e) => setSystemMode(e.target.value)}><option value="general_practice">Primary Care (GP)</option><option value="hospital">Secondary Care (Hospital)</option><option value="ambulance">Ambulance / PHEM</option><option value="policing">Policing</option></select></label>
           <label><span>RecordsWeb package</span><select value={productPackage} onChange={(e) => setProductPackage(e.target.value)}><option value="clinical">Clinical</option><option value="policing">Policing</option><option value="complete">Complete</option></select><small>Product access can be changed later under Products &amp; Testers.</small></label>
           <label><span>Default location</span><input value={defaultLocation} onChange={(e) => setDefaultLocation(e.target.value)} placeholder="Main Site" maxLength={120} required /></label>
@@ -467,7 +460,7 @@ function CommunitiesPanel({ operatorAccountEmail = '' }) {
         <div className="platform-community-operator">
           <div className="platform-community-operator-heading"><UserPlus size={18}/><div><strong>Reserved operator account</strong><span>This account is created automatically and receives Management access in the new community.</span></div></div>
           <div className="platform-community-grid">
-            <label><span>Account email</span><input value={operatorEmail} readOnly /></label>
+            <label><span>Reserved operator</span><input value={operatorEmail} readOnly /><small>The generated identifier is inserted automatically when the community is created.</small></label>
             <label><span>Initial password</span><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" required /></label>
             <label><span>Confirm password</span><input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} autoComplete="new-password" required /></label>
           </div>
@@ -484,7 +477,7 @@ function CommunitiesPanel({ operatorAccountEmail = '' }) {
         {rows.length === 0 && <div className="platform-empty">No communities found.</div>}
         {rows.map((row) => (
           <div className={`platform-community-row ${row.active ? '' : 'disabled'}`} key={row.id}>
-            <div><strong>{row.name}</strong><span>@{row.org_code}</span></div>
+            <div><strong>{row.name}</strong><span>@{row.org_code}</span><small>{String(row.org_code || '').match(/^[A-Z0-9]{2}\.[A-Z0-9]{2}$/i) ? `${String(row.org_code).toLowerCase().replace('.', '-')}.recordsweb.org` : 'Organisation code unavailable'}</small></div>
             <div><span>{row.product_package === 'complete' ? 'Complete' : row.product_package === 'policing' ? 'Policing' : 'Clinical'} · {row.system_mode === 'policing' ? 'Policing' : row.system_mode === 'hospital' ? 'Hospital' : row.system_mode === 'ambulance' ? 'Ambulance / PHEM' : 'Primary Care'}</span><small>{row.default_location || 'Main Site'}{row.tester_program ? ' · Tester Programme' : ''}</small></div>
             <div><span className={row.active ? 'community-active' : 'community-inactive'}>{row.active ? 'Active' : 'Disabled'}</span><small>{row.has_reserved_operator ? 'Operator ready' : 'Operator missing'}</small></div>
             <div className="platform-community-actions">
@@ -607,7 +600,7 @@ function CommunityBillingPanel() {
         {rows.length === 0 && <div className="platform-empty">No communities found.</div>}
         {rows.map((row) => (
           <div className="platform-billing-row" key={row.id}>
-            <div><strong>{row.name}</strong><span>@{row.org_code}</span></div>
+            <div><strong>{row.name}</strong><span>@{row.org_code}</span><small>{String(row.org_code || '').match(/^[A-Z0-9]{2}\.[A-Z0-9]{2}$/i) ? `${String(row.org_code).toLowerCase().replace('.', '-')}.recordsweb.org` : 'Organisation code unavailable'}</small></div>
             <span className={`billing-status billing-status-${row.billing_payment_exempt ? 'complimentary' : (!row.stripe_subscription_id ? 'setup' : (row.billing_status || 'active'))}`}>{row.billing_payment_exempt ? 'Payment exempt' : (!row.stripe_subscription_id ? 'Stripe setup required' : (BILLING_STATUS_OPTIONS.find(([value]) => value === row.billing_status)?.[1] || row.billing_status || 'Active'))}</span>
             <strong>{row.billing_payment_exempt ? 'No payment' : billingMoney(row.billing_monthly_price ?? 9.5)}</strong>
             <span>{row.billing_payment_exempt ? 'Excluded' : (row.billing_next_date || 'Not set')}</span>

@@ -64,8 +64,9 @@ function cleanTitle(value: unknown) { const title=String(value||'').trim(); retu
 function cleanDiscordUserId(value: unknown) { const id=String(value||'').trim(); if(!id) return ''; if(!/^\d{17,20}$/.test(id)) throw new Error('Discord User ID must be a 17–20 digit Discord ID.'); return id }
 function buildDisplayName(title:string, firstName:string, lastName:string){ return [title,firstName,lastName].map(v=>v.trim()).filter(Boolean).join(' ') }
 function requiredEnv(name:string){ const value=Deno.env.get(name); if(!value) throw new Error(`Server configuration error: ${name} is unavailable.`); return value }
-function normaliseOrganisationCode(value:unknown){ const clean=String(value||'').trim().replace(/^@+/,'').replace(/\s+/g,'').toUpperCase(); return /^[A-Z]{2}\.[A-Z]{2}$/.test(clean)?clean:'' }
+function normaliseOrganisationCode(value:unknown){ const clean=String(value||'').trim().replace(/^@+/,'').replace(/\s+/g,'').toUpperCase(); return /^[A-Z0-9]{2}\.[A-Z0-9]{2}$/.test(clean)?clean:'' }
 function normaliseUsername(value:unknown,orgCode:string){ const safeOrg=normaliseOrganisationCode(orgCode); const raw=String(value||'').trim(); if(!safeOrg)return raw; const withDomain=raw.includes('@')?raw:`${raw}@${safeOrg}`; const at=withDomain.lastIndexOf('@'); const local=withDomain.slice(0,at).trim().toLowerCase(); const domain=normaliseOrganisationCode(withDomain.slice(at+1)); return local&&domain===safeOrg?`${local}@${safeOrg}`:withDomain }
+function authEmailForUsername(username:string,orgCode:string){ const safeOrg=normaliseOrganisationCode(orgCode); const raw=String(username||'').trim().toLowerCase(); const at=raw.lastIndexOf('@'); const local=at>=0?raw.slice(0,at):raw; if(!safeOrg||!local)return raw; return /[0-9]/.test(safeOrg)?`${local}@${safeOrg.toLowerCase().replace('.', '-')}.recordsweb.org`:`${local}@${safeOrg.toLowerCase()}` }
 function validatePassword(password:string, username=''){
   if(password.length<10) return 'Password must contain at least 10 characters.'
   if(!/[A-Za-z]/.test(password)||!/[0-9]/.test(password)) return 'Password must contain at least one letter and one number.'
@@ -157,10 +158,10 @@ Deno.serve(async (req) => {
     if(body.action==='health') return json({ok:true,admin_api:true,service_role_available:true,caller_id:callerData.user.id,organisation_code:callerOrganisation?.org_code||null})
 
     if(body.action==='create'){
-      const organisationCode=normaliseOrganisationCode(callerOrganisation?.org_code), requestedOrganisationCode=normaliseOrganisationCode(body.organisation_code), username=normaliseUsername(body.username,organisationCode), authUsername=username.toLowerCase(), password=String(body.password||''), title=cleanTitle(body.title), firstName=String(body.first_name||'').trim(), lastName=String(body.last_name||'').trim()
+      const organisationCode=normaliseOrganisationCode(callerOrganisation?.org_code), requestedOrganisationCode=normaliseOrganisationCode(body.organisation_code), username=normaliseUsername(body.username,organisationCode), authUsername=authEmailForUsername(username,organisationCode), password=String(body.password||''), title=cleanTitle(body.title), firstName=String(body.first_name||'').trim(), lastName=String(body.last_name||'').trim()
       const roles=cleanRoles(body.roles,String(body.role||'Patient Coordinator'),callerOrganisation), requestedPrimary=String(body.role||'').trim(), role=roles.includes(requestedPrimary)?requestedPrimary:roles[0], displayName=buildDisplayName(title,firstName,lastName), discordUserId=cleanDiscordUserId(body.discord_user_id)
       if(requestedOrganisationCode && requestedOrganisationCode!==organisationCode) return json({error:`Your signed-in Management account belongs to @${organisationCode||'XX.XX'}. Refresh RecordsWeb or change organisation before creating this account.`},400)
-      if(!organisationCode || !authUsername.endsWith(`@${organisationCode.toLowerCase()}`)) return json({error:`Username must end in @${organisationCode||'XX.XX'}.`},400)
+      if(!organisationCode || !username.toLowerCase().endsWith(`@${organisationCode.toLowerCase()}`)) return json({error:`Username must end in @${organisationCode||'the selected organisation'}.`},400)
       if(!firstName||!lastName) return json({error:'First and last name are required.'},400)
       const policy=validatePassword(password,username); if(policy) return json({error:policy},400)
       const {data:created,error:createError}=await admin.auth.admin.createUser({email:authUsername,password,email_confirm:true,user_metadata:{recordsweb:true,display_name:displayName}})
