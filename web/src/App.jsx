@@ -51,11 +51,15 @@ import PolicingBodycamsPage from './pages/PolicingBodycamsPage'
 import PolicingRecordDetailPage from './pages/PolicingRecordDetailPage'
 import { BodycamProvider } from './contexts/BodycamContext'
 import { getOrganisationProductState } from './lib/productAccess'
+import { getInstallationState } from './lib/installation'
 
 function Protected({ children }) {
   const { session } = useAuth()
   const location = useLocation()
-  if (!session) return <Navigate to="/login" state={{ from: location }} replace />
+  if (!session) {
+    const loginPath = getInstallationState().dedicatedPortal ? '/' : '/login'
+    return <Navigate to={loginPath} state={{ from: location }} replace />
+  }
   return children
 }
 
@@ -76,16 +80,54 @@ function StaffEnvironment({ children }) {
   )
 }
 
+function DedicatedPortalLoginEnvironment({ children }) {
+  // The hostname already *is* the organisation selector on a dedicated portal.
+  // Do not show the generic installation/org-code chooser at the bare domain.
+  return (
+    <>
+      <WebUpdateManager />
+      <MaintenanceGate>
+        <AccountAccessGuard>{children}</AccountAccessGuard>
+      </MaintenanceGate>
+    </>
+  )
+}
+
+function StaffHome() {
+  const { session } = useAuth()
+  const { enabledProducts } = getOrganisationProductState(session?.profile)
+  return enabledProducts.includes('clinical') ? <HomePage /> : <PolicingHomePage />
+}
+
 function RootRoute() {
   const { session } = useAuth()
+  const { dedicatedPortal } = getInstallationState()
+
+  // A community subdomain is the sign-in address itself. Keep the public
+  // RecordsWeb marketing homepage exclusive to the main recordsweb.org host.
+  if (dedicatedPortal) {
+    if (!session) {
+      return (
+        <DedicatedPortalLoginEnvironment>
+          <LoginPage />
+        </DedicatedPortalLoginEnvironment>
+      )
+    }
+    return <Navigate to="/home" replace />
+  }
+
   if (!session) return <PublicHomePage />
-  const { enabledProducts } = getOrganisationProductState(session.profile)
-  const home = enabledProducts.includes('clinical') ? <HomePage /> : <PolicingHomePage />
   return (
     <StaffEnvironment>
-      <AppShell>{home}</AppShell>
+      <AppShell><StaffHome /></AppShell>
     </StaffEnvironment>
   )
+}
+
+function LoginRoute() {
+  const { dedicatedPortal } = getInstallationState()
+  if (dedicatedPortal) return <Navigate to="/" replace />
+  return <StaffEnvironment><LoginPage /></StaffEnvironment>
 }
 
 function StaffRoutes() {
@@ -94,6 +136,7 @@ function StaffRoutes() {
       <Protected>
         <AppShell>
           <Routes>
+            <Route path="home" element={<StaffHome />} />
             <Route element={<ProductAccessGuard product="clinical" />}>
               <Route path="patients" element={<PatientSearchPage />} />
               <Route path="patients/:patientId" element={<PatientSecurityGate section="summary"><PatientSummaryPage /></PatientSecurityGate>} />
@@ -158,7 +201,7 @@ export default function App() {
         <Route path="/billing/complete" element={<BillingCompletePage />} />
         <Route path="/billing/checkout" element={<Protected><ManagementOnly><StripeCheckoutPage /></ManagementOnly></Protected>} />
         <Route path="/billing/checkout/return" element={<Protected><ManagementOnly><StripeCheckoutPage returnMode /></ManagementOnly></Protected>} />
-        <Route path="/login" element={<StaffEnvironment><LoginPage /></StaffEnvironment>} />
+        <Route path="/login" element={<LoginRoute />} />
         <Route path="/review-request" element={<ReviewRequestPage />} />
         <Route path="/platform-management" element={<PlatformManagementPage />} />
         <Route path="/*" element={<StaffRoutes />} />

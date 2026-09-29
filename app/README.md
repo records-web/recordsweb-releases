@@ -1,9 +1,15 @@
 # RecordsWeb
+## RecordsWeb 5.3.1 — Dedicated portal root routing
+
+Community subdomains now use the hostname root itself as the sign-in screen. For example, `https://gw-hs.recordsweb.org` opens the `GW.HS` login directly, while authenticated pages use hash routes such as `https://gw-hs.recordsweb.org/#/home` and `/#/patients`. The public RecordsWeb homepage remains on the main `recordsweb.org` host.
+
+No new Supabase migration is required beyond the RecordsWeb 5.3.0 community identifier migration. The Cloudflare wildcard Worker continues to proxy organisation subdomains to the Vercel deployment.
+
 ## RecordsWeb 5.3.0 — Community identifiers & dedicated portals
 
 New communities now receive an automatically generated unique four-character organisation code in the established `XX.XX` format (letters or numbers), for example `GW.HS` or `UH.S1`. The dedicated portal uses the DNS-safe form, such as `gw-hs.recordsweb.org` or `uh-s1.recordsweb.org`.
 
-Run `supabase/recordsweb-5.3.0-community-identifiers.sql`, redeploy `recordsweb-platform-admin` and `recordsweb-admin`, then configure `*.recordsweb.org` once in Cloudflare and on the website host. No per-community Cloudflare API call is required.
+Run `supabase/recordsweb-5.3.0-community-identifiers.sql`, redeploy `recordsweb-platform-admin` and `recordsweb-admin`, then route `*.recordsweb.org` through the included Cloudflare Worker to `recordsweb.vercel.app`. No per-community Cloudflare or Vercel API call is required.
 
 ## RecordsWeb 5.2.1 — Policing navigation
 

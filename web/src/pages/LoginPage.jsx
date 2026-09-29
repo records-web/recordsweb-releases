@@ -4,7 +4,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { normaliseLoginName, signInRecordsWeb, supabaseConfigured } from '../lib/supabase'
 import { ORGANISATION } from '../lib/demoData'
 import recordsWebIcon from '../assets/recordsweb-update-logo.png'
-import { getInstalledOrganisationCode, getInstalledOrganisationSuffix } from '../lib/installation'
+import { getInstallationState, getInstalledOrganisationCode, getInstalledOrganisationSuffix } from '../lib/installation'
 import { applyOrganisationSettings, getCachedOrganisationSettings, loadOrganisationSettings } from '../lib/organisationSettings'
 import AccountRecoveryModal from '../components/security/AccountRecoveryModal'
 import OrganisationChangeModal from '../components/installation/OrganisationChangeModal'
@@ -35,6 +35,7 @@ export default function LoginPage() {
   const { login, session } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const installationState = getInstallationState()
 
   const restoreLoginFocus = useCallback((force = false) => {
     const field = usernameRef.current
@@ -104,7 +105,7 @@ export default function LoginPage() {
       await recordLoginResult({ email: loginName, organisationCode, success: true, userId: result?.user?.id })
       await registerSecuritySession({ appVersion: APP_VERSION })
       login(result)
-      navigate(location.state?.from?.pathname || '/', { replace: true })
+      navigate(location.state?.from?.pathname || (installationState.dedicatedPortal ? '/home' : '/'), { replace: true })
     } catch (err) {
       const loginName = normaliseLoginName(username)
       await recordLoginResult({ email: loginName, organisationCode, success: false, failureCode: err?.code || 'invalid_credentials' })
@@ -188,7 +189,7 @@ export default function LoginPage() {
           <span>Connection: {supabaseConfigured ? 'RecordsWeb Supabase' : 'Local demo database'}</span>
           <span className="legacy-login-organisation">
             <span>Organisation: {organisationCode}</span>
-            <button type="button" onClick={() => setChangeOrganisationOpen(true)} disabled={busy}>Change organisation</button>
+            {!installationState.dedicatedPortal && <button type="button" onClick={() => setChangeOrganisationOpen(true)} disabled={busy}>Change organisation</button>}
           </span>
         </div>
 
