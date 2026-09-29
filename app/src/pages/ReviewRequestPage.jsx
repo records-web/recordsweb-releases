@@ -5,6 +5,7 @@ import {
   Clock3,
   ExternalLink,
   FileCheck2,
+  GraduationCap,
   Hospital,
   LogOut,
   RefreshCw,
@@ -120,6 +121,8 @@ function ReviewerSignIn({ onSignedIn, currentSession }) {
 function requestModeLabel(mode) {
   if (mode === 'hospital') return 'Secondary Care (Hospital)'
   if (mode === 'ambulance') return 'Ambulance / PHEM'
+  if (mode === 'policing') return 'Policing'
+  if (mode === 'school') return 'School / Education'
   return 'Primary Care (GP)'
 }
 
@@ -293,7 +296,7 @@ export default function ReviewRequestPage() {
               <>
                 <div className="review-request-detail-heading">
                   <div className="review-request-logo-wrap">{logoUrl ? <img src={logoUrl} alt={`${selected.community_name} logo`}/> : <FileCheck2 size={28}/>}</div>
-                  <div><span>{selected.requested_mode === 'hospital' ? <><Hospital size={14}/> Secondary Care (Hospital)</> : <><Stethoscope size={14}/> {requestModeLabel(selected.requested_mode)}</>}</span><h2>{selected.community_name}</h2><p>Submitted {formatDate(selected.created_at)}</p></div>
+                  <div><span>{selected.requested_mode === 'hospital' ? <><Hospital size={14}/> Secondary Care (Hospital)</> : selected.requested_mode === 'school' ? <><GraduationCap size={14}/> School / Education</> : <><Stethoscope size={14}/> {requestModeLabel(selected.requested_mode)}</>}</span><h2>{selected.community_name}</h2><p>Submitted {formatDate(selected.created_at)}</p></div>
                   <span className={`review-request-status large ${selected.status}`}>{STATUS_LABELS[selected.status] || selected.status}</span>
                 </div>
 

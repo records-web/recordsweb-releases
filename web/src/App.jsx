@@ -49,6 +49,13 @@ import PolicingFpnPage from './pages/PolicingFpnPage'
 import PolicingRegisterPage from './pages/PolicingRegisterPage'
 import PolicingBodycamsPage from './pages/PolicingBodycamsPage'
 import PolicingRecordDetailPage from './pages/PolicingRecordDetailPage'
+import SchoolHomePage from './pages/SchoolHomePage'
+import SchoolPupilsPage from './pages/SchoolPupilsPage'
+import SchoolPupilDetailPage from './pages/SchoolPupilDetailPage'
+import SchoolClassesPage from './pages/SchoolClassesPage'
+import SchoolRegistersPage from './pages/SchoolRegistersPage'
+import SchoolAttendancePage from './pages/SchoolAttendancePage'
+import SchoolTimetablePage from './pages/SchoolTimetablePage'
 import { BodycamProvider } from './contexts/BodycamContext'
 import { getOrganisationProductState } from './lib/productAccess'
 import { getInstallationState } from './lib/installation'
@@ -96,7 +103,10 @@ function DedicatedPortalLoginEnvironment({ children }) {
 function StaffHome() {
   const { session } = useAuth()
   const { enabledProducts } = getOrganisationProductState(session?.profile)
-  return enabledProducts.includes('clinical') ? <HomePage /> : <PolicingHomePage />
+  if (enabledProducts.includes('clinical')) return <HomePage />
+  if (enabledProducts.includes('policing')) return <PolicingHomePage />
+  if (enabledProducts.includes('school')) return <SchoolHomePage />
+  return <HomePage />
 }
 
 function RootRoute() {
@@ -173,6 +183,15 @@ function StaffRoutes() {
               <Route path="policing/bodycams" element={<PolicingBodycamsPage />} />
               <Route path="policing/records/:recordType" element={<PolicingRegisterPage />} />
               <Route path="policing/records/:recordType/:recordId" element={<PolicingRecordDetailPage entityType="record" />} />
+            </Route>
+            <Route element={<ProductAccessGuard product="school" />}>
+              <Route path="school" element={<SchoolHomePage />} />
+              <Route path="school/pupils" element={<SchoolPupilsPage />} />
+              <Route path="school/pupils/:pupilId" element={<SchoolPupilDetailPage />} />
+              <Route path="school/classes" element={<SchoolClassesPage />} />
+              <Route path="school/registers" element={<SchoolRegistersPage />} />
+              <Route path="school/attendance" element={<SchoolAttendancePage />} />
+              <Route path="school/timetable" element={<SchoolTimetablePage />} />
             </Route>
             <Route path="staff-area" element={<StaffAreaPage />} />
             <Route path="management" element={<ManagementOnly><ManagementPage /></ManagementOnly>} />

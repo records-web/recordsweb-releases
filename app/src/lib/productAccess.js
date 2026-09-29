@@ -1,13 +1,14 @@
 export const RECORDSWEB_PRODUCTS = Object.freeze({
   clinical: Object.freeze({ id: 'clinical', name: 'RecordsWeb Clinical', shortName: 'Clinical', path: '/', description: 'Healthcare records, appointments, consultations, medication and care workflows.' }),
   policing: Object.freeze({ id: 'policing', name: 'RecordsWeb Policing', shortName: 'Policing', path: '/policing', description: 'Operational policing records, incidents, FPNs, persons, vehicles and intelligence.' }),
+  school: Object.freeze({ id: 'school', name: 'RecordsWeb Ro-School', shortName: 'Ro-School', path: '/school', description: 'School pupil records, classes, registers, attendance and timetable workflows.' }),
 })
 
 export const RECORDSWEB_PRODUCT_IDS = Object.freeze(Object.keys(RECORDSWEB_PRODUCTS))
 
 export function normaliseProductPackage(value) {
   const packageName = String(value || '').trim().toLowerCase()
-  return ['clinical', 'policing', 'complete', 'custom'].includes(packageName) ? packageName : 'clinical'
+  return ['clinical', 'policing', 'school', 'complete', 'custom'].includes(packageName) ? packageName : 'clinical'
 }
 
 export function normaliseEnabledProducts(value, testerProgram = false) {
@@ -52,5 +53,6 @@ export function defaultProductPath(profile, settings = {}) {
   const { enabledProducts } = getOrganisationProductState(profile, settings)
   if (enabledProducts.includes('clinical')) return '/'
   if (enabledProducts.includes('policing')) return '/policing'
+  if (enabledProducts.includes('school')) return '/school'
   return '/'
 }

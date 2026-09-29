@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react'
-import { ArrowLeft, ArrowRight, Building2, CheckCircle2, Mail, Megaphone, ShieldCheck, Stethoscope, ClipboardList, Layers } from 'lucide-react'
+import { ArrowLeft, ArrowRight, Building2, CheckCircle2, Mail, Megaphone, ShieldCheck, Stethoscope, ClipboardList, GraduationCap, Layers } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import recordsWebWordmark from '../assets/RW-Logo.png'
 import { APP_VERSION } from '../lib/webRuntime'
@@ -45,7 +45,7 @@ export default function PricingPage() {
         <section className="pricing-hero">
           <span className="public-eyebrow">RECORDSWEB PRICING</span>
           <h1>Choose the RecordsWeb product package that fits your community.</h1>
-          <p>RecordsWeb 5 separates Clinical and Policing into product entitlements. Complete communities can use both from the same staff account.</p>
+          <p>RecordsWeb separates Clinical, Policing and Ro-School into product entitlements. Complete communities can switch between all enabled products from the same staff account.</p>
         </section>
 
         <section className="pricing-layout">
@@ -72,7 +72,8 @@ export default function PricingPage() {
 
           <div className="pricing-side-column recordsweb-v5-package-column">
             <article className="pricing-card"><div className="pricing-card-heading"><div><span>POLICING</span><h2>RecordsWeb Policing</h2></div><ClipboardList size={23}/></div><p>Operational policing records including persons, vehicles, incidents, FPNs, intelligence, custody, warrants, BOLO and dispatch registers.</p><strong className="recordsweb-price-configured">Pricing agreed per approved community</strong></article>
-            <article className="pricing-card"><div className="pricing-card-heading"><div><span>COMPLETE</span><h2>RecordsWeb Complete</h2></div><Layers size={23}/></div><p>Clinical + Policing under one RecordsWeb organisation. Complete is intended to cost less than purchasing the two products separately once package pricing is configured.</p><strong className="recordsweb-price-configured">Bundle pricing agreed during setup</strong></article>
+            <article className="pricing-card"><div className="pricing-card-heading"><div><span>RO-SCHOOL</span><h2>RecordsWeb Ro-School</h2></div><GraduationCap size={23}/></div><p>Pupil records, classes, AM/PM and lesson registers, attendance analysis and timetable management.</p><strong className="recordsweb-price-configured">Pricing agreed per approved community</strong></article>
+            <article className="pricing-card"><div className="pricing-card-heading"><div><span>COMPLETE</span><h2>RecordsWeb Complete</h2></div><Layers size={23}/></div><p>Clinical + Policing + Ro-School under one RecordsWeb organisation with the built-in product switcher.</p><strong className="recordsweb-price-configured">Bundle pricing agreed during setup</strong></article>
           </div>
 
           <div className="pricing-side-column">
@@ -95,10 +96,10 @@ export default function PricingPage() {
           <h2>How billing works</h2>
           <div className="pricing-note-grid">
             <div><strong>First month</strong><span>Eligible new Clinical organisations pay £5 for their first month. The normal £7 setup fee is included in that introductory price unless another package arrangement has been agreed.</span></div>
-            <div><strong>After the first month</strong><span>The standard RecordsWeb Clinical subscription is £9.50 per month. Policing and Complete pricing is agreed separately until dedicated package pricing is configured.</span></div>
+            <div><strong>After the first month</strong><span>The standard RecordsWeb Clinical subscription is £9.50 per month. Policing, Ro-School and Complete pricing is agreed separately until dedicated package pricing is configured.</span></div>
             <div><strong>Additional work</strong><span>Optional integrations and bespoke services are quoted separately and are never added without agreement.</span></div>
           </div>
-          <p className="pricing-disclaimer">RecordsWeb is a fictional roleplay/simulation operations platform. Clinical modules are not NHS services and Policing modules are not connected to real law-enforcement systems.</p>
+          <p className="pricing-disclaimer">RecordsWeb is a fictional roleplay/simulation operations platform. Clinical modules are not NHS services, Policing modules are not connected to real law-enforcement systems, and Ro-School is not a statutory school MIS or DfE reporting service.</p>
         </section>
       </main>
 

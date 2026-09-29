@@ -2,8 +2,8 @@
   "name": "recordsweb-web",
   "productName": "RecordsWeb Web",
   "private": true,
-  "version": "5.3.1",
-  "description": "RecordsWeb multi-service operations platform for GP, Hospital, Ambulance/PHEM and Policing communities",
+  "version": "5.4.0",
+  "description": "RecordsWeb multi-service operations platform for Clinical, Policing and Ro-School communities",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0",

@@ -24,6 +24,11 @@ const POLICING_ROLES = [
   'Detective Chief Inspector','Detective Inspector','Detective Sergeant','Detective Constable','Special Constable',
   'Police Community Support Officer','Custody Sergeant','Detention Officer','Control Room Operator','Police Staff',
 ] as const
+const SCHOOL_ROLES = [
+  'Headteacher','Deputy Headteacher','Assistant Headteacher','Head of Year','Head of Department','Teacher',
+  'Cover Supervisor','Teaching Assistant','SENCO','Designated Safeguarding Lead','Pastoral Manager','Attendance Officer',
+  'Examinations Officer','Data Manager','School Business Manager','Reception / Office Staff',
+] as const
 const ALLOWED_TITLES = ['', 'Mr', 'Mrs', 'Miss', 'Ms', 'Mx', 'Dr', 'Prof'] as const
 const COMMON_PASSWORDS = new Set(['password123','password1','qwerty123','letmein123','welcome123','recordsweb1','groveway123','changeme123','admin12345','1234567890'])
 
@@ -31,30 +36,36 @@ function clinicalRoles(systemMode = 'general_practice'): readonly string[] {
   return systemMode === 'hospital' ? SECONDARY_CARE_ROLES : systemMode === 'ambulance' ? AMBULANCE_ROLES : PRIMARY_CARE_ROLES
 }
 function enabledProducts(organisation: any) {
-  if (organisation?.tester_program === true) return ['clinical','policing']
+  if (organisation?.tester_program === true) return ['clinical','policing','school']
   const raw = Array.isArray(organisation?.enabled_products) ? organisation.enabled_products : []
-  const products = [...new Set(raw.map((item: unknown) => String(item || '').trim().toLowerCase()).filter((item: string) => ['clinical','policing'].includes(item)))]
+  const products = [...new Set(raw.map((item: unknown) => String(item || '').trim().toLowerCase()).filter((item: string) => ['clinical','policing','school'].includes(item)))]
   if (products.length) return products
   const packageName = String(organisation?.product_package || 'clinical').toLowerCase()
-  if (packageName === 'complete') return ['clinical','policing']
+  if (packageName === 'complete') return ['clinical','policing','school']
   if (packageName === 'policing') return ['policing']
+  if (packageName === 'school') return ['school']
   return ['clinical']
 }
 function cleanRoles(value: unknown, fallback = 'Patient Coordinator', organisation: any = {}) {
   const products = enabledProducts(organisation)
   const clinical = clinicalRoles(String(organisation?.system_mode || 'general_practice'))
-  const allowed: readonly string[] = products.includes('clinical') && products.includes('policing')
-    ? [...clinical, ...POLICING_ROLES]
-    : products.includes('policing')
-      ? POLICING_ROLES
-      : clinical
-  const defaultRole = products.includes('policing') && !products.includes('clinical')
-    ? 'Police Constable'
-    : String(organisation?.system_mode || 'general_practice') === 'hospital'
-      ? 'Consultant'
-      : String(organisation?.system_mode || 'general_practice') === 'ambulance'
-        ? 'Paramedic'
-        : 'Patient Coordinator'
+  const allowed = [...new Set([
+    ...(products.includes('clinical') ? clinical : []),
+    ...(products.includes('policing') ? POLICING_ROLES : []),
+    ...(products.includes('school') ? SCHOOL_ROLES : []),
+  ])]
+  const mode = String(organisation?.system_mode || 'general_practice')
+  const defaultRole = products.includes('school') && !products.includes('clinical') && !products.includes('policing')
+    ? 'Teacher'
+    : products.includes('policing') && !products.includes('clinical') && !products.includes('school')
+      ? 'Police Constable'
+      : mode === 'hospital'
+        ? 'Consultant'
+        : mode === 'ambulance'
+          ? 'Paramedic'
+          : mode === 'school'
+            ? 'Teacher'
+            : 'Patient Coordinator'
   const source = Array.isArray(value) ? value : []
   const clean = [...new Set(source.map((item) => String(item || '').trim()).filter((role) => allowed.includes(role)))]
   const safeFallback = allowed.includes(fallback) ? fallback : defaultRole

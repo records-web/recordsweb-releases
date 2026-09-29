@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
-import { Ambulance, ArrowRight, Building2, CheckCircle2, ClipboardList, Gamepad2, Handshake, Hospital, ImagePlus, LockKeyhole, Mail, Moon, Send, Stethoscope, Sun, Users } from 'lucide-react'
+import { Ambulance, ArrowRight, Building2, CheckCircle2, ClipboardList, Gamepad2, GraduationCap, Handshake, Hospital, ImagePlus, LockKeyhole, Mail, Moon, Send, Stethoscope, Sun, Users } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
 import recordsWebWordmark from '../assets/RW-Logo.png'
 import { submitRecordsWebAccessRequest } from '../lib/accessRequestService'
@@ -21,10 +21,10 @@ const INITIAL_FORM = {
 }
 
 const FEATURES = [
-  [Building2, 'Service-specific workspaces', 'RecordsWeb adapts its navigation, records and workflows for GP, hospital, ambulance/PHEM and policing communities.'],
+  [Building2, 'Service-specific workspaces', 'RecordsWeb adapts its navigation, records and workflows for GP, hospital, ambulance/PHEM, policing and school communities.'],
   [Users, 'Staff & role management', 'Assign service-appropriate roles and keep staff access scoped to the community and product they are meant to use.'],
   [LockKeyhole, 'Security & organisation isolation', 'Each approved community receives its own four-character RecordsWeb organisation code and dedicated subdomain, protected data boundary, sessions and audit controls.'],
-  [ClipboardList, 'Operational records', 'Keep clinical and policing records in purpose-built modules without mixing the underlying datasets or workflows.'],
+  [ClipboardList, 'Operational records', 'Keep clinical, policing and school records in purpose-built modules without mixing the underlying datasets or workflows.'],
   [Gamepad2, 'Connected integrations', 'Connect supported Roblox and Discord workflows while RecordsWeb remains the secure source of staff and organisation permissions.'],
   [Handshake, 'Cross-service workflows', 'Clinical services can use Shared Care and operational teams can use their own dedicated coordination tools without losing platform consistency.'],
 ]
@@ -105,7 +105,7 @@ export default function PublicHomePage() {
           <div className="public-hero-copy">
             <span className="public-eyebrow">RECORDSWEB {APP_VERSION}</span>
             <h1>Your daily operations. One RecordsWeb platform.</h1>
-            <p>RecordsWeb gives approved communities one secure operations platform with separate Clinical and Policing products, shared accounts, platform security and organisation-scoped data.</p>
+            <p>RecordsWeb gives approved communities one secure operations platform with separate Clinical, Policing and Ro-School products, shared accounts, platform security and organisation-scoped data.</p>
             <div className="public-hero-actions">
               <button type="button" className="public-primary" onClick={() => navigate('/login')}>Open staff area <ArrowRight size={16}/></button>
               <button type="button" className="public-secondary" onClick={() => navigate('/pricing')}>View pricing</button>
@@ -135,7 +135,8 @@ export default function PublicHomePage() {
           <div className="recordsweb-public-product-grid">
             <article><div className="public-mode-icon"><Stethoscope size={23}/></div><div><strong>RecordsWeb Clinical</strong><p>Primary Care, Hospital and Ambulance/PHEM records, appointments, prescribing, consultations, documents and Shared Care.</p></div></article>
             <article><div className="public-mode-icon"><ClipboardList size={23}/></div><div><strong>RecordsWeb Policing</strong><p>Operational person and vehicle records, incidents, Fixed Penalty Notices, intelligence, custody, warrants, BOLOs and dispatch records.</p></div></article>
-            <article><div className="public-mode-icon"><Building2 size={23}/></div><div><strong>RecordsWeb Complete</strong><p>Clinical and Policing together under one organisation, with a built-in product switcher and shared platform security.</p></div></article>
+            <article><div className="public-mode-icon"><GraduationCap size={23}/></div><div><strong>RecordsWeb Ro-School</strong><p>Pupil records, classes, AM/PM and lesson registers, attendance analysis and timetable management for school communities.</p></div></article>
+            <article><div className="public-mode-icon"><Building2 size={23}/></div><div><strong>RecordsWeb Complete</strong><p>Clinical, Policing and Ro-School together under one organisation, with a built-in product switcher and shared platform security.</p></div></article>
           </div>
         </section>
 
@@ -146,6 +147,7 @@ export default function PublicHomePage() {
             <article><div className="public-mode-icon"><Hospital size={23}/></div><div><strong>Secondary Care (Hospital)</strong><p>Ward and episode-based working with admissions, clinical queues, discharge, hospital records and structured Shared Care transfers.</p><span className="recordsweb-service-tag">RecordsWeb Clinical</span></div></article>
             <article><div className="public-mode-icon"><Ambulance size={23}/></div><div><strong>Ambulance / PHEM</strong><p>Incident-led operations with ePCR observations and treatment, conveyance, handover, pre-alerts and ambulance-specific staff workflows.</p><span className="recordsweb-service-tag">RecordsWeb Clinical</span></div></article>
             <article><div className="public-mode-icon"><ClipboardList size={23}/></div><div><strong>Policing</strong><p>Persons, vehicles, incidents, FPNs, intelligence, custody, warrants, BOLOs, dispatch and live body-worn video operations.</p><span className="recordsweb-service-tag policing">RecordsWeb Policing</span></div></article>
+            <article><div className="public-mode-icon"><GraduationCap size={23}/></div><div><strong>School / Education</strong><p>Pupil roll management, form groups, classes, daily and lesson registers, attendance review and timetable workflows.</p><span className="recordsweb-service-tag">RecordsWeb Ro-School</span></div></article>
           </div>
         </section>
 
@@ -169,8 +171,8 @@ export default function PublicHomePage() {
           <form ref={formRef} className="public-request-form" onSubmit={submit}>
             <div className="public-form-grid">
               <label><span>Community name *</span><input value={form.communityName} onChange={(e) => update('communityName', e.target.value)} maxLength={120} required /></label>
-              <label><span>RecordsWeb product *</span><select value={form.requestedProduct} onChange={(e) => update('requestedProduct', e.target.value)}><option value="clinical">RecordsWeb Clinical</option><option value="policing">RecordsWeb Policing</option><option value="complete">RecordsWeb Complete</option></select><small>Complete combines Clinical and Policing under the same community.</small></label>
-              <label><span>Organisation type *</span><select value={form.requestedMode} onChange={(e) => update('requestedMode', e.target.value)}><option value="general_practice">Primary Care (GP)</option><option value="hospital">Secondary Care (Hospital)</option><option value="ambulance">Ambulance / PHEM</option><option value="policing">Policing</option></select><small>Choose the organisation type that best matches this RecordsWeb community.</small></label>
+              <label><span>RecordsWeb product *</span><select value={form.requestedProduct} onChange={(e) => update('requestedProduct', e.target.value)}><option value="clinical">RecordsWeb Clinical</option><option value="policing">RecordsWeb Policing</option><option value="school">RecordsWeb Ro-School</option><option value="complete">RecordsWeb Complete</option></select><small>Complete combines Clinical, Policing and Ro-School under the same community.</small></label>
+              <label><span>Organisation type *</span><select value={form.requestedMode} onChange={(e) => update('requestedMode', e.target.value)}><option value="general_practice">Primary Care (GP)</option><option value="hospital">Secondary Care (Hospital)</option><option value="ambulance">Ambulance / PHEM</option><option value="policing">Policing</option><option value="school">School / Education</option></select><small>Choose the organisation type that best matches this RecordsWeb community.</small></label>
               <label><span>Discord URL *</span><input type="url" placeholder="https://discord.gg/..." value={form.discordUrl} onChange={(e) => update('discordUrl', e.target.value)} required /></label>
               <label><span>Roblox group link *</span><input type="url" placeholder="https://www.roblox.com/communities/..." value={form.robloxGroupUrl} onChange={(e) => update('robloxGroupUrl', e.target.value)} required /></label>
               <label><span>Community members *</span><select value={form.memberRange} onChange={(e) => update('memberRange', e.target.value)} required><option value="">Select size</option><option value="10-99">10+</option><option value="100-999">100+</option><option value="1000-9999">1,000+</option><option value="10000+">10,000+</option></select></label>

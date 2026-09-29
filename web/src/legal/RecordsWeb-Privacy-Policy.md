@@ -8,9 +8,9 @@
 
 This Privacy Policy explains how RecordsWeb ("RecordsWeb", "we", "us" or "our") collects, uses, stores and protects personal information when you use the RecordsWeb website, desktop/Electron application, platform-management services, Discord integration, Roblox integration, APIs, support services and related features.
 
-RecordsWeb is a **roleplay and simulation platform**. It is not an NHS service, healthcare provider, clinical system, electronic health record, medical device or emergency service.
+RecordsWeb is a **roleplay and simulation platform**. It is not an NHS service, healthcare provider, clinical system, electronic health record, medical device, emergency service, police system or statutory school management information system.
 
-**Do not enter real patient records, real medical information, real prescriptions, real NHS numbers, or other real-world special-category health information into RecordsWeb.** Roleplay patient records should be fictional or otherwise created solely for simulation.
+**Do not enter real patient records, real medical information, real prescriptions, real NHS numbers, real pupil/school records, real safeguarding information, or other sensitive real-world records into RecordsWeb.** Roleplay patient and pupil records should be fictional and created solely for simulation.
 
 For privacy questions or requests, contact:
 
@@ -23,7 +23,7 @@ RecordsWeb is responsible for personal information used to operate user accounts
 
 A community or organisation using RecordsWeb may separately decide what information it creates or enters about its own members. Where that information is personal information and the community independently determines why and how it is used, that community may have its own data-protection responsibilities.
 
-RecordsWeb does not authorise communities to use the platform as a real clinical-record system or to upload genuine patient medical records.
+RecordsWeb does not authorise communities to use the platform as a real clinical-record system, police-record system or statutory school MIS, or to upload genuine patient medical records or genuine pupil/school records.
 
 ## 3. Information we collect
 
@@ -37,9 +37,9 @@ We may process organisation names, organisation codes, workspace configuration, 
 
 ### 3.3 Roleplay and simulation content
 
-RecordsWeb may store fictional patient profiles, simulated consultations, medication entries, fit notes, documents, appointments, referrals, investigations, shared-care records and other roleplay content created by users.
+RecordsWeb may store fictional patient profiles, simulated consultations, medication entries, fit notes, documents, appointments, referrals, investigations, shared-care records, fictional policing records, fictional Ro-School pupil profiles, classes, registers, attendance marks and timetable entries, and other roleplay content created by users.
 
-This content must not be used for genuine healthcare or contain real patient medical records.
+This content must not be used for genuine healthcare, policing or school administration and must not contain real patient medical records, genuine pupil education records or real safeguarding information.
 
 Some roleplay profiles may include identifiers connected to a real platform account, such as a Discord user ID or Roblox user ID, so that roleplay features can function. Those identifiers are personal information even where the medical content itself is fictional.
 

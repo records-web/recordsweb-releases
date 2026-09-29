@@ -88,7 +88,7 @@ export default function LegalPolicyPage({ type }) {
           <span className="public-eyebrow">RECORDSWEB LEGAL</span>
           <h1>{title}</h1>
           <p>{isPrivacy ? 'How RecordsWeb handles account, security, moderation and integration information.' : 'The rules that apply when accessing or using RecordsWeb and its integrations.'}</p>
-          <div className="legal-roleplay-notice"><ShieldCheck size={19}/><div><strong>Roleplay and simulation service</strong><span>RecordsWeb is not an NHS service, healthcare provider, clinical system, medical device or emergency service. Do not use it for genuine patient records.</span></div></div>
+          <div className="legal-roleplay-notice"><ShieldCheck size={19}/><div><strong>Roleplay and simulation service</strong><span>RecordsWeb is a roleplay/simulation platform, not a real healthcare, policing or school MIS service. Do not use it for genuine patient, policing or pupil records.</span></div></div>
         </section>
         <article className="legal-policy-document">{content}</article>
       </main>

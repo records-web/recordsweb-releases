@@ -82,28 +82,31 @@ function normaliseSystemMode(value: unknown, fallback = 'general_practice') {
   if (['hospital', 'secondary care', 'secondary_care'].includes(raw)) return 'hospital'
   if (['ambulance', 'ambulance / phem', 'ambulance/phem', 'phem', 'ambulance_phem'].includes(raw)) return 'ambulance'
   if (['policing', 'police', 'police service', 'policing service'].includes(raw)) return 'policing'
+  if (['school', 'education', 'school / education', 'ro-school', 'roschool'].includes(raw)) return 'school'
   return raw
 }
 
 
 function normaliseProductPackage(value: unknown, fallback = 'clinical') {
   const raw = String(value ?? fallback).trim().toLowerCase()
-  return ['clinical', 'policing', 'complete', 'custom'].includes(raw) ? raw : fallback
+  return ['clinical', 'policing', 'school', 'complete', 'custom'].includes(raw) ? raw : fallback
 }
 
 function normaliseEnabledProducts(value: unknown, productPackage = 'clinical', testerProgram = false) {
-  if (testerProgram || productPackage === 'complete') return ['clinical', 'policing']
+  if (testerProgram || productPackage === 'complete') return ['clinical', 'policing', 'school']
   if (productPackage === 'clinical') return ['clinical']
   if (productPackage === 'policing') return ['policing']
+  if (productPackage === 'school') return ['school']
   const fromValue = Array.isArray(value) ? value : []
-  const valid = [...new Set(fromValue.map((item) => String(item || '').trim().toLowerCase()).filter((item) => ['clinical','policing'].includes(item)))]
+  const valid = [...new Set(fromValue.map((item) => String(item || '').trim().toLowerCase()).filter((item) => ['clinical','policing','school'].includes(item)))]
   return valid.length ? valid : ['clinical']
 }
 
 function defaultReservedOperatorRole(organisation: any) {
   const packageName = normaliseProductPackage(organisation?.product_package, 'clinical')
   const products = normaliseEnabledProducts(organisation?.enabled_products, packageName, Boolean(organisation?.tester_program))
-  if (products.includes('policing') && !products.includes('clinical')) return 'Chief Constable'
+  if (products.includes('school') && !products.includes('clinical') && !products.includes('policing')) return 'Headteacher'
+  if (products.includes('policing') && !products.includes('clinical') && !products.includes('school')) return 'Chief Constable'
   return organisation?.system_mode === 'hospital' ? 'Practice Manager' : organisation?.system_mode === 'ambulance' ? 'Operations Manager' : 'GP Partner'
 }
 
@@ -128,7 +131,7 @@ function validatePassword(password: string, username = '') {
 function validateCommunityDetails(communityName: string, systemMode: string, defaultLocation: string) {
   if (!communityName) return 'Community name is required.'
   if (communityName.length > 120) return 'Community name must be 120 characters or fewer.'
-  if (!['general_practice', 'hospital', 'ambulance', 'policing'].includes(systemMode)) return 'RecordsWeb mode must be Primary Care (GP), Secondary Care (Hospital), Ambulance / PHEM or Policing.'
+  if (!['general_practice', 'hospital', 'ambulance', 'policing', 'school'].includes(systemMode)) return 'RecordsWeb mode must be Primary Care (GP), Secondary Care (Hospital), Ambulance / PHEM, Policing or School / Education.'
   if (!defaultLocation) return 'Default location is required.'
   if (defaultLocation.length > 120) return 'Default location must be 120 characters or fewer.'
   return ''
@@ -535,7 +538,7 @@ Deno.serve(async (req) => {
         .from('organisations')
         .update({
           product_package: testerProgram ? 'custom' : productPackage,
-          enabled_products: testerProgram ? ['clinical','policing'] : enabledProducts,
+          enabled_products: testerProgram ? ['clinical','policing','school'] : enabledProducts,
           tester_program: testerProgram,
           tester_since: testerProgram ? ((organisation as any).tester_program ? ((organisation as any).tester_since || new Date().toISOString()) : new Date().toISOString()) : null,
           tester_notes: testerNotes || null,

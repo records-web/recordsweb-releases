@@ -44,8 +44,12 @@ export default function AppShell({ children }) {
   const enabledProducts = productState.enabledProducts
   const rememberedProduct = (() => { try { return sessionStorage.getItem('recordsweb-active-product') || '' } catch { return '' } })()
   const sharedProductRoute = ['/staff-area','/management','/security','/settings'].some((path) => location.pathname.startsWith(path))
-  const policingActive = location.pathname.startsWith('/policing') || (!enabledProducts.includes('clinical') && enabledProducts.includes('policing')) || (sharedProductRoute && rememberedProduct === 'policing' && enabledProducts.includes('policing'))
-  const activeProduct = policingActive ? 'policing' : 'clinical'
+  const schoolOnly = !enabledProducts.includes('clinical') && !enabledProducts.includes('policing') && enabledProducts.includes('school')
+  const policingOnly = !enabledProducts.includes('clinical') && enabledProducts.includes('policing') && !enabledProducts.includes('school')
+  const schoolActive = location.pathname.startsWith('/school') || schoolOnly || (sharedProductRoute && rememberedProduct === 'school' && enabledProducts.includes('school'))
+  const policingActive = !schoolActive && (location.pathname.startsWith('/policing') || policingOnly || (sharedProductRoute && rememberedProduct === 'policing' && enabledProducts.includes('policing')))
+  const activeProduct = schoolActive ? 'school' : policingActive ? 'policing' : 'clinical'
+  const productTitle = schoolActive ? 'RecordsWeb Ro-School' : policingActive ? 'RecordsWeb Policing' : 'RecordsWeb Clinical'
   const [recordUpdate, setRecordUpdate] = useState(null)
   const [contentRevision, setContentRevision] = useState(0)
   const [patientPeers, setPatientPeers] = useState([])
@@ -60,10 +64,16 @@ export default function AppShell({ children }) {
 
   useEffect(() => {
     try {
-      if (location.pathname.startsWith('/policing')) sessionStorage.setItem('recordsweb-active-product', 'policing')
-      else if (location.pathname === '/' || location.pathname.startsWith('/patients') || location.pathname.startsWith('/appointments') || location.pathname.startsWith('/hospital') || location.pathname.startsWith('/ambulance') || location.pathname.startsWith('/shared-care')) sessionStorage.setItem('recordsweb-active-product', 'clinical')
+      if (location.pathname.startsWith('/school')) sessionStorage.setItem('recordsweb-active-product', 'school')
+      else if (location.pathname.startsWith('/policing')) sessionStorage.setItem('recordsweb-active-product', 'policing')
+      else if (location.pathname === '/') {
+        const preferred = enabledProducts.includes('clinical') ? 'clinical' : enabledProducts.includes('policing') ? 'policing' : enabledProducts.includes('school') ? 'school' : 'clinical'
+        sessionStorage.setItem('recordsweb-active-product', preferred)
+      } else if (location.pathname.startsWith('/patients') || location.pathname.startsWith('/appointments') || location.pathname.startsWith('/hospital') || location.pathname.startsWith('/ambulance') || location.pathname.startsWith('/shared-care')) {
+        sessionStorage.setItem('recordsweb-active-product', 'clinical')
+      }
     } catch {}
-  }, [location.pathname])
+  }, [location.pathname, enabledProducts.join('|')])
 
   useEffect(() => {
     const organisationId = session?.profile?.organisation_id || session?.profile?.organisations?.id || ''
@@ -207,6 +217,16 @@ export default function AppShell({ children }) {
     ['Staff Area', '/staff-area'],
   ]
 
+  const schoolRibbonLinks = [
+    ['Ro-School Home', '/school'],
+    ['Pupils', '/school/pupils'],
+    ['Registers', '/school/registers'],
+    ['Attendance', '/school/attendance'],
+    ['Classes', '/school/classes'],
+    ['Timetable', '/school/timetable'],
+    ['Staff Area', '/staff-area'],
+  ]
+
   const clinicalRibbonLinks = organisationMode === 'hospital'
     ? [
         ['Hospital Home', '/'],
@@ -239,13 +259,21 @@ export default function AppShell({ children }) {
           ['Staff Area', '/staff-area'],
         ]
 
-  const ribbonLinks = policingActive ? policingRibbonLinks : clinicalRibbonLinks
+  const ribbonLinks = schoolActive ? schoolRibbonLinks : policingActive ? policingRibbonLinks : clinicalRibbonLinks
 
   const clinicalWorklistLinks = organisationMode === 'hospital'
     ? [['Ward Board', '/hospital/ward-board'], ['Admissions', '/hospital/admissions'], ['Patients', '/patients'], ['Shared Care', '/shared-care'], ['New Patient', '/registration?returnTo=%2Fhospital%2Fadmissions'], ['Clinical Work Queue', '/work-queue']]
     : organisationMode === 'ambulance'
       ? [['Active Incidents', '/ambulance/incidents'], ['Patients', '/patients'], ['Shared Care', '/shared-care'], ['New Patient', '/registration?returnTo=%2Fambulance%2Fincidents'], ['Handover', '/ambulance/handover'], ['Clinical Work Queue', '/work-queue']]
       : [['Appointments', '/appointments'], ['Patient Search', '/patients'], ['Shared Care', '/shared-care'], ['Registration', '/registration'], ['Staff Area', '/staff-area']]
+
+  const schoolWorklistLinks = [
+    ['Take Register', '/school/registers'],
+    ['Pupil Search', '/school/pupils'],
+    ['Attendance', '/school/attendance'],
+    ['Classes', '/school/classes'],
+    ['Timetable', '/school/timetable'],
+  ]
 
   const policingWorklistLinks = [
     ['Person Search', '/policing/people'],
@@ -257,12 +285,12 @@ export default function AppShell({ children }) {
     ['Dispatch', '/policing/records/dispatch'],
     ['Bodycams', '/policing/bodycams'],
   ]
-  const worklistLinks = policingActive ? policingWorklistLinks : clinicalWorklistLinks
+  const worklistLinks = schoolActive ? schoolWorklistLinks : policingActive ? policingWorklistLinks : clinicalWorklistLinks
 
   return (
     <div className={`app-frame care-mode-${organisationMode} product-${activeProduct}`}>
       <header className="desktop-titlebar">
-        <strong>{policingActive ? 'RecordsWeb Policing' : 'RecordsWeb Clinical'} - {organisationName}</strong>
+        <strong>{productTitle} - {organisationName}</strong>
         <div className="titlebar-spacer" />
         <button onClick={() => temporaryNotice('RecordsWeb Help is managed by the local deployment administrator.')} title="Help"><CircleHelp size={15} /></button>
         <SystemNotificationCenter session={session} />
@@ -282,11 +310,11 @@ export default function AppShell({ children }) {
         </div>
         <div className="global-search">
           <Search size={16} />
-          <input aria-label={policingActive ? 'Search policing records' : 'Search patients'} placeholder={policingActive ? 'Search person, vehicle or operational reference' : 'Search patient, NHS number or record number'} onKeyDown={(e) => { if (e.key === 'Enter' && e.currentTarget.value.trim()) navigate(policingActive ? `/policing/people?q=${encodeURIComponent(e.currentTarget.value.trim())}` : `/patients?q=${encodeURIComponent(e.currentTarget.value.trim())}`) }} />
+          <input aria-label={schoolActive ? 'Search pupils' : policingActive ? 'Search policing records' : 'Search patients'} placeholder={schoolActive ? 'Search pupil, admission number, form or year group' : policingActive ? 'Search person, vehicle or operational reference' : 'Search patient, NHS number or record number'} onKeyDown={(e) => { if (e.key === 'Enter' && e.currentTarget.value.trim()) navigate(schoolActive ? `/school/pupils?q=${encodeURIComponent(e.currentTarget.value.trim())}` : policingActive ? `/policing/people?q=${encodeURIComponent(e.currentTarget.value.trim())}` : `/patients?q=${encodeURIComponent(e.currentTarget.value.trim())}`) }} />
         </div>
         <div className="header-actions">
           {policingActive && bodycamLive && <button className="recordsweb-bodycam-live-chip" title="Your bodycam is live" onClick={() => navigate('/policing/bodycams')}><Video size={15}/><span>BODYCAM LIVE</span><b>{bodycam?.callsign || bodycam?.camera_label || ''}</b></button>}
-          {enabledProducts.length > 1 && <div className="recordsweb-product-switcher" title={productState.testerProgram ? 'Tester Programme: all products enabled' : 'Switch RecordsWeb product'}><button className={!policingActive ? 'active' : ''} onClick={() => { try { sessionStorage.setItem('recordsweb-active-product', 'clinical') } catch {}; navigate('/') }}>Clinical</button><button className={policingActive ? 'active' : ''} onClick={() => { try { sessionStorage.setItem('recordsweb-active-product', 'policing') } catch {}; navigate('/policing') }}>Policing</button></div>}
+          {enabledProducts.length > 1 && <div className="recordsweb-product-switcher" title={productState.testerProgram ? 'Tester Programme: all products enabled' : 'Switch RecordsWeb product'}>{enabledProducts.includes('clinical') && <button className={activeProduct === 'clinical' ? 'active' : ''} onClick={() => { try { sessionStorage.setItem('recordsweb-active-product', 'clinical') } catch {}; navigate('/') }}>Clinical</button>}{enabledProducts.includes('policing') && <button className={activeProduct === 'policing' ? 'active' : ''} onClick={() => { try { sessionStorage.setItem('recordsweb-active-product', 'policing') } catch {}; navigate('/policing') }}>Policing</button>}{enabledProducts.includes('school') && <button className={activeProduct === 'school' ? 'active' : ''} onClick={() => { try { sessionStorage.setItem('recordsweb-active-product', 'school') } catch {}; navigate('/school') }}><GraduationCap size={12}/>Ro-School</button>}</div>}
           <ScreenMessageCenter session={session} />
           <button className={`icon-btn ${location.pathname === '/security' ? 'active' : ''}`} title="Account & Security" onClick={() => navigate('/security')}><ShieldCheck size={18} /></button>
           {profile.is_management && <button className={`icon-btn ${location.pathname === '/management' ? 'active' : ''}`} title="Management" onClick={() => navigate('/management')}><UserCog size={18} /></button>}
@@ -301,7 +329,7 @@ export default function AppShell({ children }) {
           <Link key={path} to={path}>{label}{path === '/appointments' && settings.showWorklistCounts && <strong>{appointmentCount}</strong>}</Link>
         ))}
         <div className="worklist-spacer" />
-        <span>{policingActive ? 'Policing workspace' : (organisationMode === 'hospital' ? 'Hospital workspace' : organisationMode === 'ambulance' ? 'Ambulance / PHEM workspace' : 'Primary Care workspace')} · {organisationName}</span>
+        <span>{schoolActive ? 'Ro-School workspace' : policingActive ? 'Policing workspace' : (organisationMode === 'hospital' ? 'Hospital workspace' : organisationMode === 'ambulance' ? 'Ambulance / PHEM workspace' : 'Primary Care workspace')} · {organisationName}</span>
       </div>
 
       {billingAccess.mode === 'grace' && (
@@ -327,7 +355,7 @@ export default function AppShell({ children }) {
       <footer className="status-bar recordsweb-status-bar">
         <img draggable={false} className="status-nhs-logo" src="./nhs-logo-footer.jpg" alt="NHS" />
         <span>{staffIdentity}</span>
-        <span>{policingActive ? 'RecordsWeb Policing' : 'RecordsWeb Clinical'}</span>
+        <span>{productTitle}</span>
         <span>Organisation: {organisationName}</span>
         <span>Location: {organisationLocation}</span>
         <button

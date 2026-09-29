@@ -2,8 +2,8 @@
   "name": "recordsweb",
   "productName": "RecordsWeb",
   "private": true,
-  "version": "5.3.1",
-  "description": "RecordsWeb multi-service operations platform for GP, Hospital, Ambulance/PHEM and Policing communities",
+  "version": "5.4.0",
+  "description": "RecordsWeb multi-service operations platform for Clinical, Policing and Ro-School communities",
   "main": "electron/main.cjs",
   "type": "module",
   "scripts": {

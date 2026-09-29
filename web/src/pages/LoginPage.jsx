@@ -90,6 +90,12 @@ export default function LoginPage() {
   const organisationName = organisationSettings.organisationName || ORGANISATION.name
   const organisationCode = organisationSettings.organisationCode || getInstalledOrganisationCode() || ORGANISATION.org_code
   const organisationSuffix = `@${organisationCode}`
+  const organisationTagline = organisationSettings.systemMode === 'school' ? 'Ro-School operations' : organisationSettings.systemMode === 'policing' ? 'Policing operations' : 'Daily operations platform'
+  const usageNotice = organisationSettings.systemMode === 'school'
+    ? 'Ro-School is roleplay and simulation software and is not a statutory school MIS or DfE reporting service.'
+    : organisationSettings.systemMode === 'policing'
+      ? 'RecordsWeb Policing is roleplay and simulation software and is not connected to real law-enforcement systems.'
+      : 'Roleplay and simulation operations software. Clinical modules must not be used with real patient data.'
 
   async function submit(event) {
     event.preventDefault()
@@ -125,7 +131,7 @@ export default function LoginPage() {
           <div className={`recordsweb-logo recordsweb-logo-text ${organisationSettings.logoUrl ? 'custom-community-logo-lockup' : ''}`}><img draggable={false} className="login-organisation-logo" src={organisationSettings.logoUrl || recordsWebIcon} alt={organisationSettings.logoUrl ? `${organisationName} logo` : 'RecordsWeb'} />{!organisationSettings.logoUrl && <strong>RecordsWeb</strong>}</div>
           <div className="centre-lockup">
             <strong>{organisationName}</strong>
-            <span>Daily operations platform</span>
+            <span>{organisationTagline}</span>
           </div>
         </div>
 
@@ -194,7 +200,7 @@ export default function LoginPage() {
         </div>
 
         <div className="legacy-copyright">
-          RecordsWeb · {organisationName}. Roleplay and simulation operations software. Clinical modules must not be used with real patient data.
+          RecordsWeb · {organisationName}. {usageNotice}
         </div>
         <div className="legacy-login-legal"><button type="button" onClick={() => navigate('/privacy')}>Privacy Policy</button><span>·</span><button type="button" onClick={() => navigate('/terms')}>Terms of Service</button></div>
         {recoveryMode && <AccountRecoveryModal mode={recoveryMode} onClose={() => setRecoveryMode('')} />}

@@ -40,6 +40,7 @@ const MODE_OPTIONS = [
   ['hospital', 'Secondary Care (Hospital)'],
   ['ambulance', 'Ambulance / PHEM'],
   ['policing', 'Policing'],
+  ['school', 'School / Education'],
 ]
 
 const SERVICE_OPTIONS = [

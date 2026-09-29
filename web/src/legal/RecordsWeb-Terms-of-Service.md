@@ -50,7 +50,7 @@ RecordsWeb may allow communities to create workspaces, appoint staff, assign rol
 
 Community administrators are responsible for assigning permissions appropriately, removing access that is no longer required, managing their members, and ensuring content created in their workspace complies with these Terms.
 
-A community must not present itself as an actual medical practice, NHS body, ambulance service, hospital or other real healthcare organisation in a manner that could reasonably mislead people into believing RecordsWeb provides genuine healthcare.
+A community must not present itself as an actual medical practice, NHS body, ambulance service, hospital, police service, school or other real-world public service in a manner that could reasonably mislead people into believing RecordsWeb provides genuine healthcare, policing or education services.
 
 ## 6. Prohibited real-world medical data
 
@@ -61,6 +61,12 @@ You must not upload or enter real patient medical histories, real prescriptions 
 Roleplay records should be fictional.
 
 If real personal information is accidentally submitted, contact RecordsWeb so appropriate action can be considered.
+
+## 6A. Prohibited real-world pupil data
+
+RecordsWeb Ro-School is a roleplay and simulation feature, not a statutory school management information system.
+
+You must not use Ro-School to store genuine school registers, real pupil education records, real safeguarding information, real attendance records, or other personal information about identifiable children or pupils. Ro-School pupil records should be fictional and created solely for simulation.
 
 ## 7. Acceptable use
 

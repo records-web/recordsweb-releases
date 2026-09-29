@@ -1,4 +1,10 @@
 # RecordsWeb
+## RecordsWeb 5.4.0 — Ro-School
+
+Adds **Ro-School** as a first-class School / Education organisation type and product. Ro-School provides pupil records, classes/form groups, AM/PM and lesson registers, attendance summaries and timetable management, with school-specific staff roles and product navigation.
+
+Run `supabase/recordsweb-5.4.0-ro-school.sql`, redeploy `recordsweb-platform-admin` and `recordsweb-admin`, then deploy the 5.4.0 Website/Electron source. The existing Cloudflare wildcard Worker and `XX.XX` organisation subdomains continue unchanged. See `RECORDSWEB-5.4.0-DEPLOYMENT.md`.
+
 ## RecordsWeb 5.3.1 — Dedicated portal root routing
 
 Community subdomains now use the hostname root itself as the sign-in screen. For example, `https://gw-hs.recordsweb.org` opens the `GW.HS` login directly, while authenticated pages use hash routes such as `https://gw-hs.recordsweb.org/#/home` and `/#/patients`. The public RecordsWeb homepage remains on the main `recordsweb.org` host.

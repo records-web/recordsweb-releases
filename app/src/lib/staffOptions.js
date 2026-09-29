@@ -77,9 +77,29 @@ export const POLICING_STAFF_ROLES = [
   'Police Staff',
 ]
 
+
+export const SCHOOL_STAFF_ROLES = [
+  'Headteacher',
+  'Deputy Headteacher',
+  'Assistant Headteacher',
+  'Head of Year',
+  'Head of Department',
+  'Teacher',
+  'Cover Supervisor',
+  'Teaching Assistant',
+  'SENCO',
+  'Designated Safeguarding Lead',
+  'Pastoral Manager',
+  'Attendance Officer',
+  'Examinations Officer',
+  'Data Manager',
+  'School Business Manager',
+  'Reception / Office Staff',
+]
+
 export const STAFF_ROLES = PRIMARY_CARE_STAFF_ROLES
 export const CLINICAL_STAFF_ROLES = [...new Set([...PRIMARY_CARE_STAFF_ROLES, ...SECONDARY_CARE_STAFF_ROLES, ...AMBULANCE_STAFF_ROLES])]
-export const ALL_STAFF_ROLES = [...new Set([...CLINICAL_STAFF_ROLES, ...POLICING_STAFF_ROLES])]
+export const ALL_STAFF_ROLES = [...new Set([...CLINICAL_STAFF_ROLES, ...POLICING_STAFF_ROLES, ...SCHOOL_STAFF_ROLES])]
 
 export function getClinicalStaffRoles(systemMode = 'general_practice') {
   if (systemMode === 'hospital') return SECONDARY_CARE_STAFF_ROLES
@@ -89,11 +109,13 @@ export function getClinicalStaffRoles(systemMode = 'general_practice') {
 
 export function getStaffRoles(systemMode = 'general_practice', product = 'clinical') {
   if (product === 'policing') return POLICING_STAFF_ROLES
+  if (product === 'school' || systemMode === 'school') return SCHOOL_STAFF_ROLES
   return getClinicalStaffRoles(systemMode)
 }
 
 export function getDefaultStaffRole(systemMode = 'general_practice', product = 'clinical') {
   if (product === 'policing') return 'Police Constable'
+  if (product === 'school' || systemMode === 'school') return 'Teacher'
   if (systemMode === 'hospital') return 'Consultant'
   if (systemMode === 'ambulance') return 'Paramedic'
   return 'Patient Coordinator'
@@ -107,12 +129,12 @@ export function normaliseRoles(roles, fallbackRole = 'Patient Coordinator', syst
   const allowed = product
     ? getStaffRoles(systemMode || 'general_practice', product)
     : systemMode
-      ? getClinicalStaffRoles(systemMode)
+      ? (systemMode === 'school' ? SCHOOL_STAFF_ROLES : getClinicalStaffRoles(systemMode))
       : ALL_STAFF_ROLES
   const defaultRole = product
     ? getDefaultStaffRole(systemMode || 'general_practice', product)
     : systemMode
-      ? getDefaultStaffRole(systemMode)
+      ? getDefaultStaffRole(systemMode, systemMode === 'school' ? 'school' : 'clinical')
       : 'Patient Coordinator'
   const fallback = allowed.includes(fallbackRole) ? fallbackRole : defaultRole
   const source = Array.isArray(roles) ? roles : []

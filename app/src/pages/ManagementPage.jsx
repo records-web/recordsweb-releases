@@ -28,7 +28,17 @@ export default function ManagementPage() {
   const organisationSuffix = organisationCode ? `@${organisationCode}` : '@XX.XX'
   const productState = getOrganisationProductState(session?.profile || {})
   const rememberedProduct = (() => { try { return sessionStorage.getItem('recordsweb-active-product') || '' } catch { return '' } })()
-  const managementProduct = (!productState.enabledProducts.includes('clinical') && productState.enabledProducts.includes('policing')) || (rememberedProduct === 'policing' && productState.enabledProducts.includes('policing')) ? 'policing' : 'clinical'
+  const managementProduct = rememberedProduct === 'school' && productState.enabledProducts.includes('school')
+    ? 'school'
+    : rememberedProduct === 'policing' && productState.enabledProducts.includes('policing')
+      ? 'policing'
+      : productState.enabledProducts.includes('clinical')
+        ? 'clinical'
+        : productState.enabledProducts.includes('policing')
+          ? 'policing'
+          : productState.enabledProducts.includes('school')
+            ? 'school'
+            : 'clinical'
   const [rows, setRows] = useState([])
   const [section, setSection] = useState('staff')
   const [createOpen, setCreateOpen] = useState(false)
